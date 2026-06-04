@@ -1,0 +1,2241 @@
+diff --git a/__tests__/ClientAuthn.spec.ts b/__tests__/ClientAuthn.spec.ts
+index f2d6ba82dc..8e57185ef5 100644
+--- a/__tests__/ClientAuthn.spec.ts
++++ b/__tests__/ClientAuthn.spec.ts
+@@ -24,16 +24,16 @@ import "reflect-metadata";
+ import { LoginHandlerMock } from "../src/login/__mocks__/LoginHandler";
+ import {
+   RedirectHandlerMock,
+-  RedirectHandlerResponse
++  RedirectHandlerResponse,
+ } from "../src/login/oidc/redirectHandler/__mocks__/RedirectHandler";
+ import { LogoutHandlerMock } from "../src/logout/__mocks__/LogoutHandler";
+ import {
+   SessionInfoManagerMock,
+-  SessionCreatorCreateResponse
++  SessionCreatorCreateResponse,
+ } from "../src/sessionInfo/__mocks__/SessionInfoManager";
+ import {
+   AuthenticatedFetcherMock,
+-  AuthenticatedFetcherResponse
++  AuthenticatedFetcherResponse,
+ } from "../src/authenticatedFetch/__mocks__/AuthenticatedFetcher";
+ import { EnvironmentDetectorMock } from "../src/util/__mocks__/EnvironmentDetector";
+ import ClientAuthentication from "../src/ClientAuthentication";
+@@ -46,7 +46,7 @@ describe("ClientAuthentication", () => {
+     logoutHandler: LogoutHandlerMock,
+     sessionInfoManager: SessionInfoManagerMock,
+     authenticatedFetcher: AuthenticatedFetcherMock,
+-    environmentDetector: EnvironmentDetectorMock
++    environmentDetector: EnvironmentDetectorMock,
+   };
+   function getClientAuthentication(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -67,7 +67,7 @@ describe("ClientAuthentication", () => {
+       await clientAuthn.login("mySession", {
+         clientId: "coolApp",
+         redirectUrl: new URL("https://coolapp.com/redirect"),
+-        oidcIssuer: new URL("https://idp.com")
++        oidcIssuer: new URL("https://idp.com"),
+       });
+       expect(defaultMocks.loginHandler.handle).toHaveBeenCalledWith({
+         sessionId: "mySession",
+@@ -77,7 +77,7 @@ describe("ClientAuthentication", () => {
+         popUp: false,
+         clientName: "coolApp",
+         clientSecret: undefined,
+-        handleRedirect: undefined
++        handleRedirect: undefined,
+       });
+     });
+   });
+@@ -93,7 +93,7 @@ describe("ClientAuthentication", () => {
+       expect(defaultMocks.authenticatedFetcher.handle).toHaveBeenCalledWith(
+         {
+           localUserId: "mySession",
+-          type: "dpop"
++          type: "dpop",
+         },
+         "https://zombo.com",
+         undefined
+diff --git a/__tests__/authenticatedFetch/AggregateAuthenticatedFetcher.spec.ts b/__tests__/authenticatedFetch/AggregateAuthenticatedFetcher.spec.ts
+index 88bf05a0cd..313b06fd98 100644
+--- a/__tests__/authenticatedFetch/AggregateAuthenticatedFetcher.spec.ts
++++ b/__tests__/authenticatedFetch/AggregateAuthenticatedFetcher.spec.ts
+@@ -29,11 +29,11 @@ jest.mock("../../src/util/handlerPattern/AggregateHandler");
+ describe("AggregateAuthenticatedFetcher", () => {
+   it("should pass injected fetchers to its superclass", () => {
+     new AggregateAuthenticatedFetcher(([
+-      "Some fetcher"
++      "Some fetcher",
+     ] as unknown) as IAuthenticatedFetcher[]);
+ 
+     expect((AggregateHandler as jest.Mock).mock.calls).toEqual([
+-      [["Some fetcher"]]
++      [["Some fetcher"]],
+     ]);
+   });
+ });
+diff --git a/__tests__/authenticatedFetch/bearer/BearerAuthenticatedFetcher.spec.ts b/__tests__/authenticatedFetch/bearer/BearerAuthenticatedFetcher.spec.ts
+index b2d4ff235e..18bb951760 100644
+--- a/__tests__/authenticatedFetch/bearer/BearerAuthenticatedFetcher.spec.ts
++++ b/__tests__/authenticatedFetch/bearer/BearerAuthenticatedFetcher.spec.ts
+@@ -26,13 +26,13 @@ import { FetcherMock } from "../../../src/util/__mocks__/Fetcher";
+ import {
+   StorageUtilityMock,
+   StorageUtilityGetResponse,
+-  mockStorageUtility
++  mockStorageUtility,
+ } from "../../../src/storage/__mocks__/StorageUtility";
+ 
+ describe("BearerAuthenticatedFetcher", () => {
+   const defaultMocks = {
+     fetcher: FetcherMock,
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getBearerAuthenticatedFetcher(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -82,7 +82,7 @@ describe("BearerAuthenticatedFetcher", () => {
+ 
+     it("throws if no auth token is found in storage", async () => {
+       const fetcher = getBearerAuthenticatedFetcher({
+-        storageUtility: mockStorageUtility({}, true)
++        storageUtility: mockStorageUtility({}, true),
+       });
+       await expect(() =>
+         fetcher.handle(
+@@ -101,8 +101,8 @@ describe("BearerAuthenticatedFetcher", () => {
+       );
+       expect(fetcher.fetch).toHaveBeenCalledWith("http://example.com", {
+         headers: {
+-          authorization: `Bearer ${StorageUtilityGetResponse}`
+-        }
++          authorization: `Bearer ${StorageUtilityGetResponse}`,
++        },
+       });
+     });
+ 
+@@ -118,8 +118,8 @@ describe("BearerAuthenticatedFetcher", () => {
+       expect(fetcher.fetch).toHaveBeenCalledWith("http://example.com", {
+         headers: {
+           authorization: `Bearer ${StorageUtilityGetResponse}`,
+-          Accept: "text/turtle"
+-        }
++          Accept: "text/turtle",
++        },
+       });
+     });
+   });
+diff --git a/__tests__/authenticatedFetch/dpop/DpopAuthenticatedFetcher.spec.ts b/__tests__/authenticatedFetch/dpop/DpopAuthenticatedFetcher.spec.ts
+index 70726b6a2a..8209c11cbc 100644
+--- a/__tests__/authenticatedFetch/dpop/DpopAuthenticatedFetcher.spec.ts
++++ b/__tests__/authenticatedFetch/dpop/DpopAuthenticatedFetcher.spec.ts
+@@ -27,17 +27,17 @@ import DpopAuthenticatedFetcher from "../../../src/authenticatedFetch/dpop/DpopA
+ import URL from "url-parse";
+ import {
+   DpopHeaderCreatorMock,
+-  DpopHeaderCreatorResponse
++  DpopHeaderCreatorResponse,
+ } from "../../../src/dpop/__mocks__/DpopHeaderCreator";
+ import {
+   FetcherMock,
+-  FetcherMockResponse
++  FetcherMockResponse,
+ } from "../../../src/util/__mocks__/Fetcher";
+ import { UrlRepresentationConverterMock } from "../../../src/util/__mocks__/UrlRepresentationConverter";
+ import {
+   StorageUtilityMock,
+   StorageUtilityGetResponse,
+-  mockStorageUtility
++  mockStorageUtility,
+ } from "../../../src/storage/__mocks__/StorageUtility";
+ 
+ describe("DpopAuthenticatedFetcher", () => {
+@@ -45,7 +45,7 @@ describe("DpopAuthenticatedFetcher", () => {
+     fetcher: FetcherMock,
+     dpopHeaderCreator: DpopHeaderCreatorMock,
+     urlRepresentationConverter: UrlRepresentationConverterMock,
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getDpopAuthenticatedFetcher(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -84,7 +84,7 @@ describe("DpopAuthenticatedFetcher", () => {
+ 
+     it("rejects configs where the token isn't available", async () => {
+       const dpopAuthenticatedFetcher = getDpopAuthenticatedFetcher({
+-        storageUtility: mockStorageUtility({})
++        storageUtility: mockStorageUtility({}),
+       });
+       expect(
+         await dpopAuthenticatedFetcher.canHandle(
+@@ -115,12 +115,12 @@ describe("DpopAuthenticatedFetcher", () => {
+       const fetcher = FetcherMock;
+       const dpopAuthenticatedFetcher = getDpopAuthenticatedFetcher({
+         dpopHeaderCreator: dpopHeaderCreator,
+-        fetcher: fetcher
++        fetcher: fetcher,
+       });
+       const url = new URL("https://example.com");
+       const requestCredentials = {
+         type: "dpop",
+-        localUserId: "global"
++        localUserId: "global",
+       };
+       const init = {};
+       const response = await dpopAuthenticatedFetcher.handle(
+@@ -135,8 +135,8 @@ describe("DpopAuthenticatedFetcher", () => {
+       expect(fetcher.fetch).toHaveBeenCalledWith(url.toString(), {
+         headers: {
+           authorization: `DPOP ${StorageUtilityGetResponse}`,
+-          dpop: DpopHeaderCreatorResponse
+-        }
++          dpop: DpopHeaderCreatorResponse,
++        },
+       });
+       expect(response).toBe(FetcherMockResponse);
+     });
+@@ -147,12 +147,12 @@ describe("DpopAuthenticatedFetcher", () => {
+     const fetcher = FetcherMock;
+     const dpopAuthenticatedFetcher = getDpopAuthenticatedFetcher({
+       dpopHeaderCreator: dpopHeaderCreator,
+-      fetcher: fetcher
++      fetcher: fetcher,
+     });
+     const url = new URL("https://example.com");
+     const requestCredentials = {
+       type: "dpop",
+-      localUserId: "global"
++      localUserId: "global",
+     };
+     const init = { headers: { Accept: "text/turtle" } };
+     const response = await dpopAuthenticatedFetcher.handle(
+@@ -168,8 +168,8 @@ describe("DpopAuthenticatedFetcher", () => {
+       headers: {
+         authorization: `DPOP ${StorageUtilityGetResponse}`,
+         dpop: DpopHeaderCreatorResponse,
+-        Accept: "text/turtle"
+-      }
++        Accept: "text/turtle",
++      },
+     });
+     expect(response).toBe(FetcherMockResponse);
+   });
+diff --git a/__tests__/authenticatedFetch/headers/HeadersUtils.spec.ts b/__tests__/authenticatedFetch/headers/HeadersUtils.spec.ts
+index 77767c7b1c..6ecbba5bca 100644
+--- a/__tests__/authenticatedFetch/headers/HeadersUtils.spec.ts
++++ b/__tests__/authenticatedFetch/headers/HeadersUtils.spec.ts
+@@ -36,7 +36,7 @@ describe("Headers interoperability function", () => {
+     const flatHeaders = flattenHeaders(myHeaders);
+     expect(Object.entries(flatHeaders)).toEqual([
+       ["accept", "application/json"],
+-      ["content-type", "text/turtle"]
++      ["content-type", "text/turtle"],
+     ]);
+   });
+ 
+@@ -52,7 +52,7 @@ describe("Headers interoperability function", () => {
+     const flatHeaders = flattenHeaders(myHeaders);
+     expect(Object.entries(flatHeaders)).toEqual([
+       ["accept", "application/json"],
+-      ["content-type", "text/turtle"]
++      ["content-type", "text/turtle"],
+     ]);
+   });
+ });
+diff --git a/__tests__/authenticatedFetch/unauthenticated/UnautenticatedFetcher.spec.ts b/__tests__/authenticatedFetch/unauthenticated/UnautenticatedFetcher.spec.ts
+index 17c270feb4..9b8571d198 100644
+--- a/__tests__/authenticatedFetch/unauthenticated/UnautenticatedFetcher.spec.ts
++++ b/__tests__/authenticatedFetch/unauthenticated/UnautenticatedFetcher.spec.ts
+@@ -28,14 +28,14 @@ import { FetcherMock } from "../../../src/util/__mocks__/Fetcher";
+ import { UrlRepresentationConverterMock } from "../../../src/util/__mocks__/UrlRepresentationConverter";
+ import {
+   StorageUtilityMock,
+-  mockStorageUtility
++  mockStorageUtility,
+ } from "../../../src/storage/__mocks__/StorageUtility";
+ 
+ describe("UnauthenticatedFetcher", () => {
+   const defaultMocks = {
+     fetcher: FetcherMock,
+     urlRepresentationConverter: UrlRepresentationConverterMock,
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getUnauthenticatedFetcher(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -66,7 +66,7 @@ describe("UnauthenticatedFetcher", () => {
+       const fetcher = FetcherMock;
+       const unauthenticatedFetcher = getUnauthenticatedFetcher({
+         fetcher: fetcher,
+-        storageUtility: mockStorageUtility({})
++        storageUtility: mockStorageUtility({}),
+       });
+       const url = "http://someurl.com";
+       await unauthenticatedFetcher.handle(
+@@ -74,7 +74,7 @@ describe("UnauthenticatedFetcher", () => {
+         url
+       );
+       expect(fetcher.fetch).toHaveBeenCalledWith(url, {
+-        method: "GET"
++        method: "GET",
+       });
+     });
+ 
+@@ -82,7 +82,7 @@ describe("UnauthenticatedFetcher", () => {
+       const fetcher = FetcherMock;
+       const unauthenticatedFetcher = getUnauthenticatedFetcher({
+         fetcher: fetcher,
+-        storageUtility: mockStorageUtility({})
++        storageUtility: mockStorageUtility({}),
+       });
+       const url = "http://someurl.com";
+       await unauthenticatedFetcher.handle(
+@@ -92,7 +92,7 @@ describe("UnauthenticatedFetcher", () => {
+       );
+       expect(fetcher.fetch).toHaveBeenCalledWith(url, {
+         headers: { Accept: "text/turtle" },
+-        method: "GET"
++        method: "GET",
+       });
+     });
+ 
+@@ -100,7 +100,7 @@ describe("UnauthenticatedFetcher", () => {
+       const fetcher = FetcherMock;
+       const unauthenticatedFetcher = getUnauthenticatedFetcher({
+         fetcher: fetcher,
+-        storageUtility: mockStorageUtility({})
++        storageUtility: mockStorageUtility({}),
+       });
+       const url = "http://someurl.com";
+       await unauthenticatedFetcher.handle(
+@@ -109,7 +109,7 @@ describe("UnauthenticatedFetcher", () => {
+         { method: "HEAD" }
+       );
+       expect(fetcher.fetch).toHaveBeenCalledWith(url, {
+-        method: "HEAD"
++        method: "HEAD",
+       });
+     });
+   });
+diff --git a/__tests__/dependencies.spec.ts b/__tests__/dependencies.spec.ts
+index ade0f7e5ca..0df267a0ed 100644
+--- a/__tests__/dependencies.spec.ts
++++ b/__tests__/dependencies.spec.ts
+@@ -31,7 +31,7 @@ describe("dependencies", () => {
+ 
+   it("performs dependency injection with a given input", () => {
+     const clientAuthn = getClientAuthenticationWithDependencies({
+-      secureStorage: StorageMock
++      secureStorage: StorageMock,
+     });
+     expect(clientAuthn).toBeInstanceOf(ClientAuthentication);
+   });
+diff --git a/__tests__/dpop/DpopClientKeyManager.spec.ts b/__tests__/dpop/DpopClientKeyManager.spec.ts
+index c0749aeb74..0d8fa63941 100644
+--- a/__tests__/dpop/DpopClientKeyManager.spec.ts
++++ b/__tests__/dpop/DpopClientKeyManager.spec.ts
+@@ -26,14 +26,14 @@ import "reflect-metadata";
+ import { StorageUtilityMock } from "../../src/storage/__mocks__/StorageUtility";
+ import {
+   JoseUtilityMock,
+-  JoseUtilityGenerateJWKResponse
++  JoseUtilityGenerateJWKResponse,
+ } from "../../src/jose/__mocks__/JoseUtility";
+ import DpopClientKeyManager from "../../src/dpop/DpopClientKeyManager";
+ 
+ describe("DpopClientKeyManager", () => {
+   const defaultMocks = {
+     joseUtility: JoseUtilityMock,
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getDpopClientKeyManager(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -50,7 +50,7 @@ describe("DpopClientKeyManager", () => {
+       const storageRetrieverMock = StorageUtilityMock;
+       storageRetrieverMock.safeGet.mockReturnValueOnce(Promise.resolve(null));
+       const dpopClientKeyManager = getDpopClientKeyManager({
+-        storageUtility: storageRetrieverMock
++        storageUtility: storageRetrieverMock,
+       });
+ 
+       await dpopClientKeyManager.generateClientKeyIfNotAlready();
+@@ -68,7 +68,7 @@ describe("DpopClientKeyManager", () => {
+         Promise.resolve({ kty: "RSA" })
+       );
+       const dpopClientKeyManager = getDpopClientKeyManager({
+-        storageUtility: storageUtilityMock
++        storageUtility: storageUtilityMock,
+       });
+ 
+       await dpopClientKeyManager.generateClientKeyIfNotAlready();
+@@ -83,7 +83,7 @@ describe("DpopClientKeyManager", () => {
+       const storageUtilityMock = StorageUtilityMock;
+       storageUtilityMock.get.mockReturnValueOnce(Promise.resolve(savedKey));
+       const dpopClientKeyManager = getDpopClientKeyManager({
+-        storageUtility: storageUtilityMock
++        storageUtility: storageUtilityMock,
+       });
+ 
+       const clientKey = await dpopClientKeyManager.getClientKey();
+diff --git a/__tests__/dpop/DpopHeaderCreator.spec.ts b/__tests__/dpop/DpopHeaderCreator.spec.ts
+index bd73a77390..b9b8dfd6c6 100644
+--- a/__tests__/dpop/DpopHeaderCreator.spec.ts
++++ b/__tests__/dpop/DpopHeaderCreator.spec.ts
+@@ -25,7 +25,7 @@
+ import "reflect-metadata";
+ import {
+   JoseUtilityMock,
+-  JoseUtilitySignJWTResponse
++  JoseUtilitySignJWTResponse,
+ } from "../../src/jose/__mocks__/JoseUtility";
+ import { DpopClientKeyManagerMock } from "../../src/dpop/__mocks__/DpopClientKeyManager";
+ import { UuidGeneratorMock } from "../../src/util/__mocks__/UuidGenerator";
+@@ -36,7 +36,7 @@ describe("DpopHeaderCreator", () => {
+   const defaultMocks = {
+     joseUtility: JoseUtilityMock,
+     dpopClientKeyManager: DpopClientKeyManagerMock,
+-    uuidGenerator: UuidGeneratorMock
++    uuidGenerator: UuidGeneratorMock,
+   };
+   function getDpopHeaderCreator(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -65,7 +65,7 @@ describe("DpopHeaderCreator", () => {
+         Promise.resolve(undefined)
+       );
+       const dpopHeaderCreator = getDpopHeaderCreator({
+-        dpopClientKeyManager: dpopClientKeyManagerMock
++        dpopClientKeyManager: dpopClientKeyManagerMock,
+       });
+       await expect(
+         dpopHeaderCreator.createHeaderToken(
+@@ -83,49 +83,49 @@ describe("DpopHeaderCreator", () => {
+       {
+         it: "should not change a url",
+         url: new URL("https://audience.com"),
+-        expected: "https://audience.com"
++        expected: "https://audience.com",
+       },
+       {
+         it: "should not change a URL with a slash at the end",
+         url: new URL("https://audience.com/"),
+-        expected: "https://audience.com/"
++        expected: "https://audience.com/",
+       },
+       {
+         it: "should not include queries",
+         url: new URL("https://audience.com?cool=stuff&dope=things"),
+-        expected: "https://audience.com"
++        expected: "https://audience.com",
+       },
+       {
+         it: "should not include queries but still include a slash",
+         url: new URL("https://audience.com/?cool=stuff&dope=things"),
+-        expected: "https://audience.com/"
++        expected: "https://audience.com/",
+       },
+       {
+         it: "should not include hash",
+         url: new URL("https://audience.com#throwBackThursday"),
+-        expected: "https://audience.com"
++        expected: "https://audience.com",
+       },
+       {
+         it: "should not include hash but include the slash",
+         url: new URL("https://audience.com/#throwBackThursday"),
+-        expected: "https://audience.com/"
++        expected: "https://audience.com/",
+       },
+       {
+         it: "should include the path",
+         url: new URL("https://audience.com/path"),
+-        expected: "https://audience.com/path"
++        expected: "https://audience.com/path",
+       },
+       {
+         it: "should not include the username and password",
+         url: new URL("https://jackson:badpassword@audience.com"),
+-        expected: "https://audience.com"
++        expected: "https://audience.com",
+       },
+       {
+         it: "should include ports",
+         url: new URL("https://localhost:8080/path"),
+-        expected: "https://localhost:8080/path"
+-      }
+-    ].forEach(test => {
++        expected: "https://localhost:8080/path",
++      },
++    ].forEach((test) => {
+       it(test.it, () => {
+         const dpopHeaderCreator = getDpopHeaderCreator();
+         const htu = dpopHeaderCreator.normalizeHtu(test.url);
+diff --git a/__tests__/errors/errors.spec.ts b/__tests__/errors/errors.spec.ts
+index f424eb4fa0..801289a85b 100644
+--- a/__tests__/errors/errors.spec.ts
++++ b/__tests__/errors/errors.spec.ts
+@@ -38,23 +38,23 @@ describe("errors", () => {
+       name: "ConfigurationError",
+       class: ConfigurationError,
+       params: ["Bad Config"],
+-      message: "Bad Config"
++      message: "Bad Config",
+     },
+     {
+       name: "HandlerNotFoundError",
+       class: HandlerNotFoundError,
+       params: ["HandlerName", [1, 2]],
+-      message: "[HandlerName] cannot find a suitable handler for: 1, 2"
++      message: "[HandlerName] cannot find a suitable handler for: 1, 2",
+     },
+     {
+       name: "NotImplementedError",
+       class: NotImplementedError,
+       params: ["FunctionName"],
+-      message: "[FunctionName] is not implemented"
+-    }
++      message: "[FunctionName] is not implemented",
++    },
+   ];
+ 
+-  errors.forEach(err => {
++  errors.forEach((err) => {
+     it(`Should throw [${err.name}]`, () => {
+       expect(() => {
+         const error = new err.class(...err.params);
+diff --git a/__tests__/localStorage/StorageUtility.spec.ts b/__tests__/localStorage/StorageUtility.spec.ts
+index a8739e1125..6f5012e5aa 100644
+--- a/__tests__/localStorage/StorageUtility.spec.ts
++++ b/__tests__/localStorage/StorageUtility.spec.ts
+@@ -26,7 +26,7 @@ import StorageUtility from "../../src/storage/StorageUtility";
+ 
+ describe("StorageUtility", () => {
+   const defaultMocks = {
+-    storage: StorageMock
++    storage: StorageMock,
+   };
+   function getStorageUtility(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -87,7 +87,7 @@ describe("StorageUtility", () => {
+       const storageMock = defaultMocks.storage;
+       const userData = {
+         jackie: "The Cat",
+-        sledge: "The Dog"
++        sledge: "The Dog",
+       };
+       storageMock.get.mockReturnValueOnce(
+         Promise.resolve(JSON.stringify(userData))
+@@ -139,14 +139,14 @@ describe("StorageUtility", () => {
+       const storageMock = defaultMocks.storage;
+       const userData = {
+         jackie: "The Cat",
+-        sledge: "The Dog"
++        sledge: "The Dog",
+       };
+       storageMock.get.mockReturnValueOnce(
+         Promise.resolve(JSON.stringify(userData))
+       );
+       const storageUtility = getStorageUtility({ storage: storageMock });
+       await storageUtility.setForUser("animals", {
+-        jackie: "The Pretty Kitty"
++        jackie: "The Pretty Kitty",
+       });
+       expect(storageMock.get).toHaveBeenCalledWith(
+         "solidClientAuthenticationUser:animals"
+@@ -155,7 +155,7 @@ describe("StorageUtility", () => {
+         "solidClientAuthenticationUser:animals",
+         JSON.stringify({
+           jackie: "The Pretty Kitty",
+-          sledge: "The Dog"
++          sledge: "The Dog",
+         })
+       );
+     });
+@@ -167,7 +167,7 @@ describe("StorageUtility", () => {
+       );
+       const storageUtility = getStorageUtility({ storage: storageMock });
+       await storageUtility.setForUser("animals", {
+-        jackie: "The Pretty Kitty"
++        jackie: "The Pretty Kitty",
+       });
+       expect(storageMock.get).toHaveBeenCalledWith(
+         "solidClientAuthenticationUser:animals"
+@@ -175,7 +175,7 @@ describe("StorageUtility", () => {
+       expect(storageMock.set).toHaveBeenCalledWith(
+         "solidClientAuthenticationUser:animals",
+         JSON.stringify({
+-          jackie: "The Pretty Kitty"
++          jackie: "The Pretty Kitty",
+         })
+       );
+     });
+@@ -186,7 +186,7 @@ describe("StorageUtility", () => {
+       const storageMock = defaultMocks.storage;
+       const userData = {
+         jackie: "The Cat",
+-        sledge: "The Dog"
++        sledge: "The Dog",
+       };
+       storageMock.get.mockReturnValueOnce(
+         Promise.resolve(JSON.stringify(userData))
+@@ -199,7 +199,7 @@ describe("StorageUtility", () => {
+       expect(storageMock.set).toHaveBeenCalledWith(
+         "solidClientAuthenticationUser:animals",
+         JSON.stringify({
+-          sledge: "The Dog"
++          sledge: "The Dog",
+         })
+       );
+     });
+@@ -223,7 +223,7 @@ describe("StorageUtility", () => {
+       );
+       const storageUtility = getStorageUtility();
+       await expect(storageUtility.safeGet("key")).resolves.toEqual({
+-        some: "data"
++        some: "data",
+       });
+     });
+ 
+@@ -247,13 +247,13 @@ describe("StorageUtility", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          some: { type: "string" }
+-        }
++          some: { type: "string" },
++        },
+       };
+       const storageUtility = getStorageUtility();
+       expect(
+         await storageUtility.safeGet("arbitrary key", {
+-          schema
++          schema,
+         })
+       ).toMatchObject({ some: "data" });
+     });
+@@ -265,13 +265,13 @@ describe("StorageUtility", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          some: { type: "string" }
+-        }
++          some: { type: "string" },
++        },
+       };
+       const storageUtility = getStorageUtility();
+       expect(
+         await storageUtility.safeGet("arbitrary key", {
+-          schema
++          schema,
+         })
+       ).toBeUndefined();
+       expect(defaultMocks.storage.delete).toHaveBeenCalledWith("arbitrary key");
+@@ -291,7 +291,7 @@ describe("StorageUtility", () => {
+       defaultMocks.storage.get.mockReturnValueOnce(
+         Promise.resolve(
+           JSON.stringify({
+-            key: '{ "some": "notice this does not have a closing quote }'
++            key: '{ "some": "notice this does not have a closing quote }',
+           })
+         )
+       );
+diff --git a/__tests__/login/AggregateLoginHandler.spec.ts b/__tests__/login/AggregateLoginHandler.spec.ts
+index 05f72483a9..addc3ea493 100644
+--- a/__tests__/login/AggregateLoginHandler.spec.ts
++++ b/__tests__/login/AggregateLoginHandler.spec.ts
+@@ -32,7 +32,7 @@ describe("AggregateLoginHandler", () => {
+     new AggregateLoginHandler((["Some handler"] as unknown) as ILoginHandler[]);
+ 
+     expect((AggregateHandler as jest.Mock).mock.calls).toEqual([
+-      [["Some handler"]]
++      [["Some handler"]],
+     ]);
+   });
+ });
+diff --git a/__tests__/login/oidc/AggregateOidcHandler.spec.ts b/__tests__/login/oidc/AggregateOidcHandler.spec.ts
+index ff2fd03337..f4d7f92998 100644
+--- a/__tests__/login/oidc/AggregateOidcHandler.spec.ts
++++ b/__tests__/login/oidc/AggregateOidcHandler.spec.ts
+@@ -32,7 +32,7 @@ describe("AggregateOidcHandler", () => {
+     new AggregateOidcHandler((["Some handler"] as unknown) as IOidcHandler[]);
+ 
+     expect((AggregateHandler as jest.Mock).mock.calls).toEqual([
+-      [["Some handler"]]
++      [["Some handler"]],
+     ]);
+   });
+ });
+diff --git a/__tests__/login/oidc/ClientRegistrar.spec.ts b/__tests__/login/oidc/ClientRegistrar.spec.ts
+index 27ceb36e77..4225c6bc12 100644
+--- a/__tests__/login/oidc/ClientRegistrar.spec.ts
++++ b/__tests__/login/oidc/ClientRegistrar.spec.ts
+@@ -24,7 +24,7 @@ import { FetcherMock } from "../../../src/util/__mocks__/Fetcher";
+ import ClientRegistrar from "../../../src/login/oidc/ClientRegistrar";
+ import {
+   StorageUtilityMock,
+-  mockStorageUtility
++  mockStorageUtility,
+ } from "../../../src/storage/__mocks__/StorageUtility";
+ import { IssuerConfigFetcherFetchConfigResponse } from "../../../src/login/oidc/__mocks__/IssuerConfigFetcher";
+ import { Response as NodeResponse } from "node-fetch";
+@@ -36,7 +36,7 @@ import URL from "url-parse";
+ describe("ClientRegistrar", () => {
+   const defaultMocks = {
+     fetcher: FetcherMock,
+-    storage: StorageUtilityMock
++    storage: StorageUtilityMock,
+   };
+   function getClientRegistrar(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -55,12 +55,12 @@ describe("ClientRegistrar", () => {
+           {
+             sessionId: "mySession",
+             redirectUrl: new URL("https://example.com"),
+-            clientId: "coolApp"
++            clientId: "coolApp",
+           },
+           IssuerConfigFetcherFetchConfigResponse
+         )
+       ).toMatchObject({
+-        clientId: "coolApp"
++        clientId: "coolApp",
+       });
+     });
+ 
+@@ -70,34 +70,34 @@ describe("ClientRegistrar", () => {
+         (new NodeResponse(
+           JSON.stringify({
+             client_id: "abcd",
+-            client_secret: "1234"
++            client_secret: "1234",
+           })
+         ) as unknown) as Response
+         /* eslint-enable @typescript-eslint/camelcase */
+       );
+       const clientRegistrar = getClientRegistrar({
+-        storage: mockStorageUtility({})
++        storage: mockStorageUtility({}),
+       });
+       const registrationUrl = new URL("https://idp.com/register");
+       expect(
+         await clientRegistrar.getClient(
+           {
+             sessionId: "mySession",
+-            redirectUrl: new URL("https://example.com")
++            redirectUrl: new URL("https://example.com"),
+           },
+           {
+             ...IssuerConfigFetcherFetchConfigResponse,
+-            registrationEndpoint: registrationUrl
++            registrationEndpoint: registrationUrl,
+           }
+         )
+       ).toMatchObject({
+         clientId: "abcd",
+-        clientSecret: "1234"
++        clientSecret: "1234",
+       });
+       expect(defaultMocks.fetcher.fetch).toHaveBeenCalledWith(registrationUrl, {
+         method: "POST",
+         headers: {
+-          "Content-Type": "application/json"
++          "Content-Type": "application/json",
+         },
+         body: JSON.stringify({
+           /* eslint-disable @typescript-eslint/camelcase */
+@@ -105,21 +105,21 @@ describe("ClientRegistrar", () => {
+           redirect_uris: ["https://example.com"],
+           subject_type: "pairwise",
+           token_endpoint_auth_method: "client_secret_basic",
+-          code_challenge_method: "S256"
++          code_challenge_method: "S256",
+           /* eslint-enable @typescript-eslint/camelcase */
+-        })
++        }),
+       });
+     });
+ 
+     it("Fails if there is not registration endpoint", async () => {
+       const clientRegistrar = getClientRegistrar({
+-        storage: mockStorageUtility({})
++        storage: mockStorageUtility({}),
+       });
+       await expect(
+         clientRegistrar.getClient(
+           {
+             sessionId: "mySession",
+-            redirectUrl: new URL("https://example.com")
++            redirectUrl: new URL("https://example.com"),
+           },
+           IssuerConfigFetcherFetchConfigResponse
+         )
+@@ -132,23 +132,23 @@ describe("ClientRegistrar", () => {
+       defaultMocks.fetcher.fetch.mockResolvedValueOnce(
+         /* eslint-disable @typescript-eslint/camelcase */
+         (new NodeResponse("bad stuff that's an error", {
+-          status: 400
++          status: 400,
+         }) as unknown) as Response
+         /* eslint-enable @typescript-eslint/camelcase */
+       );
+       const clientRegistrar = getClientRegistrar({
+-        storage: mockStorageUtility({})
++        storage: mockStorageUtility({}),
+       });
+       const registrationUrl = new URL("https://idp.com/register");
+       await expect(
+         clientRegistrar.getClient(
+           {
+             sessionId: "mySession",
+-            redirectUrl: new URL("https://example.com")
++            redirectUrl: new URL("https://example.com"),
+           },
+           {
+             ...IssuerConfigFetcherFetchConfigResponse,
+-            registrationEndpoint: registrationUrl
++            registrationEndpoint: registrationUrl,
+           }
+         )
+       ).rejects.toThrowError(
+diff --git a/__tests__/login/oidc/IssuerConfigFetcher.spec.ts b/__tests__/login/oidc/IssuerConfigFetcher.spec.ts
+index 07a4984f8c..5346f53178 100644
+--- a/__tests__/login/oidc/IssuerConfigFetcher.spec.ts
++++ b/__tests__/login/oidc/IssuerConfigFetcher.spec.ts
+@@ -23,7 +23,7 @@ import "reflect-metadata";
+ import URL from "url-parse";
+ import {
+   FetcherMock,
+-  FetcherMockResponse
++  FetcherMockResponse,
+ } from "../../../src/util/__mocks__/Fetcher";
+ import { mockStorageUtility } from "../../../src/storage/__mocks__/StorageUtility";
+ import IssuerConfigFetcher from "../../../src/login/oidc/IssuerConfigFetcher";
+@@ -36,7 +36,7 @@ import { Response as NodeResponse } from "node-fetch";
+ describe("IssuerConfigFetcher", () => {
+   const defaultMocks = {
+     fetchResponse: FetcherMockResponse,
+-    storageUtility: mockStorageUtility({})
++    storageUtility: mockStorageUtility({}),
+   };
+   function getIssuerConfigFetcher(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -56,7 +56,7 @@ describe("IssuerConfigFetcher", () => {
+       Promise.resolve({ some: "config" })
+     );
+     const configFetcher = getIssuerConfigFetcher({
+-      storageUtility: storageMock
++      storageUtility: storageMock,
+     });
+ 
+     const fetchedConfig = await configFetcher.fetchConfig(
+@@ -72,12 +72,12 @@ describe("IssuerConfigFetcher", () => {
+         issuer: "https://example.com",
+         // eslint-disable-next-line @typescript-eslint/camelcase
+         claim_types_supported: "oidc",
+-        bleepBloop: "Meep Moop"
++        bleepBloop: "Meep Moop",
+       })
+     ) as unknown) as Response;
+     const configFetcher = getIssuerConfigFetcher({
+       storageUtility: mockStorageUtility({}),
+-      fetchResponse: fetchResponse
++      fetchResponse: fetchResponse,
+     });
+ 
+     const fetchedConfig = await configFetcher.fetchConfig(
+@@ -101,13 +101,13 @@ describe("IssuerConfigFetcher", () => {
+         token_endpoint: "https://token_endpoint.url",
+         userinfo_endpoint: "https://userinfo_endpoint.url",
+         jwks_uri: "https://jwks_uri.url",
+-        registration_endpoint: "https://registration_endpoint.url"
++        registration_endpoint: "https://registration_endpoint.url",
+       })
+       /* eslint-enable @typescript-eslint/camelcase */
+     ) as unknown) as Response;
+     const configFetcher = getIssuerConfigFetcher({
+       storageUtility: mockStorageUtility({}),
+-      fetchResponse: fetchResponse
++      fetchResponse: fetchResponse,
+     });
+ 
+     const fetchedConfig = await configFetcher.fetchConfig(
+@@ -136,8 +136,8 @@ describe("IssuerConfigFetcher", () => {
+         Promise.resolve(({
+           json: () => {
+             throw new Error("Some error");
+-          }
+-        } as unknown) as Response)
++          },
++        } as unknown) as Response),
+     };
+     const configFetcher = new IssuerConfigFetcher(
+       mockFetcher as IFetcher,
+diff --git a/__tests__/login/oidc/OidcLoginHandler.spec.ts b/__tests__/login/oidc/OidcLoginHandler.spec.ts
+index 2d43981e68..28f8ed45c2 100644
+--- a/__tests__/login/oidc/OidcLoginHandler.spec.ts
++++ b/__tests__/login/oidc/OidcLoginHandler.spec.ts
+@@ -35,7 +35,7 @@ describe("OidcLoginHandler", () => {
+     issuerConfigFetcher: IssuerConfigFetcherMock,
+     dpopClientKeyManager: DpopClientKeyManagerMock,
+     storageUtility: StorageUtilityMock,
+-    clientRegistrar: ClientRegistrarMock
++    clientRegistrar: ClientRegistrarMock,
+   };
+   function getInitialisedHandler(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -55,7 +55,7 @@ describe("OidcLoginHandler", () => {
+       sessionId: "mySession",
+       oidcIssuer: new URL("https://arbitrary.url"),
+       redirectUrl: new URL("https://app.com/redirect"),
+-      clientId: "coolApp"
++      clientId: "coolApp",
+     });
+ 
+     expect(actualHandler.handle.mock.calls.length).toBe(1);
+@@ -79,7 +79,7 @@ describe("OidcLoginHandler", () => {
+         sessionId: "mySession",
+         oidcIssuer: new URL("https://arbitrary.url"),
+         redirectUrl: new URL("https://app.com/redirect"),
+-        clientId: "coolApp"
++        clientId: "coolApp",
+       })
+     ).resolves.toBe(true);
+   });
+diff --git a/__tests__/login/oidc/Redirector.spec.ts b/__tests__/login/oidc/Redirector.spec.ts
+index 13a080e7ba..2f0b46275f 100644
+--- a/__tests__/login/oidc/Redirector.spec.ts
++++ b/__tests__/login/oidc/Redirector.spec.ts
+@@ -28,7 +28,7 @@ import { EnvironmentDetectorMock } from "../../../src/util/__mocks__/Environment
+  */
+ describe("Redirector", () => {
+   const defaultMocks = {
+-    environmentDetector: EnvironmentDetectorMock
++    environmentDetector: EnvironmentDetectorMock,
+   };
+   function getRedirector(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -41,14 +41,14 @@ describe("Redirector", () => {
+   describe("Redirect", () => {
+     const {
+       location,
+-      history: { replaceState }
++      history: { replaceState },
+     } = window;
+ 
+     beforeEach(() => {
+       delete window.location;
+       delete window.history.replaceState;
+       window.location = {
+-        href: "https://coolSite.com"
++        href: "https://coolSite.com",
+       } as Location;
+       window.history.replaceState = jest.fn();
+     });
+@@ -78,7 +78,7 @@ describe("Redirector", () => {
+     it("browser redirection uses replaceState if specified", () => {
+       const redirector = getRedirector();
+       redirector.redirect("https://someUrl.com/redirect", {
+-        redirectByReplacingState: true
++        redirectByReplacingState: true,
+       });
+       expect(window.history.replaceState).toHaveBeenCalledWith(
+         {},
+diff --git a/__tests__/login/oidc/TokenRequester.spec.ts b/__tests__/login/oidc/TokenRequester.spec.ts
+index 953b3030d7..edcb02e4a6 100644
+--- a/__tests__/login/oidc/TokenRequester.spec.ts
++++ b/__tests__/login/oidc/TokenRequester.spec.ts
+@@ -22,16 +22,16 @@
+ import "reflect-metadata";
+ import {
+   FetcherMock,
+-  FetcherTokenMock
++  FetcherTokenMock,
+ } from "../../../src/util/__mocks__/Fetcher";
+ import {
+   IssuerConfigFetcherMock,
+-  IssuerConfigFetcherFetchConfigResponse
++  IssuerConfigFetcherFetchConfigResponse,
+ } from "../../../src/login/oidc/__mocks__/IssuerConfigFetcher";
+ import { StorageUtilityMock } from "../../../src/storage/__mocks__/StorageUtility";
+ import {
+   DpopHeaderCreatorMock,
+-  DpopHeaderCreatorResponse
++  DpopHeaderCreatorResponse,
+ } from "../../../src/dpop/__mocks__/DpopHeaderCreator";
+ import { Response as NodeResponse } from "node-fetch";
+ import TokenRequester from "../../../src/login/oidc/TokenRequester";
+@@ -39,7 +39,7 @@ import { JoseUtilityMock } from "../../../src/jose/__mocks__/JoseUtility";
+ import IIssuerConfig from "../../../src/login/oidc/IIssuerConfig";
+ import {
+   ClientRegistrarMock,
+-  PublicClientRegistrarMock
++  PublicClientRegistrarMock,
+ } from "../../../src/login/oidc/__mocks__/ClientRegistrar";
+ import { DpopClientKeyManagerMock } from "../../../src/dpop/__mocks__/DpopClientKeyManager";
+ 
+@@ -51,7 +51,7 @@ describe("TokenRequester", () => {
+     dpopHeaderCreator: DpopHeaderCreatorMock,
+     joseUtility: JoseUtilityMock,
+     clientRegistrar: ClientRegistrarMock,
+-    dpopClientKeyManager: DpopClientKeyManagerMock
++    dpopClientKeyManager: DpopClientKeyManagerMock,
+   };
+   function getTokenRequester(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -82,18 +82,18 @@ describe("TokenRequester", () => {
+     storageClientSecret: undefined,
+     issuerConfig: {
+       ...IssuerConfigFetcherFetchConfigResponse,
+-      grantTypesSupported: ["refresh_token"]
++      grantTypesSupported: ["refresh_token"],
+     },
+     responseBody: JSON.stringify({
+       /* eslint-disable @typescript-eslint/camelcase */
+       id_token: "abcd",
+       access_token: "1234",
+-      refresh_token: "!@#$"
++      refresh_token: "!@#$",
+       /* eslint-enable @typescript-eslint/camelcase */
+     }),
+     jwt: {
+-      sub: "https://jackson.solid.community/profile/card#me"
+-    }
++      sub: "https://jackson.solid.community/profile/card#me",
++    },
+   };
+   function setUpMockedReturnValues(
+     values: Partial<typeof defaultReturnValues>
+@@ -126,12 +126,12 @@ describe("TokenRequester", () => {
+   it("Properly follows the refresh flow", async () => {
+     setUpMockedReturnValues({});
+     const TokenRefresher = getTokenRequester({
+-      clientRegistrar: PublicClientRegistrarMock
++      clientRegistrar: PublicClientRegistrarMock,
+     });
+     /* eslint-disable @typescript-eslint/camelcase */
+     await TokenRefresher.request("global", {
+       grant_type: "refresh_token",
+-      refresh_token: "thisIsARefreshToken"
++      refresh_token: "thisIsARefreshToken",
+     });
+     /* eslint-enable @typescript-eslint/camelcase */
+     expect(defaultMocks.fetcher.fetch).toBeCalledWith(
+@@ -140,10 +140,10 @@ describe("TokenRequester", () => {
+         method: "POST",
+         headers: {
+           DPoP: DpopHeaderCreatorResponse,
+-          "content-type": "application/x-www-form-urlencoded"
++          "content-type": "application/x-www-form-urlencoded",
+         },
+         body:
+-          "grant_type=refresh_token&refresh_token=thisIsARefreshToken&client_id=abcde"
++          "grant_type=refresh_token&refresh_token=thisIsARefreshToken&client_id=abcde",
+       }
+     );
+   });
+@@ -153,18 +153,18 @@ describe("TokenRequester", () => {
+     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     mockJoseUtility.decodeJWT = jest.fn(async (token: string) => {
+       return {
+-        sub: "https://some.pod/webid#me"
++        sub: "https://some.pod/webid#me",
+       };
+     });
+ 
+     const TokenRefresher = getTokenRequester({
+       fetcher: FetcherTokenMock,
+-      joseUtility: mockJoseUtility
++      joseUtility: mockJoseUtility,
+     });
+     /* eslint-disable @typescript-eslint/camelcase */
+     await TokenRefresher.request("global", {
+       grant_type: "refresh_token",
+-      refresh_token: "thisIsARefreshToken"
++      refresh_token: "thisIsARefreshToken",
+     });
+     /* eslint-enable @typescript-eslint/camelcase */
+     expect(FetcherTokenMock.fetch).toBeCalledWith(
+@@ -174,10 +174,10 @@ describe("TokenRequester", () => {
+         headers: {
+           DPoP: DpopHeaderCreatorResponse,
+           Authorization: "Basic YWJjZGU6MTIzNDU=",
+-          "content-type": "application/x-www-form-urlencoded"
++          "content-type": "application/x-www-form-urlencoded",
+         },
+         body:
+-          "grant_type=refresh_token&refresh_token=thisIsARefreshToken&client_id=abcde"
++          "grant_type=refresh_token&refresh_token=thisIsARefreshToken&client_id=abcde",
+       }
+     );
+   });
+@@ -186,15 +186,15 @@ describe("TokenRequester", () => {
+     setUpMockedReturnValues({
+       responseBody: JSON.stringify({
+         // eslint-disable-next-line @typescript-eslint/camelcase
+-        id_token: "ohNoThereIsNoAccessToken"
+-      })
++        id_token: "ohNoThereIsNoAccessToken",
++      }),
+     });
+     const TokenRefresher = getTokenRequester();
+     await expect(
+       /* eslint-disable @typescript-eslint/camelcase */
+       TokenRefresher.request("global", {
+         grant_type: "refresh_token",
+-        refresh_token: "thisIsARefreshToken"
++        refresh_token: "thisIsARefreshToken",
+       })
+       /* eslint-enable @typescript-eslint/camelcase */
+     ).rejects.toThrowError("IDP token route returned an invalid response.");
+@@ -205,15 +205,15 @@ describe("TokenRequester", () => {
+       issuerConfig: {
+         ...IssuerConfigFetcherFetchConfigResponse,
+         // eslint-disable-next-line @typescript-eslint/camelcase
+-        grantTypesSupported: ["id_token"]
+-      }
++        grantTypesSupported: ["id_token"],
++      },
+     });
+     const TokenRefresher = getTokenRequester();
+     await expect(
+       /* eslint-disable @typescript-eslint/camelcase */
+       TokenRefresher.request("global", {
+         grant_type: "refresh_token",
+-        refresh_token: "thisIsARefreshToken"
++        refresh_token: "thisIsARefreshToken",
+       })
+       /* eslint-enable @typescript-eslint/camelcase */
+     ).rejects.toThrowError(
+@@ -226,7 +226,7 @@ describe("TokenRequester", () => {
+       ...IssuerConfigFetcherFetchConfigResponse,
+       tokenEndpoint: null,
+       // eslint-disable-next-line @typescript-eslint/camelcase
+-      grantTypesSupported: ["refresh_token"]
++      grantTypesSupported: ["refresh_token"],
+     };
+     const mockIssuerConfigFetcher = defaultMocks.issueConfigFetcher;
+     // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+@@ -237,13 +237,13 @@ describe("TokenRequester", () => {
+     mockStorageUtility.getForUser.mockResolvedValueOnce("https://idp.com");
+     const TokenRefresher = getTokenRequester({
+       issueConfigFetcher: mockIssuerConfigFetcher,
+-      storageUtility: mockStorageUtility
++      storageUtility: mockStorageUtility,
+     });
+     await expect(
+       /* eslint-disable @typescript-eslint/camelcase */
+       TokenRefresher.request("global", {
+         grant_type: "refresh_token",
+-        refresh_token: "thisIsARefreshToken"
++        refresh_token: "thisIsARefreshToken",
+       })
+       /* eslint-enable @typescript-eslint/camelcase */
+       // TODO: Should be This issuer https://idp.com does not have a token endpoint"
+@@ -254,15 +254,15 @@ describe("TokenRequester", () => {
+   it("Fails elegantly if the access token does not have a sub claim", async () => {
+     setUpMockedReturnValues({
+       jwt: {
+-        iss: "https://idp.com"
+-      }
++        iss: "https://idp.com",
++      },
+     });
+     const TokenRefresher = getTokenRequester();
+     await expect(
+       /* eslint-disable @typescript-eslint/camelcase */
+       TokenRefresher.request("global", {
+         grant_type: "refresh_token",
+-        refresh_token: "thisIsARefreshToken"
++        refresh_token: "thisIsARefreshToken",
+       })
+       /* eslint-enable @typescript-eslint/camelcase */
+     ).rejects.toThrowError("The idp returned a bad token without a sub.");
+diff --git a/__tests__/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.spec.ts b/__tests__/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.spec.ts
+index cb8d8cc5f0..7267f1a72a 100644
+--- a/__tests__/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.spec.ts
++++ b/__tests__/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.spec.ts
+@@ -37,7 +37,7 @@ describe("AuthorizationCodeWithPkceOidcHandler", () => {
+     sessionCreator: SessionInfoManagerMock,
+     joseUtility: JoseUtilityMock,
+     storageUtility: StorageUtilityMock,
+-    redirector: RedirectorMock
++    redirector: RedirectorMock,
+   };
+   function getAuthorizationCodeWithPkceOidcHandler(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -52,7 +52,7 @@ describe("AuthorizationCodeWithPkceOidcHandler", () => {
+   describe("canHandle", () => {
+     const authorizationCodeWithPkceOidcHandler = getAuthorizationCodeWithPkceOidcHandler();
+     canHandleTests["authorizationCodeWithPkceOidcHandler"].forEach(
+-      testConfig => {
++      (testConfig) => {
+         it(testConfig.message, async () => {
+           const value = await authorizationCodeWithPkceOidcHandler.canHandle(
+             testConfig.oidcOptions
+@@ -70,8 +70,8 @@ describe("AuthorizationCodeWithPkceOidcHandler", () => {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["authorization_code"]
+-        }
++          grantTypesSupported: ["authorization_code"],
++        },
+       };
+       await authorizationCodeWithPkceOidcHandler.handle(oidcOptions);
+       expect(
+@@ -88,12 +88,12 @@ describe("AuthorizationCodeWithPkceOidcHandler", () => {
+         ...standardOidcOptions,
+         client: {
+           ...standardOidcOptions.client,
+-          clientSecret: "I can't cook because I only drink Soylent"
++          clientSecret: "I can't cook because I only drink Soylent",
+         },
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["authorization_code"]
+-        }
++          grantTypesSupported: ["authorization_code"],
++        },
+       };
+       await authorizationCodeWithPkceOidcHandler.handle(oidcOptions);
+       expect(
+diff --git a/__tests__/login/oidc/oidcHandlers/LegacyImplicitFlowOIDCHandler.spec.ts b/__tests__/login/oidc/oidcHandlers/LegacyImplicitFlowOIDCHandler.spec.ts
+index f8e4b5f2d4..5d8239e546 100644
+--- a/__tests__/login/oidc/oidcHandlers/LegacyImplicitFlowOIDCHandler.spec.ts
++++ b/__tests__/login/oidc/oidcHandlers/LegacyImplicitFlowOIDCHandler.spec.ts
+@@ -41,7 +41,7 @@ describe("LegacyImplicitFlowOidcHandler", () => {
+     redirector: RedirectorMock,
+     dpopHeaderCreator: DpopHeaderCreatorMock,
+     dpopClientKeyManager: DpopClientKeyManagerMock,
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getLegacyImplicitFlowOidcHandler(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -58,7 +58,7 @@ describe("LegacyImplicitFlowOidcHandler", () => {
+ 
+   describe("canHandle", () => {
+     const legacyImplicitFlowOidcHandler = getLegacyImplicitFlowOidcHandler();
+-    canHandleTests["legacyImplicitFlowOidcHandler"].forEach(testConfig => {
++    canHandleTests["legacyImplicitFlowOidcHandler"].forEach((testConfig) => {
+       it(testConfig.message, async () => {
+         const value = await legacyImplicitFlowOidcHandler.canHandle(
+           testConfig.oidcOptions
+@@ -72,7 +72,7 @@ describe("LegacyImplicitFlowOidcHandler", () => {
+     it("Creates the right session with dpop ", async () => {
+       const legacyImplicitFlowOidcHandler = getLegacyImplicitFlowOidcHandler();
+       const oidcOptions: IOidcOptions = {
+-        ...standardOidcOptions
++        ...standardOidcOptions,
+       };
+       await legacyImplicitFlowOidcHandler.handle(oidcOptions);
+       expect(
+@@ -87,7 +87,7 @@ describe("LegacyImplicitFlowOidcHandler", () => {
+       const legacyImplicitFlowOidcHandler = getLegacyImplicitFlowOidcHandler();
+       const oidcOptions: IOidcOptions = {
+         ...standardOidcOptions,
+-        dpop: false
++        dpop: false,
+       };
+       await legacyImplicitFlowOidcHandler.handle(oidcOptions);
+       expect(
+diff --git a/__tests__/login/oidc/oidcHandlers/OidcHandlerCanHandleTests.ts b/__tests__/login/oidc/oidcHandlers/OidcHandlerCanHandleTests.ts
+index b2b4398017..5a359cda80 100644
+--- a/__tests__/login/oidc/oidcHandlers/OidcHandlerCanHandleTests.ts
++++ b/__tests__/login/oidc/oidcHandlers/OidcHandlerCanHandleTests.ts
+@@ -38,9 +38,9 @@ const canHandleTests: {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["authorization_code", "implicit", "device"]
+-        }
+-      }
++          grantTypesSupported: ["authorization_code", "implicit", "device"],
++        },
++      },
+     },
+     {
+       message:
+@@ -50,9 +50,9 @@ const canHandleTests: {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["implicit"]
+-        }
+-      }
++          grantTypesSupported: ["implicit"],
++        },
++      },
+     },
+     {
+       message:
+@@ -62,16 +62,16 @@ const canHandleTests: {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["authorization_code", "device"]
+-        }
+-      }
++          grantTypesSupported: ["authorization_code", "device"],
++        },
++      },
+     },
+     {
+       message:
+         "shouldn't accept a configuration that does not include grant types",
+       shouldPass: false,
+-      oidcOptions: standardOidcOptions
+-    }
++      oidcOptions: standardOidcOptions,
++    },
+   ],
+   authorizationCodeWithPkceOidcHandler: [
+     {
+@@ -82,9 +82,9 @@ const canHandleTests: {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["authorization_code", "implicit", "device"]
+-        }
+-      }
++          grantTypesSupported: ["authorization_code", "implicit", "device"],
++        },
++      },
+     },
+     {
+       message:
+@@ -94,9 +94,9 @@ const canHandleTests: {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["authorization_code"]
+-        }
+-      }
++          grantTypesSupported: ["authorization_code"],
++        },
++      },
+     },
+     {
+       message:
+@@ -106,17 +106,17 @@ const canHandleTests: {
+         ...standardOidcOptions,
+         issuerConfiguration: {
+           ...standardOidcOptions.issuerConfiguration,
+-          grantTypesSupported: ["implicit", "device"]
+-        }
+-      }
++          grantTypesSupported: ["implicit", "device"],
++        },
++      },
+     },
+     {
+       message:
+         "shouldn't accept a configuration that does not include grant types",
+       shouldPass: false,
+-      oidcOptions: standardOidcOptions
+-    }
+-  ]
++      oidcOptions: standardOidcOptions,
++    },
++  ],
+ };
+ 
+ export default canHandleTests;
+diff --git a/__tests__/login/oidc/redirectHandler/AuthCodeRedirectHandler.spec.ts b/__tests__/login/oidc/redirectHandler/AuthCodeRedirectHandler.spec.ts
+index a8691b52f5..a24afdc389 100644
+--- a/__tests__/login/oidc/redirectHandler/AuthCodeRedirectHandler.spec.ts
++++ b/__tests__/login/oidc/redirectHandler/AuthCodeRedirectHandler.spec.ts
+@@ -31,7 +31,7 @@ describe("AuthCodeRedirectHandler", () => {
+     storageUtility: StorageUtilityMock,
+     redirector: RedirectorMock,
+     tokenRequester: TokenRequesterMock,
+-    sessionInfoManager: SessionInfoManagerMock
++    sessionInfoManager: SessionInfoManagerMock,
+   };
+   function getAuthCodeRedirectHandler(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -94,14 +94,14 @@ describe("AuthCodeRedirectHandler", () => {
+           code: "someCode",
+           code_verifier: "a",
+           grant_type: "authorization_code",
+-          redirect_uri: "b"
++          redirect_uri: "b",
+         }
+         /* eslint-enable @typescript-eslint/camelcase */
+       );
+       expect(defaultMocks.redirector.redirect).toHaveBeenCalledWith(
+         "https://coolsite.com/",
+         {
+-          redirectByReplacingState: true
++          redirectByReplacingState: true,
+         }
+       );
+     });
+diff --git a/__tests__/login/oidc/redirectHandler/GeneralRedirectHandler.spec.ts b/__tests__/login/oidc/redirectHandler/GeneralRedirectHandler.spec.ts
+index f3eaf5c199..966d4e5e91 100644
+--- a/__tests__/login/oidc/redirectHandler/GeneralRedirectHandler.spec.ts
++++ b/__tests__/login/oidc/redirectHandler/GeneralRedirectHandler.spec.ts
+@@ -23,14 +23,14 @@ import "reflect-metadata";
+ import { TokenSaverMock } from "../../../../src/login/oidc/redirectHandler/__mocks__/TokenSaver";
+ import {
+   SessionInfoManagerMock,
+-  SessionCreatorCreateResponse
++  SessionCreatorCreateResponse,
+ } from "../../../../src/sessionInfo/__mocks__/SessionInfoManager";
+ import GeneralRedirectHandler from "../../../../src/login/oidc/redirectHandler/GeneralRedirectHandler";
+ 
+ describe("GeneralRedirectHandler", () => {
+   const defaultMocks = {
+     tokenSaver: TokenSaverMock,
+-    sessionInfoManager: SessionInfoManagerMock
++    sessionInfoManager: SessionInfoManagerMock,
+   };
+ 
+   function getGeneralRedirectHandler(
+diff --git a/__tests__/login/oidc/redirectHandler/TokenSaver.spec.ts b/__tests__/login/oidc/redirectHandler/TokenSaver.spec.ts
+index 0b102bef9f..a9e6cacd5c 100644
+--- a/__tests__/login/oidc/redirectHandler/TokenSaver.spec.ts
++++ b/__tests__/login/oidc/redirectHandler/TokenSaver.spec.ts
+@@ -32,7 +32,7 @@ describe("TokenSaver", () => {
+   const defaultMocks = {
+     sessionCreator: SessionInfoManagerMock,
+     joseUtility: JoseUtilityMock,
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getTokenSaver(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+diff --git a/__tests__/login/oidc/refresh/TokenRefresher.spec.ts b/__tests__/login/oidc/refresh/TokenRefresher.spec.ts
+index 26640f6685..6eca89d3ff 100644
+--- a/__tests__/login/oidc/refresh/TokenRefresher.spec.ts
++++ b/__tests__/login/oidc/refresh/TokenRefresher.spec.ts
+@@ -27,7 +27,7 @@ import { StorageUtilityMock } from "../../../../src/storage/__mocks__/StorageUti
+ describe("TokenRefresher", () => {
+   const defaultMocks = {
+     storageUtility: StorageUtilityMock,
+-    tokenRequester: TokenRequesterMock
++    tokenRequester: TokenRequesterMock,
+   };
+   function getTokenRefresher(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -47,7 +47,7 @@ describe("TokenRefresher", () => {
+     /* eslint-disable @typescript-eslint/camelcase */
+     expect(defaultMocks.tokenRequester.request).toHaveBeenCalledWith("global", {
+       grant_type: "refresh_token",
+-      refresh_token: "refreshToken"
++      refresh_token: "refreshToken",
+     });
+     /* eslint-enable @typescript-eslint/camelcase */
+   });
+diff --git a/__tests__/login/popUp/PopUpLoginHandler.spec.ts b/__tests__/login/popUp/PopUpLoginHandler.spec.ts
+index 7f19ffd6ce..fb4299f9f7 100644
+--- a/__tests__/login/popUp/PopUpLoginHandler.spec.ts
++++ b/__tests__/login/popUp/PopUpLoginHandler.spec.ts
+@@ -31,7 +31,7 @@ describe("PopUpLoginHandler", () => {
+   const defaultMocks = {
+     environmentDetector: EnvironmentDetectorMock,
+     loginHandler: LoginHandlerMock,
+-    sessionCreator: SessionInfoManagerMock
++    sessionCreator: SessionInfoManagerMock,
+   };
+   function getInitialisedHandler(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -50,7 +50,7 @@ describe("PopUpLoginHandler", () => {
+         await handler.canHandle({
+           sessionId: "mySession",
+           popUp: true,
+-          redirectUrl: new URL("/redirect")
++          redirectUrl: new URL("/redirect"),
+         })
+       ).toBe(true);
+     });
+@@ -60,7 +60,7 @@ describe("PopUpLoginHandler", () => {
+         await handler.canHandle({
+           sessionId: "mySession",
+           popUp: false,
+-          redirectUrl: new URL("https://coolsite.com/redirect")
++          redirectUrl: new URL("https://coolsite.com/redirect"),
+         })
+       ).toBe(false);
+     });
+@@ -72,7 +72,7 @@ describe("PopUpLoginHandler", () => {
+       await expect(
+         handler.handle({
+           sessionId: "mySession",
+-          popUp: true
++          popUp: true,
+         })
+       ).rejects.toThrow("Popup login is not implemented yet");
+     });
+diff --git a/__tests__/logout/GeneralLogoutHandler.spec.ts b/__tests__/logout/GeneralLogoutHandler.spec.ts
+index 0a8d78663e..8354d82f68 100644
+--- a/__tests__/logout/GeneralLogoutHandler.spec.ts
++++ b/__tests__/logout/GeneralLogoutHandler.spec.ts
+@@ -21,14 +21,14 @@
+ 
+ import {
+   StorageUtilityMock,
+-  mockStorageUtility
++  mockStorageUtility,
+ } from "../../src/storage/__mocks__/StorageUtility";
+ import "reflect-metadata";
+ import { default as LogoutHandler } from "../../src/logout/GeneralLogoutHandler";
+ 
+ describe("OidcLoginHandler", () => {
+   const defaultMocks = {
+-    storageUtility: StorageUtilityMock
++    storageUtility: StorageUtilityMock,
+   };
+   function getInitialisedHandler(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -41,7 +41,7 @@ describe("OidcLoginHandler", () => {
+   describe("canHandle", () => {
+     it("should always be able to handle logout", async () => {
+       const logoutHandler = getInitialisedHandler({
+-        storageUtility: mockStorageUtility({})
++        storageUtility: mockStorageUtility({}),
+       });
+       await expect(logoutHandler.canHandle()).resolves.toBe(true);
+     });
+@@ -50,7 +50,7 @@ describe("OidcLoginHandler", () => {
+   describe("handle", () => {
+     it("should clear the local storage (both secure and not secure) when logging out", async () => {
+       const nonEmptyStorage = mockStorageUtility({
+-        someUser: { someKey: "someValue" }
++        someUser: { someKey: "someValue" },
+       });
+       nonEmptyStorage.setForUser(
+         "someUser",
+@@ -58,7 +58,7 @@ describe("OidcLoginHandler", () => {
+         { secure: true }
+       );
+       const logoutHandler = getInitialisedHandler({
+-        storageUtility: nonEmptyStorage
++        storageUtility: nonEmptyStorage,
+       });
+       logoutHandler.handle("someUser");
+       expect(
+diff --git a/__tests__/sessionInfo/SessionInfoManager.spec.ts b/__tests__/sessionInfo/SessionInfoManager.spec.ts
+index cd4f5868fe..b0feaba3fa 100644
+--- a/__tests__/sessionInfo/SessionInfoManager.spec.ts
++++ b/__tests__/sessionInfo/SessionInfoManager.spec.ts
+@@ -31,7 +31,7 @@ describe("SessionInfoManager", () => {
+     uuidGenerator: UuidGeneratorMock,
+     authenticatedFetcher: AuthenticatedFetcherMock,
+     logoutHandler: LogoutHandlerMock,
+-    storageUtility: mockStorageUtility({})
++    storageUtility: mockStorageUtility({}),
+   };
+   function getSessionInfoManager(
+     mocks: Partial<typeof defaultMocks> = defaultMocks
+@@ -45,7 +45,7 @@ describe("SessionInfoManager", () => {
+   describe("update", () => {
+     it("is not implemented yet", async () => {
+       const sessionManager = getSessionInfoManager({
+-        storageUtility: mockStorageUtility({})
++        storageUtility: mockStorageUtility({}),
+       });
+       expect(
+         async () => await sessionManager.update("commanderCool", {})
+@@ -65,13 +65,13 @@ describe("SessionInfoManager", () => {
+       const session = await sessionManager.get("commanderCool");
+       expect(session).toMatchObject({
+         sessionId: "commanderCool",
+-        webId: "https://zoomies.com/commanderCool#me"
++        webId: "https://zoomies.com/commanderCool#me",
+       });
+     });
+ 
+     it("returns undefined if the specified storage does not contain the user", async () => {
+       const sessionManager = getSessionInfoManager({
+-        storageUtility: mockStorageUtility({}, true)
++        storageUtility: mockStorageUtility({}, true),
+       });
+       const session = await sessionManager.get("commanderCool");
+       expect(session).toBeUndefined();
+diff --git a/__tests__/util/handlerPattern/AggregateHandler.spec.ts b/__tests__/util/handlerPattern/AggregateHandler.spec.ts
+index e1c9d2fa5d..62981bb791 100644
+--- a/__tests__/util/handlerPattern/AggregateHandler.spec.ts
++++ b/__tests__/util/handlerPattern/AggregateHandler.spec.ts
+@@ -26,7 +26,8 @@ import IHandleable from "../../../src/util/handlerPattern/IHandleable";
+ describe("AggregateHandler", () => {
+   // Set up mock extension
+   type MockHandler = IHandleable<[string], string>;
+-  class AggregateMockHandler extends AggregateHandler<[string], string>
++  class AggregateMockHandler
++    extends AggregateHandler<[string], string>
+     implements MockHandler {
+     constructor(mockHandlers: MockHandler[]) {
+       super(mockHandlers);
+@@ -37,7 +38,7 @@ describe("AggregateHandler", () => {
+   function initMocks(
+     configs: { canHandle: boolean; executeTime: number; toReturn: string }[]
+   ) {
+-    const mockHandlerInfo = configs.map(config => {
++    const mockHandlerInfo = configs.map((config) => {
+       const canHandleFunction: jest.Mock<Promise<boolean>, [string]> = jest.fn(
+         async (_input: string): Promise<boolean> => {
+           return new Promise((resolve, _reject) => {
+@@ -54,20 +55,20 @@ describe("AggregateHandler", () => {
+       );
+       const mock: () => MockHandler = jest.fn<MockHandler, unknown[]>(() => ({
+         canHandle: canHandleFunction,
+-        handle: handleFunction
++        handle: handleFunction,
+       }));
+       return {
+         canHandleFunction,
+         handleFunction,
+-        mock
++        mock,
+       };
+     });
+     const aggregateMockHandler = new AggregateMockHandler(
+-      mockHandlerInfo.map(info => info.mock())
++      mockHandlerInfo.map((info) => info.mock())
+     );
+     return {
+       mockHandlerInfo,
+-      aggregateMockHandler
++      aggregateMockHandler,
+     };
+   }
+ 
+@@ -75,7 +76,7 @@ describe("AggregateHandler", () => {
+     it("should return correct handler", async () => {
+       const mocks = initMocks([
+         { canHandle: true, executeTime: 0, toReturn: "" },
+-        { canHandle: false, executeTime: 0, toReturn: "" }
++        { canHandle: false, executeTime: 0, toReturn: "" },
+       ]);
+       const result = await mocks.aggregateMockHandler.canHandle("something");
+       expect(result).toBe(true);
+@@ -84,7 +85,7 @@ describe("AggregateHandler", () => {
+     it("should error if there is no correct handler", async () => {
+       const mocks = initMocks([
+         { canHandle: false, executeTime: 0, toReturn: "" },
+-        { canHandle: false, executeTime: 0, toReturn: "" }
++        { canHandle: false, executeTime: 0, toReturn: "" },
+       ]);
+       expect(await mocks.aggregateMockHandler.canHandle("something")).toBe(
+         false
+@@ -95,7 +96,7 @@ describe("AggregateHandler", () => {
+   describe("handle", () => {
+     it("should execute the handler", async () => {
+       const mocks = initMocks([
+-        { canHandle: true, executeTime: 0, toReturn: "allGood" }
++        { canHandle: true, executeTime: 0, toReturn: "allGood" },
+       ]);
+       const result = await mocks.aggregateMockHandler.handle("something");
+       expect(result).toBe("allGood");
+@@ -112,7 +113,7 @@ describe("AggregateHandler", () => {
+     it("should error when there is no correct handler", async () => {
+       const mocks = initMocks([
+         { canHandle: false, executeTime: 0, toReturn: "" },
+-        { canHandle: false, executeTime: 0, toReturn: "" }
++        { canHandle: false, executeTime: 0, toReturn: "" },
+       ]);
+       // For some reason the test didn't show up in coverage logs if I didn't do it like this
+       try {
+diff --git a/__tests__/util/validateSchema.spec.ts b/__tests__/util/validateSchema.spec.ts
+index 0767dca62b..1fc03d8174 100644
+--- a/__tests__/util/validateSchema.spec.ts
++++ b/__tests__/util/validateSchema.spec.ts
+@@ -26,8 +26,8 @@ describe("validateSchema", () => {
+     const schema = {
+       type: "object",
+       properties: {
+-        foo: { type: "number" }
+-      }
++        foo: { type: "number" },
++      },
+     };
+ 
+     expect(() => validateSchema(schema, { foo: 42 })).not.toThrow();
+@@ -37,8 +37,8 @@ describe("validateSchema", () => {
+     const schema = {
+       type: "object",
+       properties: {
+-        foo: { type: "number" }
+-      }
++        foo: { type: "number" },
++      },
+     };
+ 
+     expect(() => validateSchema(schema, { foo: 42 })).not.toThrow();
+@@ -52,8 +52,8 @@ describe("validateSchema", () => {
+     const schema = {
+       type: "object",
+       properties: {
+-        foo: { type: "number" }
+-      }
++        foo: { type: "number" },
++      },
+     };
+ 
+     expect(() => validateSchema(schema, { foo: "Not a number" })).toThrow();
+@@ -63,8 +63,8 @@ describe("validateSchema", () => {
+     const schema = {
+       type: "object",
+       properties: {
+-        foo: { type: "number" }
+-      }
++        foo: { type: "number" },
++      },
+     };
+ 
+     expect(() => validateSchema(schema, { foo: "Not a number" })).toThrowError(
+@@ -77,8 +77,8 @@ describe("validateSchema", () => {
+       title: "Some schema",
+       type: "object",
+       properties: {
+-        foo: { type: "number" }
+-      }
++        foo: { type: "number" },
++      },
+     };
+ 
+     expect(() => validateSchema(schema, { foo: "Not a number" })).toThrowError(
+@@ -91,8 +91,8 @@ describe("validateSchema", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          foo: { typeof: "number" }
+-        }
++          foo: { typeof: "number" },
++        },
+       };
+ 
+       expect(() => validateSchema(schema, { foo: 42 })).not.toThrow();
+@@ -102,8 +102,8 @@ describe("validateSchema", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          foo: { typeof: "number" }
+-        }
++          foo: { typeof: "number" },
++        },
+       };
+ 
+       expect(() => validateSchema(schema, { foo: "Not a number" })).toThrow();
+@@ -112,8 +112,8 @@ describe("validateSchema", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          foo: { typeof: "function" }
+-        }
++          foo: { typeof: "function" },
++        },
+       };
+ 
+       expect(() => validateSchema(schema, { foo: () => 1337 })).not.toThrow();
+@@ -123,8 +123,8 @@ describe("validateSchema", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          foo: { typeof: "function" }
+-        }
++          foo: { typeof: "function" },
++        },
+       };
+ 
+       expect(() => validateSchema(schema, { foo: 42 })).toThrow();
+@@ -134,8 +134,8 @@ describe("validateSchema", () => {
+       const schema = {
+         type: "object",
+         properties: {
+-          foo: { typeof: "number" }
+-        }
++          foo: { typeof: "number" },
++        },
+       };
+ 
+       expect(() =>
+@@ -157,15 +157,15 @@ describe("validateSchema", () => {
+               "necessarily",
+               "in",
+               "this",
+-              "order"
+-            ]
+-          }
+-        }
++              "order",
++            ],
++          },
++        },
+       };
+ 
+       expect(() =>
+         validateSchema(schema, {
+-          foo: "not necessarily some words in this order"
++          foo: "not necessarily some words in this order",
+         })
+       ).not.toThrow();
+     });
+@@ -182,16 +182,16 @@ describe("validateSchema", () => {
+               "necessarily",
+               "in",
+               "this",
+-              "order"
+-            ]
+-          }
+-        }
++              "order",
++            ],
++          },
++        },
+       };
+ 
+       expect(() =>
+         validateSchema(schema, {
+           foo:
+-            "some words in this order but not necessarily with just those words "
++            "some words in this order but not necessarily with just those words ",
+         })
+       ).toThrow();
+     });
+@@ -209,10 +209,10 @@ describe("validateSchema", () => {
+               "necessarily",
+               "in",
+               "this",
+-              "order"
+-            ]
+-          }
+-        }
++              "order",
++            ],
++          },
++        },
+       };
+ 
+       expect(validateSchema(schema, { foo: "some words" })).toThrow();
+@@ -225,11 +225,11 @@ describe("validateSchema", () => {
+         {
+           type: "object",
+           properties: {
+-            foo: { type: "string", shouldConvertToUrl: true }
+-          }
++            foo: { type: "string", shouldConvertToUrl: true },
++          },
+         },
+         {
+-          foo: "https://cool.com/nice"
++          foo: "https://cool.com/nice",
+         }
+       );
+       expect(newObj.foo.origin).toBe("https://cool.com");
+@@ -245,17 +245,17 @@ describe("validateSchema", () => {
+               items: {
+                 type: "object",
+                 properties: {
+-                  url: { type: "string", shouldConvertToUrl: true }
+-                }
+-              }
+-            }
+-          }
++                  url: { type: "string", shouldConvertToUrl: true },
++                },
++              },
++            },
++          },
+         },
+         {
+           arr: [
+             { url: "https://cool.com/nice" },
+-            { url: "https://lame.com/mean" }
+-          ]
++            { url: "https://lame.com/mean" },
++          ],
+         }
+       );
+       expect(newObj.arr[0].url.origin).toBe("https://cool.com");
+@@ -269,19 +269,19 @@ describe("validateSchema", () => {
+             type: "object",
+             properties: {
+               arr: {
+-                type: "array"
++                type: "array",
+               },
+               obj: {
+-                type: "object"
+-              }
+-            }
++                type: "object",
++              },
++            },
+           },
+           {
+             arr: [1, "cool"],
+             obj: {
+               foo: "foo",
+-              bar: "bar"
+-            }
++              bar: "bar",
++            },
+           }
+         )
+       ).not.toThrowError();
+diff --git a/src/authenticatedFetch/__mocks__/AuthenticatedFetcher.ts b/src/authenticatedFetch/__mocks__/AuthenticatedFetcher.ts
+index 3e6b0b3307..37b60fc6da 100644
+--- a/src/authenticatedFetch/__mocks__/AuthenticatedFetcher.ts
++++ b/src/authenticatedFetch/__mocks__/AuthenticatedFetcher.ts
+@@ -49,5 +49,5 @@ export const AuthenticatedFetcherMock: jest.Mocked<IAuthenticatedFetcher> = {
+       requestInit?: RequestInit
+       /* eslint-enable @typescript-eslint/no-unused-vars */
+     ) => AuthenticatedFetcherResponse
+-  )
++  ),
+ };
+diff --git a/src/dpop/__mocks__/DpopClientKeyManager.ts b/src/dpop/__mocks__/DpopClientKeyManager.ts
+index f391c042b1..0d9c4e8174 100644
+--- a/src/dpop/__mocks__/DpopClientKeyManager.ts
++++ b/src/dpop/__mocks__/DpopClientKeyManager.ts
+@@ -25,12 +25,12 @@ import { JSONWebKey } from "jose";
+ export const DpopClientKeyManagerMockGetClientKeyResponse: JSONWebKey = {
+   kty: "RSA",
+   e: "abcd",
+-  n: "1234"
++  n: "1234",
+ };
+ 
+ export const DpopClientKeyManagerMock: jest.Mocked<IDpopClientKeyManager> = {
+   generateClientKeyIfNotAlready: jest.fn().mockResolvedValue({}),
+   getClientKey: jest.fn(
+     async () => DpopClientKeyManagerMockGetClientKeyResponse
+-  )
++  ),
+ };
+diff --git a/src/dpop/__mocks__/DpopHeaderCreator.ts b/src/dpop/__mocks__/DpopHeaderCreator.ts
+index 1e4d191b18..40b89b174b 100644
+--- a/src/dpop/__mocks__/DpopHeaderCreator.ts
++++ b/src/dpop/__mocks__/DpopHeaderCreator.ts
+@@ -26,5 +26,5 @@ export const DpopHeaderCreatorResponse = "someToken";
+ export const DpopHeaderCreatorMock: jest.Mocked<IDpopHeaderCreator> = {
+   createHeaderToken: jest.fn(
+     async (_audience, _method) => DpopHeaderCreatorResponse
+-  )
++  ),
+ };
+diff --git a/src/jose/__mocks__/JoseUtility.ts b/src/jose/__mocks__/JoseUtility.ts
+index c7215c29a9..a5ad2f470a 100644
+--- a/src/jose/__mocks__/JoseUtility.ts
++++ b/src/jose/__mocks__/JoseUtility.ts
+@@ -41,7 +41,7 @@ export const JoseUtilityGenerateJWKResponse: JSONWebKey = {
+   dq:
+     "iGLgcgv_8EQq1WHI4OUfLCRcf1o-XoOchRkNMMiYEMQ3e7zyR_ZWow_YAQNk5PgOP4516Dc0VSxWDaxMU-oSNcPQ_pfulYmp6VCgxlf5_SS9lAUPtVRUAUzoayp2z3HCDl981KuAi0HEla6MgUV4q8nYMERpMAy9LWmNE8uGgxM",
+   qi:
+-    "uCLWDLyIVCWNdVSxdhob9TgdSUKq5GmiUjm8IDRH_hebpDIxoVwY1L2QVe50lk5iGObQJyBy5ylTHu1SxRUUUWl6IcrKp4xQRuIkAd7FO9RuowbgH26BEup36gtU5T2Qliiy7izK7Q4EX6JaXe9S7d-k7j2FqpHue9fH-KAYnuU"
++    "uCLWDLyIVCWNdVSxdhob9TgdSUKq5GmiUjm8IDRH_hebpDIxoVwY1L2QVe50lk5iGObQJyBy5ylTHu1SxRUUUWl6IcrKp4xQRuIkAd7FO9RuowbgH26BEup36gtU5T2Qliiy7izK7Q4EX6JaXe9S7d-k7j2FqpHue9fH-KAYnuU",
+ };
+ export const JoseUtilityPrivateToPublicJWKResponse: JSONWebKey = {
+   kty: "RSA",
+@@ -62,7 +62,7 @@ export const JoseUtilityPrivateToPublicJWKResponse: JSONWebKey = {
+   dq:
+     "iGLgcgv_8EQq1WHI4OUfLCRcf1o-XoOchRkNMMiYEMQ3e7zyR_ZWow_YAQNk5PgOP4516Dc0VSxWDaxMU-oSNcPQ_pfulYmp6VCgxlf5_SS9lAUPtVRUAUzoayp2z3HCDl981KuAi0HEla6MgUV4q8nYMERpMAy9LWmNE8uGgxM",
+   qi:
+-    "uCLWDLyIVCWNdVSxdhob9TgdSUKq5GmiUjm8IDRH_hebpDIxoVwY1L2QVe50lk5iGObQJyBy5ylTHu1SxRUUUWl6IcrKp4xQRuIkAd7FO9RuowbgH26BEup36gtU5T2Qliiy7izK7Q4EX6JaXe9S7d-k7j2FqpHue9fH-KAYnuU"
++    "uCLWDLyIVCWNdVSxdhob9TgdSUKq5GmiUjm8IDRH_hebpDIxoVwY1L2QVe50lk5iGObQJyBy5ylTHu1SxRUUUWl6IcrKp4xQRuIkAd7FO9RuowbgH26BEup36gtU5T2Qliiy7izK7Q4EX6JaXe9S7d-k7j2FqpHue9fH-KAYnuU",
+ };
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ export const JoseUtilityDecodeJWTResponse: Record<string, any> = {};
+@@ -99,5 +99,5 @@ export const JoseUtilityMock: jest.Mocked<IJoseUtility> = {
+   ),
+   generateCodeChallenge: jest.fn(
+     async (_verifier: string) => JoseUtilityGenerateCodeChallengeResponse
+-  )
++  ),
+ };
+diff --git a/src/login/__mocks__/LoginHandler.ts b/src/login/__mocks__/LoginHandler.ts
+index defae41519..a3d7731fb4 100644
+--- a/src/login/__mocks__/LoginHandler.ts
++++ b/src/login/__mocks__/LoginHandler.ts
+@@ -25,12 +25,12 @@ import ILoginOptions from "../ILoginOptions";
+ 
+ export const LoginHandlerResponse: ISessionInfo = {
+   isLoggedIn: false,
+-  sessionId: "global"
++  sessionId: "global",
+ };
+ 
+ export const LoginHandlerMock: jest.Mocked<ILoginHandler> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   canHandle: jest.fn((options: ILoginOptions) => Promise.resolve(true)),
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+-  handle: jest.fn((options: ILoginOptions) => Promise.resolve())
++  handle: jest.fn((options: ILoginOptions) => Promise.resolve()),
+ };
+diff --git a/src/login/oidc/__mocks__/ClientRegistrar.ts b/src/login/oidc/__mocks__/ClientRegistrar.ts
+index f68a6f2c3d..a5845ae499 100644
+--- a/src/login/oidc/__mocks__/ClientRegistrar.ts
++++ b/src/login/oidc/__mocks__/ClientRegistrar.ts
+@@ -25,11 +25,11 @@ import IIssuerConfig from "../IIssuerConfig";
+ 
+ export const ClientRegistrarResponse: IClient = {
+   clientId: "abcde",
+-  clientSecret: "12345"
++  clientSecret: "12345",
+ };
+ 
+ export const PublicClientRegistrarResponse: IClient = {
+-  clientId: "abcde"
++  clientId: "abcde",
+ };
+ 
+ export const ClientRegistrarMock: jest.Mocked<IClientRegistrar> = {
+@@ -37,7 +37,7 @@ export const ClientRegistrarMock: jest.Mocked<IClientRegistrar> = {
+     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     (options: IRegistrarOptions, issuerConfig: IIssuerConfig) =>
+       Promise.resolve(ClientRegistrarResponse)
+-  )
++  ),
+ };
+ 
+ export const PublicClientRegistrarMock: jest.Mocked<IClientRegistrar> = {
+@@ -45,5 +45,5 @@ export const PublicClientRegistrarMock: jest.Mocked<IClientRegistrar> = {
+     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     (options: IRegistrarOptions, issuerConfig: IIssuerConfig) =>
+       Promise.resolve(PublicClientRegistrarResponse)
+-  )
++  ),
+ };
+diff --git a/src/login/oidc/__mocks__/IOidcHandler.ts b/src/login/oidc/__mocks__/IOidcHandler.ts
+index 2663041edd..a45c59f984 100644
+--- a/src/login/oidc/__mocks__/IOidcHandler.ts
++++ b/src/login/oidc/__mocks__/IOidcHandler.ts
+@@ -30,5 +30,5 @@ export const OidcHandlerMock: jest.Mocked<IOidcHandler> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   canHandle: jest.fn((_options: IOidcOptions) => Promise.resolve(true)),
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+-  handle: jest.fn(async (_options: IOidcOptions) => Promise.resolve())
++  handle: jest.fn(async (_options: IOidcOptions) => Promise.resolve()),
+ };
+diff --git a/src/login/oidc/__mocks__/IOidcOptions.ts b/src/login/oidc/__mocks__/IOidcOptions.ts
+index 462bf36564..f2b67be4e1 100644
+--- a/src/login/oidc/__mocks__/IOidcOptions.ts
++++ b/src/login/oidc/__mocks__/IOidcOptions.ts
+@@ -27,7 +27,7 @@ export const standardOidcOptions: IOidcOptions = {
+   issuer: new URL("https://example.com"),
+   dpop: true,
+   redirectUrl: new URL("https://app.example.com"),
+-  handleRedirect: jest.fn(url => url),
++  handleRedirect: jest.fn((url) => url),
+   // This will be fixed in a different pull request
+   issuerConfiguration: {
+     issuer: new URL("https://example.com"),
+@@ -35,9 +35,9 @@ export const standardOidcOptions: IOidcOptions = {
+     tokenEndpoint: new URL("https://example.com/token"),
+     jwksUri: new URL("https://example.com/jwks"),
+     subjectTypesSupported: [],
+-    claimsSupported: []
++    claimsSupported: [],
+   },
+   client: {
+-    clientId: "coolApp"
+-  }
++    clientId: "coolApp",
++  },
+ };
+diff --git a/src/login/oidc/__mocks__/IssuerConfigFetcher.ts b/src/login/oidc/__mocks__/IssuerConfigFetcher.ts
+index b1d42ad27c..1dc1588f76 100644
+--- a/src/login/oidc/__mocks__/IssuerConfigFetcher.ts
++++ b/src/login/oidc/__mocks__/IssuerConfigFetcher.ts
+@@ -30,12 +30,12 @@ export const IssuerConfigFetcherFetchConfigResponse: IIssuerConfig = {
+   jwksUri: new URL("https://idp.com/jwks"),
+   subjectTypesSupported: [],
+   claimsSupported: [],
+-  grantTypesSupported: ["refresh_token"]
++  grantTypesSupported: ["refresh_token"],
+ };
+ 
+ export const IssuerConfigFetcherMock: jest.Mocked<IIssuerConfigFetcher> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   fetchConfig: jest.fn((_issuer: URL) =>
+     Promise.resolve(IssuerConfigFetcherFetchConfigResponse)
+-  )
++  ),
+ };
+diff --git a/src/login/oidc/__mocks__/Redirector.ts b/src/login/oidc/__mocks__/Redirector.ts
+index 166b5aa05a..a94885d171 100644
+--- a/src/login/oidc/__mocks__/Redirector.ts
++++ b/src/login/oidc/__mocks__/Redirector.ts
+@@ -27,5 +27,5 @@ export const RedirectorMock: jest.Mocked<IRedirector> = {
+     (redirectUrl: string, redirectOptions: IRedirectorOptions) => {
+       /* void */
+     }
+-  )
++  ),
+ };
+diff --git a/src/login/oidc/__mocks__/TokenRequester.ts b/src/login/oidc/__mocks__/TokenRequester.ts
+index 0832ebb6c4..be9888c24a 100644
+--- a/src/login/oidc/__mocks__/TokenRequester.ts
++++ b/src/login/oidc/__mocks__/TokenRequester.ts
+@@ -24,5 +24,5 @@ import { ITokenRequester } from "../TokenRequester";
+ export const TokenRequesterMock: jest.Mocked<ITokenRequester> = {
+   request: jest.fn((_localUserId: string, _body: Record<string, string>) => {
+     return Promise.resolve();
+-  })
++  }),
+ };
+diff --git a/src/login/oidc/redirectHandler/__mocks__/RedirectHandler.ts b/src/login/oidc/redirectHandler/__mocks__/RedirectHandler.ts
+index 69713804bc..701f930bb7 100644
+--- a/src/login/oidc/redirectHandler/__mocks__/RedirectHandler.ts
++++ b/src/login/oidc/redirectHandler/__mocks__/RedirectHandler.ts
+@@ -35,5 +35,5 @@ export const RedirectHandlerMock: jest.Mocked<IRedirectHandler> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   canHandle: jest.fn((url: string) => Promise.resolve(true)),
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+-  handle: jest.fn((url: string) => Promise.resolve(RedirectHandlerResponse))
++  handle: jest.fn((url: string) => Promise.resolve(RedirectHandlerResponse)),
+ };
+diff --git a/src/login/oidc/redirectHandler/__mocks__/TokenSaver.ts b/src/login/oidc/redirectHandler/__mocks__/TokenSaver.ts
+index 66e711b3fd..45a9b78d56 100644
+--- a/src/login/oidc/redirectHandler/__mocks__/TokenSaver.ts
++++ b/src/login/oidc/redirectHandler/__mocks__/TokenSaver.ts
+@@ -34,5 +34,5 @@ export const TokenSaverMock: jest.Mocked<ITokenSaver> = {
+       refreshToken?: string
+     ) => Promise.resolve()
+     /* eslint-enable-next-line @typescript-eslint/no-unused-vars */
+-  )
++  ),
+ };
+diff --git a/src/logout/__mocks__/LogoutHandler.ts b/src/logout/__mocks__/LogoutHandler.ts
+index 47462cd0b5..c0a345bc2e 100644
+--- a/src/logout/__mocks__/LogoutHandler.ts
++++ b/src/logout/__mocks__/LogoutHandler.ts
+@@ -25,5 +25,5 @@ export const LogoutHandlerMock: jest.Mocked<ILogoutHandler> = {
+   canHandle: jest.fn(async (_localUserId: string) => true),
+   handle: jest.fn(async (_localUserId: string) => {
+     /* Do nothing */
+-  })
++  }),
+ };
+diff --git a/src/sessionInfo/__mocks__/SessionInfoManager.ts b/src/sessionInfo/__mocks__/SessionInfoManager.ts
+index 5fe79d1ca8..a2844fee2b 100644
+--- a/src/sessionInfo/__mocks__/SessionInfoManager.ts
++++ b/src/sessionInfo/__mocks__/SessionInfoManager.ts
+@@ -21,14 +21,14 @@
+ 
+ import {
+   ISessionInfoManager,
+-  ISessionInfoManagerOptions
++  ISessionInfoManagerOptions,
+ } from "../SessionInfoManager";
+ import ISessionInfo from "../ISessionInfo";
+ 
+ export const SessionCreatorCreateResponse: ISessionInfo = {
+   sessionId: "global",
+   isLoggedIn: true,
+-  webId: "https://pod.com/profile/card#me"
++  webId: "https://pod.com/profile/card#me",
+ };
+ export const SessionCreatorGetSessionResponse: ISessionInfo = SessionCreatorCreateResponse;
+ 
+@@ -41,5 +41,5 @@ export const SessionInfoManagerMock: jest.Mocked<ISessionInfoManager> = {
+   get: jest.fn(async (sessionId: string) =>
+     Promise.resolve(SessionCreatorCreateResponse)
+   ),
+-  getAll: jest.fn(async () => Promise.resolve([SessionCreatorCreateResponse]))
++  getAll: jest.fn(async () => Promise.resolve([SessionCreatorCreateResponse])),
+ };
+diff --git a/src/storage/__mocks__/Storage.ts b/src/storage/__mocks__/Storage.ts
+index ef3780d183..12fc13aa2b 100644
+--- a/src/storage/__mocks__/Storage.ts
++++ b/src/storage/__mocks__/Storage.ts
+@@ -33,5 +33,5 @@ export const StorageMock: jest.Mocked<IStorage> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   delete: jest.fn(async (key: string) => {
+     /* do nothing */
+-  })
++  }),
+ };
+diff --git a/src/storage/__mocks__/StorageUtility.ts b/src/storage/__mocks__/StorageUtility.ts
+index 2f619d6600..ef0af87810 100644
+--- a/src/storage/__mocks__/StorageUtility.ts
++++ b/src/storage/__mocks__/StorageUtility.ts
+@@ -23,7 +23,7 @@ import { IStorageUtility } from "../StorageUtility";
+ 
+ export const StorageUtilityGetResponse = "getResponse";
+ export const StorageUtilitySafeGetResponse = {
+-  someKey: "someValue"
++  someKey: "someValue",
+ };
+ 
+ export const StorageUtilityMock: jest.Mocked<IStorageUtility> = {
+@@ -75,7 +75,7 @@ export const StorageUtilityMock: jest.Mocked<IStorageUtility> = {
+         userId?: string;
+       }>
+     ) => StorageUtilitySafeGetResponse
+-  )
++  ),
+   /* eslint-enable @typescript-eslint/no-unused-vars */
+ };
+ 
+@@ -157,7 +157,7 @@ export const mockStorageUtility = (
+           userId?: string;
+         }>
+       ) => (nonSecureStore[key] ? (nonSecureStore[key] as string) : undefined)
+-    )
++    ),
+     /* eslint-enable @typescript-eslint/no-unused-vars */
+   };
+ };
+diff --git a/src/util/__mocks__/EnvironmentDetector.ts b/src/util/__mocks__/EnvironmentDetector.ts
+index 9d47e27fae..125f9c951c 100644
+--- a/src/util/__mocks__/EnvironmentDetector.ts
++++ b/src/util/__mocks__/EnvironmentDetector.ts
+@@ -24,5 +24,5 @@ import { IEnvironmentDetector } from "../EnvironmentDetector";
+ export const EnvironmentDectorMockResponse = "browser";
+ 
+ export const EnvironmentDetectorMock: jest.Mocked<IEnvironmentDetector> = {
+-  detect: jest.fn(() => EnvironmentDectorMockResponse)
++  detect: jest.fn(() => EnvironmentDectorMockResponse),
+ };
+diff --git a/src/util/__mocks__/Fetcher.ts b/src/util/__mocks__/Fetcher.ts
+index 8fb7ebaf1f..4e4b37240c 100644
+--- a/src/util/__mocks__/Fetcher.ts
++++ b/src/util/__mocks__/Fetcher.ts
+@@ -41,17 +41,17 @@ export const FetchTokenResponse: Response = (new NodeResponse(
+     access_token:
+       "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJodHRwczovL3NvbWUucG9kL3dlYmlkI21lIiwianRpIjoiMjFiNDhlOTgtNzA4YS00Y2UzLTk2NmMtYTk2M2UwMDM2ZDBiIiwiaWF0IjoxNTk1ODQxODAxLCJleHAiOjE1OTU4NDU0MDF9.MGqDiny3pzhlSOJ52cJWJA84J47b9p5kkuuJVPB-dVg",
+     id_token: "myIdToken",
+-    refresh_token: "myResfreshToken"
++    refresh_token: "myResfreshToken",
+     /* eslint-disable @typescript-eslint/camelcase */
+   })
+ ) as unknown) as Response;
+ 
+ export const FetcherMock: jest.Mocked<IFetcher> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+-  fetch: jest.fn(async (_url, _init) => FetcherMockResponse)
++  fetch: jest.fn(async (_url, _init) => FetcherMockResponse),
+ };
+ 
+ export const FetcherTokenMock: jest.Mocked<IFetcher> = {
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+-  fetch: jest.fn(async (_url, _init) => FetchTokenResponse)
++  fetch: jest.fn(async (_url, _init) => FetchTokenResponse),
+ };
+diff --git a/src/util/__mocks__/UrlRepresentationConverter.ts b/src/util/__mocks__/UrlRepresentationConverter.ts
+index f0bf782f95..fe7986167d 100644
+--- a/src/util/__mocks__/UrlRepresentationConverter.ts
++++ b/src/util/__mocks__/UrlRepresentationConverter.ts
+@@ -23,5 +23,5 @@ import { IUrlRepresentationConverter } from "../UrlRepresenationConverter";
+ import URL from "url-parse";
+ 
+ export const UrlRepresentationConverterMock: jest.Mocked<IUrlRepresentationConverter> = {
+-  requestInfoToUrl: jest.fn((input: RequestInfo) => new URL(input as string))
++  requestInfoToUrl: jest.fn((input: RequestInfo) => new URL(input as string)),
+ };
+diff --git a/src/util/__mocks__/UuidGenerator.ts b/src/util/__mocks__/UuidGenerator.ts
+index a136a12611..92dcb5f752 100644
+--- a/src/util/__mocks__/UuidGenerator.ts
++++ b/src/util/__mocks__/UuidGenerator.ts
+@@ -24,5 +24,5 @@ import { IUuidGenerator } from "../UuidGenerator";
+ export const UuidGeneratorMockResponse = "fee3fa53-a6a9-475c-a0da-b1343a4fff76";
+ 
+ export const UuidGeneratorMock: jest.Mocked<IUuidGenerator> = {
+-  v4: jest.fn(() => UuidGeneratorMockResponse)
++  v4: jest.fn(() => UuidGeneratorMockResponse),
+ };

@@ -1,0 +1,282 @@
+diff --git a/tests/scripts/hunt-filter/common.ts b/tests/scripts/hunt-filter/common.ts
+index cb4e5fc6..265a8d20 100644
+--- a/tests/scripts/hunt-filter/common.ts
++++ b/tests/scripts/hunt-filter/common.ts
+@@ -18,6 +18,7 @@ export function getValidPostResponse(): HgResponse {
+ export function getDefaultUser(): User {
+     return {
+         user_id: 0,
++        sn_user_id: 0,
+         unique_hash: 'mhct',
+         num_active_turns: 0,
+         next_activeturn_seconds: 0,
+diff --git a/tests/scripts/hunt-filter/exemptions/environments/bountifulBeanstalk.spec.ts b/tests/scripts/hunt-filter/exemptions/environments/bountifulBeanstalk.spec.ts
+index 97e57335..d485828e 100644
+--- a/tests/scripts/hunt-filter/exemptions/environments/bountifulBeanstalk.spec.ts
++++ b/tests/scripts/hunt-filter/exemptions/environments/bountifulBeanstalk.spec.ts
+@@ -113,7 +113,7 @@ describe('Bountiful Beanstalk exemptions', () => {
+                 });
+             });
+ 
+-            type HelperType = { floor: string, room: string, isBossEncounter: boolean };
++            interface HelperType { floor: string, room: string, isBossEncounter: boolean }
+             function setCastleQuestAttributes(preAttributes: HelperType, postAttributes: HelperType, mouse: string) {
+                 preUser.quests.QuestBountifulBeanstalk = stageTest.createCastleAttributes(preAttributes, preAttributes.isBossEncounter);
+                 postUser.quests.QuestBountifulBeanstalk = stageTest.createCastleAttributes(preAttributes, postAttributes.isBossEncounter);
+diff --git a/tests/scripts/modules/ajax-handlers/golem.spec.ts b/tests/scripts/modules/ajax-handlers/golem.spec.ts
+index 4588e836..c4ff34c7 100644
+--- a/tests/scripts/modules/ajax-handlers/golem.spec.ts
++++ b/tests/scripts/modules/ajax-handlers/golem.spec.ts
+@@ -1,5 +1,6 @@
+ import {GWHGolemAjaxHandler} from '@scripts/modules/ajax-handlers/golem';
+ import type {GolemPayload} from '@scripts/modules/ajax-handlers/golem.types';
++import {HgResponse} from '@scripts/types/hg';
+ 
+ jest.mock('@scripts/util/logger');
+ import {ConsoleLogger} from '@scripts/util/logger';
+@@ -37,7 +38,7 @@ describe('GWHGolemAjaxHandler', () => {
+         it('does not call submitGolems with unhandled json', () => {
+             handler.submitGolems = jest.fn();
+ 
+-            handler.execute({});
++            handler.execute({} as unknown as HgResponse);
+ 
+             expect(logger.debug).toHaveBeenCalledWith('Skipped GWH golem submission since there are no golem rewards.', {});
+             expect(handler.submitGolems).not.toHaveBeenCalled();
+@@ -122,5 +123,5 @@ const testResponses = {
+                 },
+             },
+         ],
+-    },
++    } as unknown as HgResponse,
+ };
+diff --git a/tests/scripts/modules/ajax-handlers/sbFactory.spec.ts b/tests/scripts/modules/ajax-handlers/sbFactory.spec.ts
+index 02829a1f..2b7a7ff3 100644
+--- a/tests/scripts/modules/ajax-handlers/sbFactory.spec.ts
++++ b/tests/scripts/modules/ajax-handlers/sbFactory.spec.ts
+@@ -1,4 +1,5 @@
+ import {SBFactoryAjaxHandler} from "@scripts/modules/ajax-handlers";
++import {HgResponse} from "@scripts/types/hg";
+ import {HgItem} from "@scripts/types/mhct";
+ 
+ jest.mock('@scripts/util/logger');
+@@ -27,7 +28,7 @@ describe("SBFactoryAjaxHandler", () => {
+ 
+     describe("execute", () => {
+         it('logs if birthday response is not purchase', async () => {
+-            await handler.execute({});
++            await handler.execute({} as unknown as HgResponse);
+ 
+             expect(logger.debug).toBeCalledWith('Skipped snack pack submission as this isn\'t a vending purchase');
+             expect(submitConvertibleCallback).toHaveBeenCalledTimes(0);
+@@ -36,7 +37,7 @@ describe("SBFactoryAjaxHandler", () => {
+         it('warns if response is unexpected', async () => {
+             // vending_machine_reponse.type missing here,
+             // but add some other data to verify that it will print out entire response
+-            const response = {user_id: 4, vending_machine_purchase: {}};
++            const response = {user_id: 4, vending_machine_purchase: {}} as unknown as HgResponse;
+             await handler.execute(response);
+ 
+             expect(logger.warn).toBeCalledWith('Unable to parse bday response', {responseJSON: response});
+@@ -165,7 +166,7 @@ const testResponses = {
+                 "quantity": 54,
+             },
+         },
+-    },
++    } as unknown as HgResponse,
+ 
+     // Story Seeds (inferred from preview by Dave on 2023-02-17 FBF)
+     // 20 Second Draft Derby Cheese, 30 Clamembert Cheese, 60 Mythical Mulch
+@@ -217,5 +218,5 @@ const testResponses = {
+                 "quantity": 60,
+             },
+         },
+-    },
++    } as unknown as HgResponse,
+ };
+diff --git a/tests/scripts/modules/ajax-handlers/springEggHunt.spec.ts b/tests/scripts/modules/ajax-handlers/springEggHunt.spec.ts
+index 25da0aa0..848c8263 100644
+--- a/tests/scripts/modules/ajax-handlers/springEggHunt.spec.ts
++++ b/tests/scripts/modules/ajax-handlers/springEggHunt.spec.ts
+@@ -1,4 +1,5 @@
+ import {SEHAjaxHandler} from "@scripts/modules/ajax-handlers";
++import {HgResponse} from "@scripts/types/hg";
+ import {HgItem} from "@scripts/types/mhct";
+ 
+ jest.mock('@scripts/util/logger');
+@@ -27,7 +28,7 @@ describe("SEHAjaxHandler", () => {
+ 
+     describe("execute", () => {
+         it('logs if SEH response is not egg opening', async () => {
+-            await handler.execute({});
++            await handler.execute({} as unknown as HgResponse);
+ 
+             expect(logger.debug).toBeCalledWith('Skipping SEH egg submission as this isn\'t an egg convertible');
+             expect(submitConvertibleCallback).toHaveBeenCalledTimes(0);
+@@ -36,7 +37,7 @@ describe("SEHAjaxHandler", () => {
+         it('warns if response is unexpected', async () => {
+             // vending_machine_reponse.type missing here,
+             // but add some other data to verify that it will print out entire response
+-            const response = {user_id: 4, egg_contents: {}};
++            const response = {user_id: 4, egg_contents: {}} as unknown as HgResponse;
+             await handler.execute(response);
+ 
+             expect(logger.warn).toBeCalledWith('Unable to parse SEH response', {responseJSON: response});
+@@ -180,7 +181,7 @@ const testResponses = {
+                 "type": "sky_scrambler_stat_item",
+             },
+         },
+-    },
++    } as unknown as HgResponse,
+ 
+     // 2 Loot Cache Eggs
+     // 4 Sky Glass, 8 Cloud Curd, 4 Sky Ore
+@@ -229,7 +230,7 @@ const testResponses = {
+                 "type": "floating_islands_sky_ore_stat_item",
+             },
+         },
+-    },
++    } as unknown as HgResponse,
+     // 1 Architeuthulhu Egg
+     // 50 Inspiration Ink
+     responseThree: {
+@@ -256,5 +257,5 @@ const testResponses = {
+                 "type": "inspiration_ink_stat_item",
+             },
+         },
+-    },
++    } as unknown as HgResponse,
+ };
+diff --git a/tests/scripts/modules/details/environments/iceFortress.spec.ts b/tests/scripts/modules/details/environments/iceFortress.spec.ts
+index f649db0b..1221922d 100644
+--- a/tests/scripts/modules/details/environments/iceFortress.spec.ts
++++ b/tests/scripts/modules/details/environments/iceFortress.spec.ts
+@@ -1,14 +1,18 @@
+ import {IceFortressDetailer} from '@scripts/modules/details/environments/iceFortress';
+-import {type User} from '@scripts/types/hg';
++import type {JournalMarkup, User} from '@scripts/types/hg';
++import type {IntakeMessage} from '@scripts/types/mhct';
+ 
+ describe('IceFortressDetailer', () => {
+     test('getDetails does nothing', () => {
+         const detailer = new IceFortressDetailer();
++        const message = {} as IntakeMessage;
+         const userPost = {
+             quests: {
+                 QuestIceFortress: {},
+             },
+         } as User;
+-        expect(detailer.addDetails(null, {} as User, userPost, null)).toBe(undefined);
++        const journal = {} as JournalMarkup;
++
++        expect(detailer.addDetails(message, {} as User, userPost, journal)).toBe(undefined);
+     });
+ });
+diff --git a/tests/scripts/modules/details/global/spingEggHunt.spec.ts b/tests/scripts/modules/details/global/spingEggHunt.spec.ts
+index b2b9561e..dd423e63 100644
+--- a/tests/scripts/modules/details/global/spingEggHunt.spec.ts
++++ b/tests/scripts/modules/details/global/spingEggHunt.spec.ts
+@@ -1,21 +1,23 @@
+ import {SpringEggHuntDetailer, type SpringEggHuntDetails} from '@scripts/modules/details/global/springEggHunt';
+ import {type User} from '@scripts/types/hg';
++import {type IntakeMessage} from '@scripts/types/mhct';
+ import {type QuestSpringHunt} from '@scripts/types/quests';
+ 
+ describe('SpringEggHuntDetailer', () => {
+     describe('getDetails', () => {
+         it('returns undefined when quest is undefined', () => {
+             const detailer = new SpringEggHuntDetailer();
++            const message = {} as IntakeMessage;
+             const user: User = {
+                 quests: {},
+             } as User;
+ 
+-            expect(detailer.addDetails(null, user, user, null!)).toBe(undefined);
++            expect(detailer.addDetails(message, user, user, null!)).toBe(undefined);
+         });
+ 
+         it('adds expected details when SEH quest is active', () => {
+             const detailer = new SpringEggHuntDetailer();
+-
++            const message = {} as IntakeMessage;
+             const preQuest: QuestSpringHunt = getDefaultQuest();
+             preQuest.charge_quantity = "10";
+             const postQuest: QuestSpringHunt = getDefaultQuest();
+@@ -40,7 +42,7 @@ describe('SpringEggHuntDetailer', () => {
+                 can_double_eggs: true,
+             };
+ 
+-            expect(detailer.addDetails(null, preUser, postUser, null!)).toStrictEqual(expected);
++            expect(detailer.addDetails(message, preUser, postUser, null!)).toStrictEqual(expected);
+         });
+     });
+ 
+diff --git a/tests/scripts/modules/stages/environments/forbiddenGrove.spec.ts b/tests/scripts/modules/stages/environments/forbiddenGrove.spec.ts
+index 4f9fb666..00232fa9 100644
+--- a/tests/scripts/modules/stages/environments/forbiddenGrove.spec.ts
++++ b/tests/scripts/modules/stages/environments/forbiddenGrove.spec.ts
+@@ -1,17 +1,18 @@
+ import {ForbiddenGroveStager} from "@scripts/modules/stages/environments/forbiddenGrove";
+ import {User} from "@scripts/types/hg";
++import {IntakeMessage} from "@scripts/types/mhct";
+ 
+ describe("ForbiddenGroveStager", () => {
+     const stager = new ForbiddenGroveStager();
+     let defaultPre: User;
+     let defaultPost: User;
+-    let defaultMessage: any = {};
+-    let defaultJournal: any = {};
++    let defaultMessage: IntakeMessage = {} as IntakeMessage;
++    let defaultJournal: unknown = {};
+ 
+     beforeEach(() => {
+         defaultPre = getDefaultUser();
+         defaultPost = getDefaultUser();
+-        defaultMessage = {};
++        defaultMessage = {} as IntakeMessage;
+         defaultJournal = {};
+     });
+ 
+@@ -30,10 +31,10 @@ describe("ForbiddenGroveStager", () => {
+ 
+         // common act to run addStage
+         const act = (
+-            message: any = defaultMessage,
++            message: IntakeMessage = defaultMessage,
+             userPre: User = defaultPre,
+             userPost: User = defaultPost,
+-            journal: any = defaultJournal
++            journal: unknown = defaultJournal
+         ) => {
+             stager.addStage(message, userPre, userPost, journal);
+         };
+diff --git a/tests/scripts/modules/stages/environments/iceFortress.spec.ts b/tests/scripts/modules/stages/environments/iceFortress.spec.ts
+index 3cca1e2f..0d2133de 100644
+--- a/tests/scripts/modules/stages/environments/iceFortress.spec.ts
++++ b/tests/scripts/modules/stages/environments/iceFortress.spec.ts
+@@ -1,10 +1,11 @@
+ import {IceFortressStager} from '@scripts/modules/stages/environments/iceFortress';
+ import {User} from '@scripts/types/hg';
++import {IntakeMessage} from '@scripts/types/mhct';
+ 
+ describe('IceFortressStager', () => {
+     it('adds boss stage (but not right now)', () => {
+         const message = {
+-        } as any;
++        } as IntakeMessage;
+         const stager = new IceFortressStager();
+         const userPre = {
+             quests: {
+diff --git a/tests/scripts/modules/stages/environments/superBrieFactory.spec.ts b/tests/scripts/modules/stages/environments/superBrieFactory.spec.ts
+index e9177f15..c4f9c7a8 100644
+--- a/tests/scripts/modules/stages/environments/superBrieFactory.spec.ts
++++ b/tests/scripts/modules/stages/environments/superBrieFactory.spec.ts
+@@ -28,7 +28,7 @@ describe("SuperBrieFactoryStager", () => {
+         const user = changeFactoryQuest(defaultUser, undefined!);
+ 
+         expect(() => {
+-            stager.addStage({} as any, user, user, defaultJournal);
++            stager.addStage({} as IntakeMessage, user, user, defaultJournal);
+         }).toThrowError("User is in SB+ factory but quest wasn't found.");
+     });
+ 

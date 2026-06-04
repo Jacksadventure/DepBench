@@ -1,0 +1,278 @@
+diff --git a/src/tsUserPreferences.ts b/src/tsUserPreferences.ts
+index 979c4578..2e0fbe05 100644
+--- a/src/tsUserPreferences.ts
++++ b/src/tsUserPreferences.ts
+@@ -12,11 +12,15 @@ const keys: {
+     ? "boolean"
+     : UserPreferences[key] extends string | undefined
+     ? "string"
++    : UserPreferences[key] extends string[] | undefined
++    ? "stringArray"
+     : never;
+ } & Record<keyof UserPreferences, string> = {
+   allowIncompleteCompletions: "boolean",
+   allowRenameOfImportPath: "boolean",
+   allowTextChangesInNewFiles: "boolean",
++  autoImportFileExcludePatterns: "stringArray",
++  disableLineTextInReferences: "boolean",
+   disableSuggestions: "boolean",
+   displayPartsForJSDoc: "boolean",
+   generateReturnInDocTemplate: "boolean",
+@@ -36,6 +40,7 @@ const keys: {
+   includeInlayParameterNameHintsWhenArgumentMatchesName: "boolean",
+   includeInlayPropertyDeclarationTypeHints: "boolean",
+   includeInlayVariableTypeHints: "boolean",
++  includeInlayVariableTypeHintsWhenTypeMatchesName: "boolean",
+   includePackageJsonAutoImports: "string",
+   jsxAttributeCompletionStyle: "string",
+   lazyConfiguredProjectsFromExternalProject: "boolean",
+diff --git a/typescript.novaextension/extension.json b/typescript.novaextension/extension.json
+index 2eb5ab6e..8ae7a6f1 100644
+--- a/typescript.novaextension/extension.json
++++ b/typescript.novaextension/extension.json
+@@ -111,6 +111,28 @@
+           "description": "Unless this option is `false`, or `includeCompletionsWithInsertText` is not enabled, member completion lists triggered with `.` will include entries on potentially-null and potentially-undefined values, with insertion text to replace preceding `.` tokens with `?.`.",
+           "type": "boolean"
+         },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeCompletionsWithClassMemberSnippets",
++          "title": "Include completions with class member snippets",
++          "description": "If enabled, completions for class members (e.g. methods and properties) will include a whole declaration for the member. E.g., `class A { f| }` could be completed to `class A { foo(): number {} }`, instead of `class A { foo }`.",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeCompletionsWithObjectLiteralMethodSnippets",
++          "title": "Include completions with class member snippets",
++          "description": "If enabled, object literal methods will have a method declaration completion entry in addition to the regular completion entry containing just the method name. E.g., `const objectLiteral: T = { f| }` could be completed to `const objectLiteral: T = { foo(): void {} }`, in addition to `const objectLiteral: T = { foo }`.",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.useLabelDetailsInCompletionEntries",
++          "title": "Use label details in completion entries",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.allowIncompleteCompletions",
++          "title": "Allow incomplete completions",
++          "type": "boolean"
++        },
+         {
+           "key": "apexskier.typescript.config.userPreferences.importModuleSpecifierPreference",
+           "title": "Import module specifier",
+@@ -144,7 +166,7 @@
+         },
+         {
+           "key": "apexskier.typescript.config.userPreferences.lazyConfiguredProjectsFromExternalProject",
+-          "title": "Lazy configured projects from external projects",
++          "title": "Lazy configured projects from external project",
+           "type": "boolean"
+         },
+         {
+@@ -173,6 +195,17 @@
+           ],
+           "default": "auto"
+         },
++        {
++          "key": "apexskier.typescript.config.userPreferences.jsxAttributeCompletionStyle",
++          "title": "jsx attribute completion style",
++          "type": "enum",
++          "values": [
++            ["auto", "Automatic"],
++            ["braces", "Braces"],
++            ["none", "None"]
++          ],
++          "default": "auto"
++        },
+         {
+           "key": "apexskier.typescript.config.userPreferences.displayPartsForJSDoc",
+           "title": "Display parts for JSDoc",
+@@ -182,6 +215,63 @@
+           "key": "apexskier.typescript.config.userPreferences.generateReturnInDocTemplate",
+           "title": "Generate return in documentation templates",
+           "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayParameterNameHints",
++          "title": "Include inlay parameter name hints",
++          "type": "enum",
++          "values": [
++            ["none", "None"],
++            ["literals", "Literals"],
++            ["all", "All"]
++          ],
++          "default": "none"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayParameterNameHintsWhenArgumentMatchesName",
++          "title": "Include inlay parameter name hints when argument matches name",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayFunctionParameterTypeHints",
++          "title": "Include inlay function parameter type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayVariableTypeHints",
++          "title": "Include inlay variable type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayVariableTypeHintsWhenTypeMatchesName",
++          "title": "Include inlay variable type hints when type matches name",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayPropertyDeclarationTypeHints",
++          "title": "Include inlay property declaration type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayFunctionLikeReturnTypeHints",
++          "title": "Include inlay function like return type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayEnumMemberValueHints",
++          "title": "Include inlay enum member value hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.autoImportFileExcludePatterns",
++          "title": "Auto import file exclude patterns",
++          "type": "stringArray"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.disableLineTextInReferences",
++          "title": "Disable line text in references",
++          "description": "Indicates whether ReferenceResponseItem.lineText is supported.",
++          "type": "boolean"
+         }
+       ]
+     },
+@@ -313,6 +403,22 @@
+           "description": "Unless this option is `false`, or `includeCompletionsWithInsertText` is not enabled, member completion lists triggered with `.` will include entries on potentially-null and potentially-undefined values, with insertion text to replace preceding `.` tokens with `?.`.",
+           "type": "boolean"
+         },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeCompletionsWithObjectLiteralMethodSnippets",
++          "title": "Include completions with class member snippets",
++          "description": "If enabled, object literal methods will have a method declaration completion entry in addition to the regular completion entry containing just the method name. E.g., `const objectLiteral: T = { f| }` could be completed to `const objectLiteral: T = { foo(): void {} }`, in addition to `const objectLiteral: T = { foo }`.",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.useLabelDetailsInCompletionEntries",
++          "title": "Use label details in completion entries",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.allowIncompleteCompletions",
++          "title": "Allow incomplete completions",
++          "type": "boolean"
++        },
+         {
+           "key": "apexskier.typescript.config.userPreferences.importModuleSpecifierPreference",
+           "title": "Import module specifier",
+@@ -346,7 +452,7 @@
+         },
+         {
+           "key": "apexskier.typescript.config.userPreferences.lazyConfiguredProjectsFromExternalProject",
+-          "title": "Lazy configured projects from external projects",
++          "title": "Lazy configured projects from external project",
+           "type": "boolean"
+         },
+         {
+@@ -375,6 +481,17 @@
+           ],
+           "default": "auto"
+         },
++        {
++          "key": "apexskier.typescript.config.userPreferences.jsxAttributeCompletionStyle",
++          "title": "jsx attribute completion style",
++          "type": "enum",
++          "values": [
++            ["auto", "Automatic"],
++            ["braces", "Braces"],
++            ["none", "None"]
++          ],
++          "default": "auto"
++        },
+         {
+           "key": "apexskier.typescript.config.userPreferences.displayPartsForJSDoc",
+           "title": "Display parts for JSDoc",
+@@ -384,6 +501,63 @@
+           "key": "apexskier.typescript.config.userPreferences.generateReturnInDocTemplate",
+           "title": "Generate return in documentation templates",
+           "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayParameterNameHints",
++          "title": "Include inlay parameter name hints",
++          "type": "enum",
++          "values": [
++            ["none", "None"],
++            ["literals", "Literals"],
++            ["all", "All"]
++          ],
++          "default": "none"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayParameterNameHintsWhenArgumentMatchesName",
++          "title": "Include inlay parameter name hints when argument matches name",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayFunctionParameterTypeHints",
++          "title": "Include inlay function parameter type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayVariableTypeHints",
++          "title": "Include inlay variable type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayVariableTypeHintsWhenTypeMatchesName",
++          "title": "Include inlay variable type hints when type matches name",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayPropertyDeclarationTypeHints",
++          "title": "Include inlay property declaration type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayFunctionLikeReturnTypeHints",
++          "title": "Include inlay function like return type hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.includeInlayEnumMemberValueHints",
++          "title": "Include inlay enum member value hints",
++          "type": "boolean"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.autoImportFileExcludePatterns",
++          "title": "Auto import file exclude patterns",
++          "type": "stringArray"
++        },
++        {
++          "key": "apexskier.typescript.config.userPreferences.disableLineTextInReferences",
++          "title": "Disable line text in references",
++          "description": "Indicates whether ReferenceResponseItem.lineText is supported.",
++          "type": "boolean"
+         }
+       ]
+     }
+diff --git a/typescript.novaextension/run.sh b/typescript.novaextension/run.sh
+index d937f5ec..59800749 100755
+--- a/typescript.novaextension/run.sh
++++ b/typescript.novaextension/run.sh
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env bash
+ 
+ # note: any output from this script will be used by nova's language server, so it'll break functionality
++# to get logging in the extension console, pipe to stderr by prefixing with `>&2 `
+ 
+ cd "$WORKSPACE_DIR"
+ 

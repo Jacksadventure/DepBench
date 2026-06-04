@@ -1,0 +1,95 @@
+diff --git a/internal/cmd/integration-tests/docker-compose.yaml b/internal/cmd/integration-tests/docker-compose.yaml
+--- a/internal/cmd/integration-tests/docker-compose.yaml
++++ b/internal/cmd/integration-tests/docker-compose.yaml
+@@ -9,8 +9,8 @@ services:
+     ports:
+       - "9009:9009"
+     networks:
+-      - integration-tests      
+-  
++      - integration-tests
++
+   tempo:
+     image: grafana/tempo:2.6.1
+     command: [ "-config.file=/etc/tempo.yaml" ]
+@@ -92,6 +92,16 @@ services:
+     networks:
+       - integration-tests
+ 
++  redis-init:
++    image: redis:6.0.9-alpine
++    depends_on:
++      - redis
++    volumes:
++      - ./tests/redis/init_redis.sh:/init_redis.sh
++    command: sh /init_redis.sh
++    networks:
++      - integration-tests
++
+   snmp-simulator:
+     image: tandrup/snmpsim:v0.4
+     container_name: snmpsim
+diff --git a/internal/component/loki/secretfilter/secretfilter_test.go b/internal/component/loki/secretfilter/secretfilter_test.go
+--- a/internal/component/loki/secretfilter/secretfilter_test.go
++++ b/internal/component/loki/secretfilter/secretfilter_test.go
+@@ -5,7 +5,7 @@ import (
+ 	"fmt"
+ 	"maps"
+ 	"math"
+-	"math/rand"
++	"math/rand/v2"
+ 	"os"
+ 	"regexp"
+ 	"strings"
+@@ -102,7 +102,7 @@ var customGitleaksConfig = map[string]string{
+ 		[[rules]]
+ 		id = "my-fake-secret"
+ 		description = "Identified a fake secret"
+-		regex = '''(?i)\b(fakeSecret\d{5})(?:['|\"|\n|\r|\s|\x60|;]|$)'''	
++		regex = '''(?i)\b(fakeSecret\d{5})(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+ 		[allowlist]
+ 		regexes = ["abc\\d{3}", "fakeSecret[9]{5}"]
+ 	`,
+@@ -756,7 +756,7 @@ func runBenchmarks(b *testing.B, config string, percentageSecrets int, secretNam
+ 	require.NoError(b, err)
+ 
+ 	// Generate fake log entries with a fixed seed so that it's reproducible
+-	fake := faker.NewWithSeed(rand.NewSource(2014))
++	fake := faker.NewWithSeed(rand.NewPCG(uint64(2014), uint64(2014)))
+ 	nbLogs := 100
+ 	benchInputs := make([]string, nbLogs)
+ 	for i := range benchInputs {
+diff --git a/internal/component/loki/source/gcplog/internal/gcplogtarget/formatter_test.go b/internal/component/loki/source/gcplog/internal/gcplogtarget/formatter_test.go
+--- a/internal/component/loki/source/gcplog/internal/gcplogtarget/formatter_test.go
++++ b/internal/component/loki/source/gcplog/internal/gcplogtarget/formatter_test.go
+@@ -4,7 +4,7 @@ import (
+ 	"testing"
+ 	"time"
+ 
+-	"cloud.google.com/go/pubsub"
++	"cloud.google.com/go/pubsub/v2"
+ 	"github.com/grafana/loki/v3/clients/pkg/promtail/api"
+ 	"github.com/grafana/loki/v3/pkg/logproto"
+ 	"github.com/prometheus/common/model"
+diff --git a/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target.go b/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target.go
+--- a/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target.go
++++ b/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target.go
+@@ -11,6 +11,7 @@ import (
+ 	"sync"
+ 	"time"
+ 
++	//nolint:staticcheck // TODO: upgrade to v2
+ 	"cloud.google.com/go/pubsub"
+ 	"github.com/go-kit/log"
+ 	"github.com/grafana/alloy/internal/runtime/logging/level"
+diff --git a/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target_test.go b/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target_test.go
+--- a/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target_test.go
++++ b/internal/component/loki/source/gcplog/internal/gcplogtarget/pull_target_test.go
+@@ -7,6 +7,7 @@ import (
+ 	"testing"
+ 	"time"
+ 
++	//nolint:staticcheck // TODO: upgrade to v2
+ 	"cloud.google.com/go/pubsub"
+ 	"github.com/go-kit/log"
+ 	"github.com/grafana/dskit/backoff"

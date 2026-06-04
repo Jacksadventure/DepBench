@@ -1,0 +1,123 @@
+diff --git a/lib/invoker.js b/lib/invoker.js
+index b185fe7..d697c8d 100644
+--- a/lib/invoker.js
++++ b/lib/invoker.js
+@@ -21,12 +21,12 @@ class Invoker {
+     }
+     Invoker.prepareProcessor(args, asciidoctor)
+     const options = this.options.options
+-    const failureLevel = options['failure_level']
++    const failureLevel = options.failure_level
+     if (this.options.stdin) {
+       await Invoker.convertFromStdin(options, args)
+       Invoker.exit(failureLevel)
+     } else if (files && files.length > 0) {
+-      Invoker.processFiles(files, verbose, args['timings'], options)
++      Invoker.processFiles(files, verbose, args.timings, options)
+       Invoker.exit(failureLevel)
+     } else {
+       this.showHelp()
+@@ -35,7 +35,7 @@ class Invoker {
+   }
+ 
+   showHelp () {
+-    if (this.options.args['help'] === 'syntax') {
++    if (this.options.args.help === 'syntax') {
+       console.log(fs.readFileSync(ospath.join(__dirname, '..', 'data', 'reference', 'syntax.adoc'), 'utf8'))
+     } else {
+       this.options.yargs.showHelp()
+@@ -66,7 +66,7 @@ CLI version ${pkg.version}`
+ 
+   static async convertFromStdin (options, args) {
+     const data = await Invoker.readFromStdin()
+-    if (args['timings']) {
++    if (args.timings) {
+       const timings = asciidoctor.Timings.create()
+       const instanceOptions = Object.assign({}, options, { timings })
+       Invoker.convert(asciidoctor.convert, data, instanceOptions)
+@@ -82,7 +82,7 @@ CLI version ${pkg.version}`
+     } catch (e) {
+       if (e && e.name === 'NotImplementedError' && e.message === `asciidoctor: FAILED: missing converter for backend '${options.backend}'. Processing aborted.`) {
+         console.error(`> Error: missing converter for backend '${options.backend}'. Processing aborted.`)
+-        console.error(`> You might want to require a Node.js package with --require option to support this backend.`)
++        console.error('> You might want to require a Node.js package with --require option to support this backend.')
+         process.exit(1)
+       }
+       throw e
+@@ -122,7 +122,7 @@ CLI version ${pkg.version}`
+   }
+ 
+   static prepareProcessor (argv, asciidoctor) {
+-    const requirePaths = argv['require']
++    const requirePaths = argv.require
+     if (requirePaths) {
+       requirePaths.forEach((requirePath) => {
+         const lib = Invoker.requireLibrary(requirePath)
+diff --git a/lib/options.js b/lib/options.js
+index efdebab..deced9b 100644
+--- a/lib/options.js
++++ b/lib/options.js
+@@ -4,20 +4,20 @@ const asciidoctor = require('@asciidoctor/core')()
+ 
+ const convertOptions = (args, attrs) => {
+   const attributes = attrs || []
+-  const backend = args['backend']
+-  const doctype = args['doctype']
++  const backend = args.backend
++  const doctype = args.doctype
+   const safeMode = args['safe-mode']
+-  const embedded = args['embedded'] === true || args['no-header-footer'] === true || args['standalone'] === false
++  const embedded = args.embedded === true || args['no-header-footer'] === true || args.standalone === false
+   const standalone = !embedded
+   const sectionNumbers = args['section-numbers']
+   const baseDir = args['base-dir']
+   const destinationDir = args['destination-dir']
+   const outFile = args['out-file']
+-  const quiet = args['quiet']
+-  const verbose = args['verbose']
+-  const timings = args['timings']
+-  const trace = args['trace']
+-  const requireLib = args['require']
++  const quiet = args.quiet
++  const verbose = args.verbose
++  const timings = args.timings
++  const trace = args.trace
++  const requireLib = args.require
+   let level = args['failure-level'].toUpperCase()
+   if (level === 'WARNING') {
+     level = 'WARN'
+@@ -42,7 +42,7 @@ const convertOptions = (args, attrs) => {
+   if (sectionNumbers) {
+     attributes.push('sectnums')
+   }
+-  const cliAttributes = args['attribute']
++  const cliAttributes = args.attribute
+   if (cliAttributes) {
+     attributes.push(...cliAttributes)
+   }
+@@ -92,8 +92,8 @@ class Options {
+   constructor (options) {
+     this.options = options || {}
+     this.args = {
+-      'standalone': typeof this.options.standalone !== 'undefined' ? this.options.standalone : true,
+-      'backend': this.options.backend,
++      standalone: typeof this.options.standalone !== 'undefined' ? this.options.standalone : true,
++      backend: this.options.backend,
+       'safe-mode': typeof this.options.safe !== 'undefined' ? this.options.safe : 'unsafe'
+     }
+     if (Array.isArray(this.options.attributes)) {
+@@ -224,12 +224,12 @@ By default, the output is written to a file with the basename of the source file
+     this.argv = argv
+     const args = this.argsParser().parse(processArgs)
+     Object.assign(this.args, args)
+-    const files = this.args['files']
++    const files = this.args.files
+     this.stdin = files && files.length === 0 && processArgs[processArgs.length - 1] === '-'
+     if (this.stdin) {
+       this.args['out-file'] = this.args['out-file'] || '-'
+     }
+-    this.args['verbose-sole-argument'] = this.args['verbose'] && processArgs.length === 1
++    this.args['verbose-sole-argument'] = this.args.verbose && processArgs.length === 1
+     const options = convertOptions(this.args, this.attributes)
+     Object.assign(this.options, options)
+     return this

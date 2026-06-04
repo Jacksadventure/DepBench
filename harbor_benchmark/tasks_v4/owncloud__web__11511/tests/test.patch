@@ -1,0 +1,278 @@
+diff --git a/packages/web-app-files/tests/unit/components/AppBar/CreateAndUpload.spec.ts b/packages/web-app-files/tests/unit/components/AppBar/CreateAndUpload.spec.ts
+--- a/packages/web-app-files/tests/unit/components/AppBar/CreateAndUpload.spec.ts
++++ b/packages/web-app-files/tests/unit/components/AppBar/CreateAndUpload.spec.ts
+@@ -14,7 +14,7 @@ import {
+ import { eventBus, UppyResource } from '@ownclouders/web-pkg'
+ import { defaultPlugins, shallowMount, defaultComponentMocks } from 'web-test-helpers'
+ import { RouteLocation } from 'vue-router'
+-import { ref } from 'vue'
++import { computed, ref } from 'vue'
+ import { OcButton } from 'design-system/src/components'
+ 
+ vi.mock('@ownclouders/web-pkg', async (importOriginal) => ({
+@@ -197,11 +197,9 @@ function getWrapper({
+   const { requestExtensions } = useExtensionRegistry()
+   vi.mocked(requestExtensions).mockReturnValue([])
+ 
+-  vi.mocked(useFileActionsCreateNewFile).mockReturnValue(
+-    mock<ReturnType<typeof useFileActionsCreateNewFile>>({
+-      actions: ref(createActions)
+-    })
+-  )
++  const useFileActionsCreateNewFileMock = mock<ReturnType<typeof useFileActionsCreateNewFile>>()
++  useFileActionsCreateNewFileMock.actions = computed(() => createActions)
++  vi.mocked(useFileActionsCreateNewFile).mockReturnValue(useFileActionsCreateNewFileMock)
+ 
+   const pasteActionHandler = vi.fn()
+   vi.mocked(useFileActionsPaste).mockReturnValue(
+diff --git a/packages/web-app-files/tests/unit/components/Spaces/SpaceContextActions.spec.ts b/packages/web-app-files/tests/unit/components/Spaces/SpaceContextActions.spec.ts
+--- a/packages/web-app-files/tests/unit/components/Spaces/SpaceContextActions.spec.ts
++++ b/packages/web-app-files/tests/unit/components/Spaces/SpaceContextActions.spec.ts
+@@ -32,7 +32,9 @@ describe('SpaceContextActions', () => {
+ })
+ 
+ function getWrapper(space: SpaceResource) {
+-  const mocks = defaultComponentMocks({ currentRoute: mock<RouteLocation>({ path: '/files' }) })
++  const mocks = defaultComponentMocks({
++    currentRoute: mock<RouteLocation>({ path: '/files', name: '' })
++  })
+   mocks.$previewService.getSupportedMimeTypes.mockReturnValue([])
+   return {
+     wrapper: mount(SpaceContextActions, {
+diff --git a/packages/web-app-files/tests/unit/search/sdk.spec.ts b/packages/web-app-files/tests/unit/search/sdk.spec.ts
+--- a/packages/web-app-files/tests/unit/search/sdk.spec.ts
++++ b/packages/web-app-files/tests/unit/search/sdk.spec.ts
+@@ -2,7 +2,7 @@ import { SDKSearch } from '../../../src/search'
+ import { RouteLocation, Router } from 'vue-router'
+ import { mock } from 'vitest-mock-extended'
+ import { ref } from 'vue'
+-import { createTestingPinia } from 'web-test-helpers/src'
++import { createTestingPinia, writable } from 'web-test-helpers/src'
+ import { ConfigStore, useCapabilityStore } from '@ownclouders/web-pkg'
+ 
+ const getStore = (reports: string[] = []) => {
+@@ -25,11 +25,12 @@ describe('SDKProvider', () => {
+         { route: 'search-provider-list' },
+         { route: 'bar', available: true }
+       ].forEach((v) => {
++        const router = mock<Router>()
++        writable(router).currentRoute = ref(mock<RouteLocation>({ name: v.route }))
++
+         const search = new SDKSearch(
+           getStore(['search-files']),
+-          mock<Router>({
+-            currentRoute: ref(mock<RouteLocation>({ name: v.route }))
+-          }),
++          router,
+           vi.fn(),
+           mock<ConfigStore>()
+         )
+diff --git a/packages/web-app-files/tests/unit/views/spaces/GenericSpace.spec.ts b/packages/web-app-files/tests/unit/views/spaces/GenericSpace.spec.ts
+--- a/packages/web-app-files/tests/unit/views/spaces/GenericSpace.spec.ts
++++ b/packages/web-app-files/tests/unit/views/spaces/GenericSpace.spec.ts
+@@ -317,7 +317,7 @@ function getMountedWrapper({
+   props?: PartialComponentProps<typeof GenericSpace>
+   files?: Resource[]
+   loading?: boolean
+-  currentRoute?: Partial<RouteLocation>
++  currentRoute?: { name?: string; path?: string }
+   currentFolder?: Resource
+   runningOnEos?: boolean
+   space?: SpaceResource
+diff --git a/packages/web-app-files/tests/unit/views/spaces/Projects.spec.ts b/packages/web-app-files/tests/unit/views/spaces/Projects.spec.ts
+--- a/packages/web-app-files/tests/unit/views/spaces/Projects.spec.ts
++++ b/packages/web-app-files/tests/unit/views/spaces/Projects.spec.ts
+@@ -92,8 +92,6 @@ describe('Projects view', () => {
+       const spaces = spacesResources
+       const { wrapper } = getMountedWrapper({ spaces })
+       await wrapper.vm.loadResourcesTask.last
+-      // "space" is undefined for "space-context-actions", seems to be a bug because it's definitely not
+-      // {{ space }} -> undefined, {{ space.id }} -> "1"
+       expect(wrapper.html()).toMatchSnapshot()
+       expect(wrapper.find('.no-content-message').exists()).toBeFalsy()
+       expect(wrapper.find('.spaces-list').exists()).toBeTruthy()
+diff --git a/packages/web-app-files/tests/unit/views/spaces/__snapshots__/Projects.spec.ts.snap b/packages/web-app-files/tests/unit/views/spaces/__snapshots__/Projects.spec.ts.snap
+--- a/packages/web-app-files/tests/unit/views/spaces/__snapshots__/Projects.spec.ts.snap
++++ b/packages/web-app-files/tests/unit/views/spaces/__snapshots__/Projects.spec.ts.snap
+@@ -30,7 +30,7 @@ exports[`Projects view > different files view states > lists all available proje
+             <!--v-if-->
+           </div>
+         </div>
+-        <div class="resource-table" selected-ids="" resource-type="space" resources="[object Object],[object Object]" fields-displayed="image,name,manager,members,totalQuota,usedQuota,remainingQuota,status,mdate" sort-fields="[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]" sort-by="undefined" sort-dir="desc" header-position="0" is-side-bar-open="false" view-size="NaN"></div>
++        <div class="resource-table" selected-ids="" resource-type="space" resources="[object Object],[object Object]" fields-displayed="image,name,manager,members,totalQuota,usedQuota,remainingQuota,status,mdate" sort-fields="[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]" sort-by="name" sort-dir="asc" header-position="0" is-side-bar-open="false" view-size="1"></div>
+       </div>
+     </div>
+   </div>
+diff --git a/packages/web-pkg/tests/unit/components/AppBar/AppBar.spec.ts b/packages/web-pkg/tests/unit/components/AppBar/AppBar.spec.ts
+--- a/packages/web-pkg/tests/unit/components/AppBar/AppBar.spec.ts
++++ b/packages/web-pkg/tests/unit/components/AppBar/AppBar.spec.ts
+@@ -70,7 +70,7 @@ describe('AppBar component', () => {
+           [],
+           {},
+           { breadcrumbs: [breadcrumbItems[0]] },
+-          mock<RouteLocation>(),
++          mock<RouteLocation>({ name: '' }),
+           true
+         )
+         expect(wrapper.find(selectors.ocBreadcrumbStub).exists()).toBeFalsy()
+diff --git a/packages/web-pkg/tests/unit/components/FilesList/ResourceTable.spec.ts b/packages/web-pkg/tests/unit/components/FilesList/ResourceTable.spec.ts
+--- a/packages/web-pkg/tests/unit/components/FilesList/ResourceTable.spec.ts
++++ b/packages/web-pkg/tests/unit/components/FilesList/ResourceTable.spec.ts
+@@ -16,7 +16,7 @@ import { displayPositionedDropdown } from '../../../../src/helpers/contextMenuDr
+ import { eventBus } from '../../../../src/services/eventBus'
+ import { SideBarEventTopics } from '../../../../src/composables/sideBar'
+ import { mock } from 'vitest-mock-extended'
+-import { computed, ref } from 'vue'
++import { computed } from 'vue'
+ import { Identity } from '@ownclouders/web-client/graph/generated'
+ import { describe } from 'vitest'
+ import { useFileActionsRename } from '../../../../src/composables/actions/files'
+@@ -645,11 +645,11 @@ function getMountedWrapper({
+     canBeOpenedWithSecureView: () => canBeOpenedWithSecureView
+   })
+ 
+-  vi.mocked(useFileActionsRename).mockReturnValue(
+-    mock<ReturnType<typeof useFileActionsRename>>({
+-      actions: ref([mock<FileAction>({ isVisible: () => hasRenameAction })])
+-    })
+-  )
++  const useFileActionsRenameMock = mock<ReturnType<typeof useFileActionsRename>>()
++  useFileActionsRenameMock.actions = computed(() => [
++    mock<FileAction>({ isVisible: () => hasRenameAction })
++  ])
++  vi.mocked(useFileActionsRename).mockReturnValue(useFileActionsRenameMock)
+ 
+   return {
+     wrapper: mount(ResourceTable, {
+diff --git a/packages/web-pkg/tests/unit/components/Filters/ItemFilterInline.spec.ts b/packages/web-pkg/tests/unit/components/Filters/ItemFilterInline.spec.ts
+--- a/packages/web-pkg/tests/unit/components/Filters/ItemFilterInline.spec.ts
++++ b/packages/web-pkg/tests/unit/components/Filters/ItemFilterInline.spec.ts
+@@ -8,7 +8,6 @@ import {
+ } from 'web-test-helpers'
+ import { queryItemAsString } from '../../../../src/composables/appDefaults'
+ import { mock } from 'vitest-mock-extended'
+-import { unref } from 'vue'
+ 
+ vi.mock('../../../../src/composables/appDefaults', () => ({
+   appDefaults: vi.fn(),
+@@ -41,11 +40,13 @@ describe('ItemFilterInline', () => {
+   describe('route query', () => {
+     it('sets the active option as query param', async () => {
+       const { wrapper, mocks } = getWrapper({ props: { filterOptions } })
+-      const currentRouteQuery = unref(mocks.$router.currentRoute).query
+       expect(mocks.$router.push).not.toHaveBeenCalled()
+       await wrapper.find(selectors.filterOption).trigger('click')
+-      expect(currentRouteQuery[wrapper.vm.queryParam]).toBeDefined()
+-      expect(mocks.$router.push).toHaveBeenCalled()
++      expect(mocks.$router.push).toHaveBeenCalledWith(
++        expect.objectContaining({
++          query: expect.objectContaining({ [wrapper.vm.queryParam]: 'filter1' })
++        })
++      )
+     })
+     it('sets the active optin initially when given via query param', async () => {
+       const initialQuery = filterOptions[1].name
+diff --git a/packages/web-pkg/tests/unit/components/ItemFilter.spec.ts b/packages/web-pkg/tests/unit/components/ItemFilter.spec.ts
+--- a/packages/web-pkg/tests/unit/components/ItemFilter.spec.ts
++++ b/packages/web-pkg/tests/unit/components/ItemFilter.spec.ts
+@@ -7,7 +7,6 @@ import {
+ } from 'web-test-helpers'
+ import { queryItemAsString } from '../../../src/composables/appDefaults'
+ import { OcCheckbox } from 'design-system/src/components'
+-import { unref } from 'vue'
+ 
+ vi.mock('../../../src/composables/appDefaults')
+ 
+@@ -115,11 +114,13 @@ describe('ItemFilter', () => {
+     it('sets the selected item as route query param', async () => {
+       const { wrapper, mocks } = getWrapper()
+       const item = wrapper.findAll(selectors.filterListItem).at(0)
+-      const currentRouteQuery = unref(mocks.$router.currentRoute).query
+       expect(mocks.$router.push).not.toHaveBeenCalled()
+       await item.trigger('click')
+-      expect(currentRouteQuery[wrapper.vm.queryParam]).toBeDefined()
+-      expect(mocks.$router.push).toHaveBeenCalled()
++      expect(mocks.$router.push).toHaveBeenCalledWith(
++        expect.objectContaining({
++          query: expect.objectContaining({ [wrapper.vm.queryParam]: '1' })
++        })
++      )
+     })
+     it('sets the selected items initially when given via query param', () => {
+       const { wrapper } = getWrapper({ initialQuery: '1' })
+diff --git a/packages/web-pkg/tests/unit/components/ItemFilterToggle.spec.ts b/packages/web-pkg/tests/unit/components/ItemFilterToggle.spec.ts
+--- a/packages/web-pkg/tests/unit/components/ItemFilterToggle.spec.ts
++++ b/packages/web-pkg/tests/unit/components/ItemFilterToggle.spec.ts
+@@ -1,7 +1,6 @@
+ import ItemFilterToggle from '../../../src/components/ItemFilterToggle.vue'
+ import { defaultComponentMocks, defaultPlugins, mount } from 'web-test-helpers'
+ import { queryItemAsString } from '../../../src/composables/appDefaults'
+-import { unref } from 'vue'
+ 
+ vi.mock('../../../src/composables/appDefaults', () => ({
+   appDefaults: vi.fn(),
+@@ -27,11 +26,13 @@ describe('ItemFilterToggle', () => {
+   describe('route query', () => {
+     it('sets the active state as query param', async () => {
+       const { wrapper, mocks } = getWrapper()
+-      const currentRouteQuery = unref(mocks.$router.currentRoute).query
+       expect(mocks.$router.push).not.toHaveBeenCalled()
+       await wrapper.find(selectors.filterBtn).trigger('click')
+-      expect(currentRouteQuery[wrapper.vm.queryParam]).toBeDefined()
+-      expect(mocks.$router.push).toHaveBeenCalled()
++      expect(mocks.$router.push).toHaveBeenCalledWith(
++        expect.objectContaining({
++          query: expect.objectContaining({ [wrapper.vm.queryParam]: 'true' })
++        })
++      )
+     })
+     it('sets the active state initially when given via query param', () => {
+       const { wrapper } = getWrapper({ initialQuery: 'true' })
+diff --git a/packages/web-pkg/tests/unit/components/sidebar/FileSideBar.spec.ts b/packages/web-pkg/tests/unit/components/sidebar/FileSideBar.spec.ts
+--- a/packages/web-pkg/tests/unit/components/sidebar/FileSideBar.spec.ts
++++ b/packages/web-pkg/tests/unit/components/sidebar/FileSideBar.spec.ts
+@@ -228,11 +228,9 @@ function createWrapper({
+   const { requestExtensions } = useExtensionRegistry()
+   vi.mocked(requestExtensions).mockReturnValue([])
+ 
+-  vi.mocked(useSelectedResources).mockReturnValue(
+-    mock<ReturnType<typeof useSelectedResources>>({
+-      selectedResources: item ? ref([item]) : ref([])
+-    })
+-  )
++  const useSelectedResourcesMock = mock<ReturnType<typeof useSelectedResources>>()
++  useSelectedResourcesMock.selectedResources = item ? ref([item]) : ref([])
++  vi.mocked(useSelectedResources).mockReturnValue(useSelectedResourcesMock)
+ 
+   const mocks = defaultComponentMocks({
+     currentRoute: mock<RouteLocation>({ name: currentRouteName })
+diff --git a/packages/web-runtime/tests/unit/pages/resolvePublicLink.spec.ts b/packages/web-runtime/tests/unit/pages/resolvePublicLink.spec.ts
+--- a/packages/web-runtime/tests/unit/pages/resolvePublicLink.spec.ts
++++ b/packages/web-runtime/tests/unit/pages/resolvePublicLink.spec.ts
+@@ -1,7 +1,7 @@
+ import ResolvePublicLink from '../../../src/pages/resolvePublicLink.vue'
+ import { defaultPlugins, defaultComponentMocks, shallowMount } from 'web-test-helpers'
+ import { mockDeep } from 'vitest-mock-extended'
+-import { CapabilityStore, ClientService, useRouteParam } from '@ownclouders/web-pkg'
++import { CapabilityStore, ClientService, useRouteParam, useRouteQuery } from '@ownclouders/web-pkg'
+ import { DavHttpError, SpaceResource } from '@ownclouders/web-client'
+ import { authService } from '../../../src/services/auth'
+ import { ref } from 'vue'
+@@ -10,7 +10,8 @@ vi.mock('../../../src/services/auth')
+ 
+ vi.mock('@ownclouders/web-pkg', async (importOriginal) => ({
+   ...(await importOriginal<any>()),
+-  useRouteParam: vi.fn()
++  useRouteParam: vi.fn(),
++  useRouteQuery: vi.fn()
+ }))
+ 
+ const selectors = {
+@@ -105,6 +106,7 @@ function getWrapper({
+   } satisfies Partial<CapabilityStore['capabilities']>
+ 
+   vi.mocked(useRouteParam).mockReturnValue(ref('token'))
++  vi.mocked(useRouteQuery).mockReturnValue(ref('redirectUrl'))
+ 
+   return {
+     mocks,

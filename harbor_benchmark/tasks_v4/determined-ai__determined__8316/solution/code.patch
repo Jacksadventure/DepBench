@@ -1,0 +1,328 @@
+diff --git a/agent/pkg/docker/docker.go b/agent/pkg/docker/docker.go
+index cc9e645ccbd..1d29c1afc49 100644
+--- a/agent/pkg/docker/docker.go
++++ b/agent/pkg/docker/docker.go
+@@ -14,6 +14,7 @@ import (
+ 	"github.com/docker/docker/api/types"
+ 	dcontainer "github.com/docker/docker/api/types/container"
+ 	"github.com/docker/docker/api/types/filters"
++	typeReg "github.com/docker/docker/api/types/registry"
+ 	"github.com/docker/docker/client"
+ 	"github.com/docker/docker/pkg/jsonmessage"
+ 	"github.com/docker/docker/registry"
+@@ -60,7 +61,7 @@ type (
+ 	// Results on the Waiter channel indicate changes in container state, while results on the
+ 	// Errs channel indicate failures to watch for updates.
+ 	ContainerWaiter struct {
+-		Waiter <-chan dcontainer.ContainerWaitOKBody
++		Waiter <-chan dcontainer.WaitResponse
+ 		Errs   <-chan error
+ 	}
+ 	// Container contains details about a running container and waiters to await its termination.
+@@ -74,7 +75,7 @@ type (
+ type Client struct {
+ 	// Configuration details. Set during initialization, never modified afterwards.
+ 	credentialStores map[string]*credentialStore
+-	authConfigs      map[string]types.AuthConfig
++	authConfigs      map[string]typeReg.AuthConfig
+ 
+ 	// System dependencies. Also set during initialization, never modified afterwards.
+ 	cl  *client.Client
+@@ -157,7 +158,7 @@ func (d *Client) ReattachContainer(
+ type PullImage struct {
+ 	Name      string
+ 	ForcePull bool
+-	Registry  *types.AuthConfig
++	Registry  *typeReg.AuthConfig
+ }
+ 
+ // PullImage pulls an image according to the given request and credentials initialized at client
+@@ -363,9 +364,9 @@ func LabelFilter(key, val string) filters.Args {
+ func (d *Client) getDockerAuths(
+ 	ctx context.Context,
+ 	image reference.Named,
+-	userRegistry *types.AuthConfig,
++	userRegistry *typeReg.AuthConfig,
+ 	p events.Publisher[Event],
+-) (*types.AuthConfig, error) {
++) (*typeReg.AuthConfig, error) {
+ 	imageDomain := reference.Domain(image)
+ 	// Try user submitted registry auth config.
+ 	if userRegistry != nil {
+@@ -415,7 +416,7 @@ func (d *Client) getDockerAuths(
+ 		return nil, fmt.Errorf("error invalid docker repo name: %w", err)
+ 	}
+ 	reg := registry.ResolveAuthConfig(d.authConfigs, index)
+-	if reg == (types.AuthConfig{}) {
++	if reg == (typeReg.AuthConfig{}) {
+ 		return &reg, nil
+ 	}
+ 
+@@ -428,8 +429,8 @@ func (d *Client) getDockerAuths(
+ }
+ 
+ // registryToString converts the Registry struct to a base64 encoding for json strings.
+-func registryToString(reg types.AuthConfig) (string, error) {
+-	// Docker stores the username and password in an auth section types.AuthConfig
++func registryToString(reg typeReg.AuthConfig) (string, error) {
++	// Docker stores the username and password in an auth section typeReg.AuthConfig
+ 	// formatted as user:pass then base64ed. This is not documented clearly.
+ 	// https://github.com/docker/cli/blob/master/cli/config/configfile/file.go#L76
+ 	if reg.Auth != "" {
+diff --git a/agent/pkg/docker/docker_credential_store.go b/agent/pkg/docker/docker_credential_store.go
+index 2d5f7cd661c..89fc9a54c9d 100644
+--- a/agent/pkg/docker/docker_credential_store.go
++++ b/agent/pkg/docker/docker_credential_store.go
+@@ -6,7 +6,7 @@ import (
+ 	"path"
+ 
+ 	hclient "github.com/docker/docker-credential-helpers/client"
+-	"github.com/docker/docker/api/types"
++	"github.com/docker/docker/api/types/registry"
+ 	"github.com/pkg/errors"
+ )
+ 
+@@ -31,7 +31,7 @@ func getDockerConfigPath() (string, error) {
+ 
+ // processDockerConfig reads a user's ~/.docker/config.json and returns
+ // credential helpers configured and the "auths" section of the config.
+-func processDockerConfig() (map[string]*credentialStore, map[string]types.AuthConfig, error) {
++func processDockerConfig() (map[string]*credentialStore, map[string]registry.AuthConfig, error) {
+ 	dockerConfigFile, err := getDockerConfigPath()
+ 	if err != nil {
+ 		return nil, nil, err
+@@ -43,8 +43,8 @@ func processDockerConfig() (map[string]*credentialStore, map[string]types.AuthCo
+ 	}
+ 
+ 	var config struct {
+-		CredentialHelpers map[string]string           `json:"credHelpers"`
+-		Auths             map[string]types.AuthConfig `json:"auths"`
++		CredentialHelpers map[string]string              `json:"credHelpers"`
++		Auths             map[string]registry.AuthConfig `json:"auths"`
+ 	}
+ 	if err := json.Unmarshal(b, &config); err != nil {
+ 		return nil, nil, errors.Wrap(err, "can't parse docker config")
+@@ -62,8 +62,8 @@ func processDockerConfig() (map[string]*credentialStore, map[string]types.AuthCo
+ }
+ 
+ // get executes the command to get the credentials from the native store.
+-func (s *credentialStore) get() (types.AuthConfig, error) {
+-	var ret types.AuthConfig
++func (s *credentialStore) get() (registry.AuthConfig, error) {
++	var ret registry.AuthConfig
+ 
+ 	creds, err := hclient.Get(s.store, s.registry)
+ 	if err != nil {
+diff --git a/agent/pkg/podman/podman.go b/agent/pkg/podman/podman.go
+index c291c02a8af..45cd9ca653b 100644
+--- a/agent/pkg/podman/podman.go
++++ b/agent/pkg/podman/podman.go
+@@ -408,20 +408,20 @@ func (s *PodmanClient) waitOnContainer(
+ 	cont *PodmanContainer,
+ 	p events.Publisher[docker.Event],
+ ) docker.ContainerWaiter {
+-	wchan := make(chan dcontainer.ContainerWaitOKBody, 1)
++	wchan := make(chan dcontainer.WaitResponse, 1)
+ 	errchan := make(chan error)
+ 	s.wg.Go(func(ctx context.Context) {
+ 		defer close(wchan)
+ 		defer close(errchan)
+ 
+-		var body dcontainer.ContainerWaitOKBody
++		var body dcontainer.WaitResponse
+ 		switch state, err := cont.Proc.Wait(); {
+ 		case ctx.Err() != nil && err == nil && state.ExitCode() == -1:
+ 			s.log.Trace("detached from container process")
+ 			return
+ 		case err != nil:
+ 			s.log.Tracef("proc %d for container %s exited: %s", cont.PID, id, err)
+-			body.Error = &dcontainer.ContainerWaitOKBodyError{Message: err.Error()}
++			body.Error = &dcontainer.WaitExitError{Message: err.Error()}
+ 		default:
+ 			s.log.Tracef("proc %d for container %s exited with %d", cont.PID, id, state.ExitCode())
+ 			body.StatusCode = int64(state.ExitCode())
+diff --git a/agent/pkg/singularity/singularity.go b/agent/pkg/singularity/singularity.go
+index 7406fb8273c..4af27900400 100644
+--- a/agent/pkg/singularity/singularity.go
++++ b/agent/pkg/singularity/singularity.go
+@@ -543,20 +543,20 @@ func (s *SingularityClient) waitOnContainer(
+ 	cont *SingularityContainer,
+ 	p events.Publisher[docker.Event],
+ ) docker.ContainerWaiter {
+-	wchan := make(chan dcontainer.ContainerWaitOKBody, 1)
++	wchan := make(chan dcontainer.WaitResponse, 1)
+ 	errchan := make(chan error)
+ 	s.wg.Go(func(ctx context.Context) {
+ 		defer close(wchan)
+ 		defer close(errchan)
+ 
+-		var body dcontainer.ContainerWaitOKBody
++		var body dcontainer.WaitResponse
+ 		switch state, err := cont.Proc.Wait(); {
+ 		case ctx.Err() != nil && err == nil && state.ExitCode() == -1:
+ 			s.log.Trace("detached from container process")
+ 			return
+ 		case err != nil:
+ 			s.log.Tracef("proc %d for container %s exited: %s", cont.PID, id, err)
+-			body.Error = &dcontainer.ContainerWaitOKBodyError{Message: err.Error()}
++			body.Error = &dcontainer.WaitExitError{Message: err.Error()}
+ 		default:
+ 			s.log.Tracef("proc %d for container %s exited with %d", cont.PID, id, state.ExitCode())
+ 			body.StatusCode = int64(state.ExitCode())
+diff --git a/master/pkg/cproto/spec.go b/master/pkg/cproto/spec.go
+index f350aa5ccfb..13b469372e2 100644
+--- a/master/pkg/cproto/spec.go
++++ b/master/pkg/cproto/spec.go
+@@ -4,6 +4,7 @@ import (
+ 	"github.com/docker/docker/api/types"
+ 	"github.com/docker/docker/api/types/container"
+ 	"github.com/docker/docker/api/types/network"
++	"github.com/docker/docker/api/types/registry"
+ 
+ 	"github.com/determined-ai/determined/master/pkg/archive"
+ 	"github.com/determined-ai/determined/master/pkg/device"
+@@ -19,7 +20,7 @@ type Spec struct {
+ // PullSpec contains configs for an ImagePull call.
+ type PullSpec struct {
+ 	ForcePull bool
+-	Registry  *types.AuthConfig
++	Registry  *registry.AuthConfig
+ }
+ 
+ // RunSpec contains configs for ContainerCreate, CopyToContainer, and ContainerStart calls.
+@@ -30,7 +31,7 @@ type RunSpec struct {
+ 
+ 	Archives   []RunArchive
+ 	DeviceType device.Type
+-	Registry   *types.AuthConfig
++	Registry   *registry.AuthConfig
+ }
+ 
+ // ChecksConfig describes the configuration for multiple readiness checks.
+diff --git a/master/pkg/model/environment_config.go b/master/pkg/model/environment_config.go
+index d28311cf00d..b496543dc97 100644
+--- a/master/pkg/model/environment_config.go
++++ b/master/pkg/model/environment_config.go
+@@ -9,7 +9,7 @@ import (
+ 	"github.com/determined-ai/determined/master/pkg/check"
+ 	"github.com/determined-ai/determined/proto/pkg/apiv1"
+ 
+-	"github.com/docker/docker/api/types"
++	"github.com/docker/docker/api/types/registry"
+ 	"github.com/pkg/errors"
+ 
+ 	"github.com/determined-ai/determined/master/pkg/device"
+@@ -30,10 +30,10 @@ type Environment struct {
+ 	EnvironmentVariables RuntimeItems     `json:"environment_variables,omitempty"`
+ 	ProxyPorts           ProxyPortsConfig `json:"proxy_ports"`
+ 
+-	Ports          map[string]int    `json:"ports"`
+-	RegistryAuth   *types.AuthConfig `json:"registry_auth,omitempty"`
+-	ForcePullImage bool              `json:"force_pull_image"`
+-	PodSpec        *k8sV1.Pod        `json:"pod_spec"`
++	Ports          map[string]int       `json:"ports"`
++	RegistryAuth   *registry.AuthConfig `json:"registry_auth,omitempty"`
++	ForcePullImage bool                 `json:"force_pull_image"`
++	PodSpec        *k8sV1.Pod           `json:"pod_spec"`
+ 
+ 	AddCapabilities  []string `json:"add_capabilities"`
+ 	DropCapabilities []string `json:"drop_capabilities"`
+diff --git a/master/pkg/model/task_container_defaults.go b/master/pkg/model/task_container_defaults.go
+index bff10e5a9e6..8f0cb36eb42 100644
+--- a/master/pkg/model/task_container_defaults.go
++++ b/master/pkg/model/task_container_defaults.go
+@@ -6,12 +6,12 @@ import (
+ 	"slices"
+ 	"strings"
+ 
+-	"github.com/docker/docker/api/types"
+ 	"github.com/jinzhu/copier"
+ 
+ 	k8sV1 "k8s.io/api/core/v1"
+ 
+ 	"github.com/docker/docker/api/types/container"
++	"github.com/docker/docker/api/types/registry"
+ 	"github.com/pkg/errors"
+ 
+ 	"github.com/determined-ai/determined/master/pkg/check"
+@@ -30,12 +30,12 @@ type TaskContainerDefaultsConfig struct {
+ 	ShmSizeBytes           int64                 `json:"shm_size_bytes,omitempty"`
+ 	NetworkMode            container.NetworkMode `json:"network_mode,omitempty"`
+ 	// TODO(DET-9855) we should move these over to KubernetesTaskContainerDefaults.
+-	CPUPodSpec           *k8sV1.Pod        `json:"cpu_pod_spec"`
+-	GPUPodSpec           *k8sV1.Pod        `json:"gpu_pod_spec"`
+-	Image                *RuntimeItem      `json:"image,omitempty"`
+-	RegistryAuth         *types.AuthConfig `json:"registry_auth,omitempty"`
+-	ForcePullImage       bool              `json:"force_pull_image,omitempty"`
+-	EnvironmentVariables *RuntimeItems     `json:"environment_variables,omitempty"`
++	CPUPodSpec           *k8sV1.Pod           `json:"cpu_pod_spec"`
++	GPUPodSpec           *k8sV1.Pod           `json:"gpu_pod_spec"`
++	Image                *RuntimeItem         `json:"image,omitempty"`
++	RegistryAuth         *registry.AuthConfig `json:"registry_auth,omitempty"`
++	ForcePullImage       bool                 `json:"force_pull_image,omitempty"`
++	EnvironmentVariables *RuntimeItems        `json:"environment_variables,omitempty"`
+ 
+ 	AddCapabilities  []string      `json:"add_capabilities"`
+ 	DropCapabilities []string      `json:"drop_capabilities"`
+diff --git a/master/pkg/schemas/expconf/environment_config.go b/master/pkg/schemas/expconf/environment_config.go
+index ada8f2fc730..d53f2527e6b 100644
+--- a/master/pkg/schemas/expconf/environment_config.go
++++ b/master/pkg/schemas/expconf/environment_config.go
+@@ -7,7 +7,7 @@ import (
+ 	k8sV1 "k8s.io/api/core/v1"
+ 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+ 
+-	"github.com/docker/docker/api/types"
++	"github.com/docker/docker/api/types/registry"
+ 	"github.com/pkg/errors"
+ 
+ 	"github.com/determined-ai/determined/master/pkg/device"
+@@ -57,16 +57,16 @@ func (p PodSpec) WithDefaults() PodSpec {
+ 
+ // EnvironmentConfigV0 configures the environment of a Determined command or experiment.
+ //
+-//go:generate ../gen.sh --import github.com/docker/docker/api/types
++//go:generate ../gen.sh --import github.com/docker/docker/api/types/registry
+ type EnvironmentConfigV0 struct {
+ 	RawImage                *EnvironmentImageMapV0     `json:"image"`
+ 	RawEnvironmentVariables *EnvironmentVariablesMapV0 `json:"environment_variables"`
+ 	RawProxyPorts           *ProxyPortsConfigV0        `json:"proxy_ports"`
+ 
+-	RawPorts          map[string]int    `json:"ports"`
+-	RawRegistryAuth   *types.AuthConfig `json:"registry_auth"`
+-	RawForcePullImage *bool             `json:"force_pull_image"`
+-	RawPodSpec        *PodSpec          `json:"pod_spec"`
++	RawPorts          map[string]int       `json:"ports"`
++	RawRegistryAuth   *registry.AuthConfig `json:"registry_auth"`
++	RawForcePullImage *bool                `json:"force_pull_image"`
++	RawPodSpec        *PodSpec             `json:"pod_spec"`
+ 
+ 	RawAddCapabilities  []string `json:"add_capabilities"`
+ 	RawDropCapabilities []string `json:"drop_capabilities"`
+diff --git a/master/pkg/schemas/expconf/zgen_environment_config_v0.go b/master/pkg/schemas/expconf/zgen_environment_config_v0.go
+index f5284335665..a795d77e693 100644
+--- a/master/pkg/schemas/expconf/zgen_environment_config_v0.go
++++ b/master/pkg/schemas/expconf/zgen_environment_config_v0.go
+@@ -3,7 +3,7 @@
+ package expconf
+ 
+ import (
+-	"github.com/docker/docker/api/types"
++	"github.com/docker/docker/api/types/registry"
+ 	"github.com/santhosh-tekuri/jsonschema/v2"
+ 
+ 	"github.com/determined-ai/determined/master/pkg/schemas"
+@@ -50,11 +50,11 @@ func (e *EnvironmentConfigV0) SetPorts(val map[string]int) {
+ 	e.RawPorts = val
+ }
+ 
+-func (e EnvironmentConfigV0) RegistryAuth() *types.AuthConfig {
++func (e EnvironmentConfigV0) RegistryAuth() *registry.AuthConfig {
+ 	return e.RawRegistryAuth
+ }
+ 
+-func (e *EnvironmentConfigV0) SetRegistryAuth(val *types.AuthConfig) {
++func (e *EnvironmentConfigV0) SetRegistryAuth(val *registry.AuthConfig) {
+ 	e.RawRegistryAuth = val
+ }
+ 

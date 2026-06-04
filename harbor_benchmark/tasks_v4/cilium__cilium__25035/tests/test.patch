@@ -1,0 +1,117 @@
+diff --git a/vendor/github.com/go-openapi/spec/info.go b/vendor/github.com/go-openapi/spec/info.go
+--- a/vendor/github.com/go-openapi/spec/info.go
++++ b/vendor/github.com/go-openapi/spec/info.go
+@@ -16,6 +16,7 @@ package spec
+ 
+ import (
+ 	"encoding/json"
++	"strconv"
+ 	"strings"
+ 
+ 	"github.com/go-openapi/jsonpointer"
+@@ -40,6 +41,24 @@ func (e Extensions) GetString(key string) (string, bool) {
+ 	return "", false
+ }
+ 
++// GetInt gets a int value from the extensions
++func (e Extensions) GetInt(key string) (int, bool) {
++	realKey := strings.ToLower(key)
++
++	if v, ok := e.GetString(realKey); ok {
++		if r, err := strconv.Atoi(v); err == nil {
++			return r, true
++		}
++	}
++
++	if v, ok := e[realKey]; ok {
++		if r, rOk := v.(float64); rOk {
++			return int(r), true
++		}
++	}
++	return -1, false
++}
++
+ // GetBool gets a string value from the extensions
+ func (e Extensions) GetBool(key string) (bool, bool) {
+ 	if v, ok := e[strings.ToLower(key)]; ok {
+diff --git a/vendor/github.com/go-openapi/spec/properties.go b/vendor/github.com/go-openapi/spec/properties.go
+--- a/vendor/github.com/go-openapi/spec/properties.go
++++ b/vendor/github.com/go-openapi/spec/properties.go
+@@ -42,8 +42,8 @@ func (items OrderSchemaItems) MarshalJSON() ([]byte, error) {
+ func (items OrderSchemaItems) Len() int      { return len(items) }
+ func (items OrderSchemaItems) Swap(i, j int) { items[i], items[j] = items[j], items[i] }
+ func (items OrderSchemaItems) Less(i, j int) (ret bool) {
+-	ii, oki := items[i].Extensions.GetString("x-order")
+-	ij, okj := items[j].Extensions.GetString("x-order")
++	ii, oki := items[i].Extensions.GetInt("x-order")
++	ij, okj := items[j].Extensions.GetInt("x-order")
+ 	if oki {
+ 		if okj {
+ 			defer func() {
+@@ -56,7 +56,7 @@ func (items OrderSchemaItems) Less(i, j int) (ret bool) {
+ 					ret = reflect.ValueOf(ii).String() < reflect.ValueOf(ij).String()
+ 				}
+ 			}()
+-			return reflect.ValueOf(ii).Int() < reflect.ValueOf(ij).Int()
++			return ii < ij
+ 		}
+ 		return true
+ 	} else if okj {
+diff --git a/vendor/github.com/go-openapi/spec/responses.go b/vendor/github.com/go-openapi/spec/responses.go
+--- a/vendor/github.com/go-openapi/spec/responses.go
++++ b/vendor/github.com/go-openapi/spec/responses.go
+@@ -19,6 +19,7 @@ import (
+ 	"fmt"
+ 	"reflect"
+ 	"strconv"
++	"strings"
+ 
+ 	"github.com/go-openapi/swag"
+ )
+@@ -62,6 +63,7 @@ func (r *Responses) UnmarshalJSON(data []byte) error {
+ 	if err := json.Unmarshal(data, &r.ResponsesProps); err != nil {
+ 		return err
+ 	}
++
+ 	if err := json.Unmarshal(data, &r.VendorExtensible); err != nil {
+ 		return err
+ 	}
+@@ -107,20 +109,31 @@ func (r ResponsesProps) MarshalJSON() ([]byte, error) {
+ 
+ // UnmarshalJSON unmarshals responses from JSON
+ func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
+-	var res map[string]Response
++	var res map[string]json.RawMessage
+ 	if err := json.Unmarshal(data, &res); err != nil {
+-		return nil
++		return err
+ 	}
++
+ 	if v, ok := res["default"]; ok {
+-		r.Default = &v
++		var defaultRes Response
++		if err := json.Unmarshal(v, &defaultRes); err != nil {
++			return err
++		}
++		r.Default = &defaultRes
+ 		delete(res, "default")
+ 	}
+ 	for k, v := range res {
+-		if nk, err := strconv.Atoi(k); err == nil {
+-			if r.StatusCodeResponses == nil {
+-				r.StatusCodeResponses = map[int]Response{}
++		if !strings.HasPrefix(k, "x-") {
++			var statusCodeResp Response
++			if err := json.Unmarshal(v, &statusCodeResp); err != nil {
++				return err
++			}
++			if nk, err := strconv.Atoi(k); err == nil {
++				if r.StatusCodeResponses == nil {
++					r.StatusCodeResponses = map[int]Response{}
++				}
++				r.StatusCodeResponses[nk] = statusCodeResp
+ 			}
+-			r.StatusCodeResponses[nk] = v
+ 		}
+ 	}
+ 	return nil

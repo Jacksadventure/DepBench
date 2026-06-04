@@ -1,0 +1,99 @@
+diff --git a/packages/hifi/tsconfig.json b/packages/hifi/tsconfig.json
+--- a/packages/hifi/tsconfig.json
++++ b/packages/hifi/tsconfig.json
+@@ -11,5 +11,5 @@
+     "types": ["vitest/globals", "@testing-library/jest-dom"]
+   },
+   "include": ["src/**/*"],
+-  "exclude": ["node_modules", "dist"]
++  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
+ }
+diff --git a/packages/i18n/tsconfig.json b/packages/i18n/tsconfig.json
+--- a/packages/i18n/tsconfig.json
++++ b/packages/i18n/tsconfig.json
+@@ -11,5 +11,5 @@
+     "types": ["vitest/globals"]
+   },
+   "include": ["src/**/*"],
+-  "exclude": ["node_modules", "dist"]
++  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
+ }
+diff --git a/packages/model/tsconfig.json b/packages/model/tsconfig.json
+--- a/packages/model/tsconfig.json
++++ b/packages/model/tsconfig.json
+@@ -11,5 +11,5 @@
+     "types": ["vitest/globals"]
+   },
+   "include": ["src/**/*"],
+-  "exclude": ["node_modules", "dist"]
++  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
+ }
+diff --git a/packages/player/src/services/validatedStore.ts b/packages/player/src/services/validatedStore.ts
+--- a/packages/player/src/services/validatedStore.ts
++++ b/packages/player/src/services/validatedStore.ts
+@@ -4,12 +4,12 @@ import type { z } from 'zod';
+ import { reportError } from '../utils/logging';
+ import type { LogScope } from './logger';
+ 
+-export const loadValidated = async <T>(
++export const loadValidated = async <S extends z.ZodType>(
+   store: LazyStore,
+   key: string,
+-  schema: z.ZodType<T>,
++  schema: S,
+   domain: LogScope,
+-): Promise<T | null> => {
++): Promise<z.output<S> | null> => {
+   const raw = await store.get<unknown>(key);
+   if (raw == null) {
+     return null;
+diff --git a/packages/player/tsconfig.json b/packages/player/tsconfig.json
+--- a/packages/player/tsconfig.json
++++ b/packages/player/tsconfig.json
+@@ -22,5 +22,6 @@
+     "noUnusedParameters": true,
+     "noFallthroughCasesInSwitch": true
+   },
+-  "include": ["src", "vite.env.d.ts"]
++  "include": ["src", "vite.env.d.ts"],
++  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**"]
+ }
+diff --git a/packages/themes/tsconfig.json b/packages/themes/tsconfig.json
+--- a/packages/themes/tsconfig.json
++++ b/packages/themes/tsconfig.json
+@@ -10,5 +10,5 @@
+     "types": ["vitest/globals", "@testing-library/jest-dom"]
+   },
+   "include": ["src/**/*"],
+-  "exclude": ["node_modules", "dist"]
++  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
+ }
+diff --git a/packages/ui/src/components/ScrollableArea/ScrollableArea.tsx b/packages/ui/src/components/ScrollableArea/ScrollableArea.tsx
+--- a/packages/ui/src/components/ScrollableArea/ScrollableArea.tsx
++++ b/packages/ui/src/components/ScrollableArea/ScrollableArea.tsx
+@@ -40,7 +40,7 @@ function useScrollMetrics(fadeScrollbars: boolean, autoHideDelay: number) {
+   const ref = useRef<HTMLDivElement>(null);
+   const [metrics, setMetrics] = useState<ScrollMetrics>(initialMetrics);
+   const [isScrolling, setIsScrolling] = useState(false);
+-  const hideTimeoutRef = useRef<NodeJS.Timeout>();
++  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+   const rafRef = useRef<number>();
+ 
+   const update = useCallback(() => {
+diff --git a/packages/ui/tsconfig.json b/packages/ui/tsconfig.json
+--- a/packages/ui/tsconfig.json
++++ b/packages/ui/tsconfig.json
+@@ -9,11 +9,12 @@
+     "declarationMap": true,
+     "sourceMap": true,
+     "types": [
++      "node",
+       "vitest/globals",
+       "@testing-library/jest-dom",
+       "vite-plugin-svgr/client"
+     ]
+   },
+   "include": ["src/**/*"],
+-  "exclude": ["node_modules", "dist"]
++  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
+ }

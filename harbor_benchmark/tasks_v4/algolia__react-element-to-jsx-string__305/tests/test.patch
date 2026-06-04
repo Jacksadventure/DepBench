@@ -1,0 +1,71 @@
+diff --git a/src/formatter/formatFunction.spec.js b/src/formatter/formatFunction.spec.js
+--- a/src/formatter/formatFunction.spec.js
++++ b/src/formatter/formatFunction.spec.js
+@@ -22,10 +22,9 @@ describe('formatFunction', () => {
+   });
+ 
+   it('should format a function if showFunctions is true', () => {
+-    expect(formatFunction(hello, { showFunctions: true }))
+-      .toEqual(`function hello() {
+-  return 1;
+-}`);
++    expect(formatFunction(hello, { showFunctions: true })).toEqual(
++      'function hello() {return 1;}'
++    );
+   });
+ 
+   it('should format a function without name if showFunctions is true', () => {
+diff --git a/src/index.spec.js b/src/index.spec.js
+--- a/src/index.spec.js
++++ b/src/index.spec.js
+@@ -5,7 +5,7 @@
+ import React, { Fragment, Component } from 'react';
+ import { createRenderer } from 'react-test-renderer/shallow';
+ import { mount } from 'enzyme';
+-import reactElementToJSXString from './index';
++import reactElementToJSXString, { preserveFunctionLineBreak } from './index';
+ import AnonymousStatelessComponent from './AnonymousStatelessComponent';
+ 
+ class TestComponent extends React.Component {}
+@@ -889,13 +889,25 @@ describe('reactElementToJSXString(ReactElement)', () => {
+       reactElementToJSXString(<div fn={fn} />, {
+         showFunctions: true,
+       })
+-    ).toEqual(
+-      `<div
++    ).toEqual(`<div fn={function fn() {return 'value';}} />`);
++  });
++
++  it('should expose the multiline "functionValue" formatter', () => {
++    /* eslint-disable arrow-body-style */
++    const fn = () => {
++      return 'value';
++    };
++
++    expect(
++      reactElementToJSXString(<div fn={fn} />, {
++        showFunctions: true,
++        functionValue: preserveFunctionLineBreak,
++      })
++    ).toEqual(`<div
+   fn={function fn() {
+       return 'value';
+     }}
+- />`
+-    );
++ />`);
+   });
+ 
+   it('reactElementToJSXString(<DisplayNamePrecedence />)', () => {
+diff --git a/tests/smoke/smoke.js b/tests/smoke/smoke.js
+--- a/tests/smoke/smoke.js
++++ b/tests/smoke/smoke.js
+@@ -8,7 +8,7 @@ const requireReactElementToJsxString = buildType => {
+   if (buildType === 'esm') {
+     return require(`./../../dist/esm`).default;
+   } else if (buildType === 'cjs') {
+-    return require('./../../dist/cjs');
++    return require('./../../dist/cjs').default;
+   }
+ 
+   throw new Error(`Unknown build type: "${buildType}"`);

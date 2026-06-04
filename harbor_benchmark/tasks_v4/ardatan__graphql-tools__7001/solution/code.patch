@@ -1,0 +1,178 @@
+diff --git a/.changeset/modern-dancers-call.md b/.changeset/modern-dancers-call.md
+new file mode 100644
+--- /dev/null
++++ b/.changeset/modern-dancers-call.md
+@@ -0,0 +1,6 @@
++---
++'@graphql-tools/executor-envelop': patch
++'@graphql-tools/executor-yoga': patch
++---
++
++Improve logging the warning about introspection failure
+diff --git a/.changeset/tricky-clouds-smell.md b/.changeset/tricky-clouds-smell.md
+new file mode 100644
+--- /dev/null
++++ b/.changeset/tricky-clouds-smell.md
+@@ -0,0 +1,5 @@
++---
++'@graphql-tools/executor': patch
++---
++
++Improve promise helpers usage
+diff --git a/packages/executor/src/execution/execute.ts b/packages/executor/src/execution/execute.ts
+--- a/packages/executor/src/execution/execute.ts
++++ b/packages/executor/src/execution/execute.ts
+@@ -628,9 +628,15 @@ function executeFields(
+   } catch (error) {
+     if (containsPromise) {
+       // Ensure that any promises returned by other fields are handled, as they may also reject.
+-      return promiseForObject(results, exeContext.signal).finally(() => {
+-        throw error;
+-      });
++      return handleMaybePromise(
++        () => promiseForObject(results, exeContext.signal),
++        () => {
++          throw error;
++        },
++        () => {
++          throw error;
++        },
++      );
+     }
+     throw error;
+   }
+@@ -1660,8 +1666,11 @@ function mapSourceToResponse(
+   return flattenAsyncIterable(
+     mapAsyncIterator(
+       resultOrStream,
+-      async (payload: unknown) =>
+-        ensureAsyncIterable(await executeImpl(buildPerEventExecutionContext(exeContext, payload))),
++      (payload: unknown) =>
++        handleMaybePromise(
++          () => executeImpl(buildPerEventExecutionContext(exeContext, payload)),
++          ensureAsyncIterable,
++        ),
+       (error: Error) => {
+         if (error instanceof AggregateError) {
+           throw new AggregateError(
+diff --git a/packages/executor/src/execution/promiseForObject.ts b/packages/executor/src/execution/promiseForObject.ts
+--- a/packages/executor/src/execution/promiseForObject.ts
++++ b/packages/executor/src/execution/promiseForObject.ts
+@@ -1,4 +1,5 @@
+-import { getAbortPromise } from '@graphql-tools/utils';
++import { getAbortPromise, isPromise, MaybePromise } from '@graphql-tools/utils';
++import { handleMaybePromise } from '@whatwg-node/promise-helpers';
+ 
+ type ResolvedObject<TData> = {
+   [TKey in keyof TData]: TData[TKey] extends Promise<infer TValue> ? TValue : TData[TKey];
+@@ -11,19 +12,30 @@ type ResolvedObject<TData> = {
+  * This is akin to bluebird's `Promise.props`, but implemented only using
+  * `Promise.all` so it will work with any implementation of ES6 promises.
+  */
+-export async function promiseForObject<TData>(
++export function promiseForObject<TData>(
+   object: TData,
+   signal?: AbortSignal,
+-): Promise<ResolvedObject<TData>> {
++): MaybePromise<ResolvedObject<TData>> {
+   const resolvedObject = Object.create(null);
+-  const promises = Promise.all(
+-    Object.entries(object as any).map(async ([key, value]) => {
+-      resolvedObject[key] = await value;
+-    }),
+-  );
++  const promises: Promise<void>[] = [];
++  for (const key in object) {
++    const valueSet$ = handleMaybePromise(
++      () => object[key],
++      resolvedValue => {
++        resolvedObject[key] = resolvedValue;
++      },
++    );
++    if (isPromise(valueSet$)) {
++      promises.push(valueSet$);
++    }
++  }
++  if (!promises.length) {
++    return resolvedObject;
++  }
++  const promiseAll = promises.length === 1 ? promises[0] : Promise.all(promises);
+   if (signal) {
+     const abortPromise = getAbortPromise(signal);
+-    return Promise.race([abortPromise, promises]).then(() => resolvedObject);
++    return Promise.race([abortPromise, promiseAll]).then(() => resolvedObject);
+   }
+-  return promises.then(() => resolvedObject);
++  return promiseAll.then(() => resolvedObject);
+ }
+diff --git a/packages/executors/envelop/src/index.ts b/packages/executors/envelop/src/index.ts
+--- a/packages/executors/envelop/src/index.ts
++++ b/packages/executors/envelop/src/index.ts
+@@ -13,6 +13,7 @@ export interface ExecutorPluginContext {
+ 
+ export type ExecutorPluginOpts = Parameters<typeof schemaFromExecutor>[2] & {
+   polling?: number;
++  logWarn?(...args: any[]): void;
+ };
+ 
+ export interface ExecutorPluginExtras {
+@@ -25,6 +26,7 @@ export function useExecutor<TPluginContext extends Record<string, any>>(
+   executor: Executor,
+   opts?: ExecutorPluginOpts,
+ ): Plugin<TPluginContext> & ExecutorPluginExtras {
++  const logWarn = opts?.logWarn || (message => console.warn(message));
+   const EMPTY_ARRAY = Object.freeze([]);
+   function executorToExecuteFn(executionArgs: ExecutionArgs) {
+     return executor({
+@@ -60,10 +62,7 @@ export function useExecutor<TPluginContext extends Record<string, any>>(
+               pluginCtx.schema = newSchema;
+             }) as Promise<void>
+           ).catch?.(err => {
+-            console.warn(
+-              `Introspection failed, skipping introspection due to the following errors;\n`,
+-              err,
+-            );
++            logWarn(`Introspection failed, skipping introspection due to the errors`, err);
+             pluginCtx.skipIntrospection = true;
+           });
+         } else {
+@@ -72,10 +71,7 @@ export function useExecutor<TPluginContext extends Record<string, any>>(
+       }
+     } catch (err) {
+       pluginCtx.skipIntrospection = true;
+-      console.warn(
+-        `Introspection failed, skipping introspection due to the following errors;\n`,
+-        err,
+-      );
++      logWarn(`Introspection failed, skipping introspection due to the following errors`, err);
+     }
+   }
+   return {
+diff --git a/packages/executors/yoga/src/index.ts b/packages/executors/yoga/src/index.ts
+--- a/packages/executors/yoga/src/index.ts
++++ b/packages/executors/yoga/src/index.ts
+@@ -10,7 +10,13 @@ export function useExecutor(
+   executor: Executor,
+   opts?: ExecutorPluginOpts,
+ ): Plugin & ExecutorPluginExtras {
+-  const envelopPlugin = useEnvelopExecutor<YogaInitialContext>(executor, opts);
++  let logWarn = opts?.logWarn || ((message: any) => console.warn(message));
++  const envelopPlugin = useEnvelopExecutor<YogaInitialContext>(executor, {
++    ...opts,
++    logWarn(...args) {
++      return logWarn(...args);
++    },
++  });
+   let disposableSymbol: typeof DisposableSymbols.asyncDispose | typeof DisposableSymbols.dispose;
+   if (executor[DisposableSymbols.asyncDispose]) {
+     disposableSymbol = DisposableSymbols.asyncDispose;
+@@ -19,6 +25,9 @@ export function useExecutor(
+   }
+   return {
+     ...envelopPlugin,
++    onYogaInit({ yoga }) {
++      logWarn = (...args) => yoga.logger.warn(...args);
++    },
+     onRequestParse({ serverContext }) {
+       return {
+         onRequestParseDone() {

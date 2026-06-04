@@ -1,0 +1,68 @@
+diff --git a/scripts/gen.js b/scripts/gen.js
+index 0a6c575..d7aa787 100644
+--- a/scripts/gen.js
++++ b/scripts/gen.js
+@@ -50,11 +50,27 @@ const getAllSafeRanges = rangeSize => {
+ 
+ const allSafeRanges = getAllSafeRanges(1 << 8)
+ 
+-const paddingBlockStart = String.fromCodePoint(allSafeRanges.shift())
++const paddingRange = allSafeRanges.shift()
++const paddingBlockStart = String.fromCodePoint(paddingRange)
+ 
+ const blockStarts = allSafeRanges.slice(0, 1 << 8).map(x => String.fromCodePoint(x)).join('')
+ 
+-export { safeCodePoint, paddingBlockStart, blockStarts }
++const combinedRanges = allSafeRanges.slice(0, 1 << 8).map(start => [start, start + (1 << 8) - 1])
++let i = 0
++while (i in combinedRanges) {
++  if (i + 1 in combinedRanges && combinedRanges[i][1] + 1 === combinedRanges[i + 1][0]) {
++    combinedRanges.splice(i, 2, [combinedRanges[i][0], combinedRanges[i + 1][1]])
++  } else {
++    i++
++  }
++}
++
++const pairStrings = [
++  combinedRanges.map(([start, end]) => String.fromCodePoint(start) + String.fromCodePoint(end)).join(''),
++  String.fromCodePoint(paddingRange) + String.fromCodePoint(paddingRange + (1 << 8) - 1)
++]
++
++export { safeCodePoint, paddingBlockStart, blockStarts, pairStrings }
+ 
+ // There are now implementations of
+ // Base65536 in numerous programming languages beyond the original JavaScript,
+diff --git a/server/index.html b/server/index.html
+index 2cd562f..e990115 100644
+--- a/server/index.html
++++ b/server/index.html
+@@ -6,6 +6,8 @@
+     <script type="module">
+       import { encode, decode } from '../src/index.js'
+       const encoded = encode(new TextEncoder('utf-8').encode('what the heck is up'))
++      const uint8Array = new Uint8Array([119, 104, 97, 116, 32, 116, 104, 101, 32, 104, 101, 99, 107, 32, 105, 115, 32, 117, 112])
++      console.log(encode(uint8Array))
+       const decoded = new TextDecoder('utf-8').decode(decode(encoded))
+       document.querySelector('.root').appendChild(document.createTextNode(decoded))
+     </script>
+diff --git a/src/index.js b/src/index.js
+index ba16985..b7a782b 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -15,7 +15,7 @@ const BITS_PER_BYTE = 8
+ 
+ // Compressed representation of inclusive-exclusive ranges of characters used in this encoding.
+ const pairStrings = [
+-  '㐀䳿一黿ꄀꏿꔀꗿ𐘀�𒀀�𓀀�𔐀�𖠀�𠀀�',
++  '㐀䳿一黿ꄀꏿꔀꗿ𐘀𐛿𒀀𒋿𓀀𓏿𔐀𔗿𖠀𖧿𠀀𨗿',
+   'ᔀᗿ'
+ ]
+ 
+@@ -34,7 +34,6 @@ pairStrings.forEach((pairString, r) => {
+       // SPECIAL CASE: flip the bytes around, because Base65536 was constructed to take the bytes
+       // in the wrong order originally
+       const z = numZBits === BITS_PER_CHAR ? 256 * (z2 % 256) + (z2 >> 8) : z2
+-
+       lookupE[numZBits][z] = chr
+       lookupD[chr] = [numZBits, z]
+       z2++

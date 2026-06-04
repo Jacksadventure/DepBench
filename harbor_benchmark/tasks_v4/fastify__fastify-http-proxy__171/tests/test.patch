@@ -1,0 +1,92 @@
+diff --git a/test/utils.js b/test/utils.js
+new file mode 100644
+index 0000000..c1cddeb
+--- /dev/null
++++ b/test/utils.js
+@@ -0,0 +1,20 @@
++'use strict'
++
++const t = require('tap')
++const { convertUrlToWebSocket } = require('../utils')
++
++t.test('convertUrlToWebSocket', function (t) {
++  const testData = [
++    { input: 'http://localhost', expected: 'ws://localhost' },
++    { input: 'https://localhost', expected: 'wss://localhost' },
++    { input: 'ws://localhost', expected: 'ws://localhost' },
++    { input: 'wss://localhost', expected: 'wss://localhost' },
++    { input: 'wronghttp://localhost', expected: 'wronghttp://localhost' },
++    { input: 'NOT_AN_URL', expected: 'NOT_AN_URL' }
++
++  ]
++  t.plan(testData.length)
++  for (const { input, expected } of testData) {
++    t.equal(convertUrlToWebSocket(input), expected)
++  }
++})
+diff --git a/test/websocket.js b/test/websocket.js
+index 00667b3..0e19a73 100644
+--- a/test/websocket.js
++++ b/test/websocket.js
+@@ -28,14 +28,14 @@ test('basic websocket proxy', async (t) => {
+ 
+   const server = Fastify()
+   server.register(proxy, {
+-    upstream: `http://localhost:${origin.address().port}`,
++    upstream: `ws://localhost:${origin.address().port}`,
+     websocket: true
+   })
+ 
+   await server.listen(0)
+   t.teardown(server.close.bind(server))
+ 
+-  const ws = new WebSocket(`http://localhost:${server.server.address().port}`)
++  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`)
+ 
+   await once(ws, 'open')
+ 
+@@ -58,7 +58,7 @@ test('captures errors on start', async (t) => {
+   await app.listen(0)
+ 
+   const app2 = Fastify()
+-  app2.register(proxy, { upstream: 'http://localhost', websocket: true })
++  app2.register(proxy, { upstream: 'ws://localhost', websocket: true })
+ 
+   const appPort = app.server.address().port
+ 
+diff --git a/test/ws-prefix-rewrite-core.js b/test/ws-prefix-rewrite-core.js
+index 26cb178..711ed62 100644
+--- a/test/ws-prefix-rewrite-core.js
++++ b/test/ws-prefix-rewrite-core.js
+@@ -8,6 +8,7 @@ const fastifyWebSocket = require('fastify-websocket')
+ const proxy = require('..')
+ const WebSocket = require('ws')
+ const got = require('got')
++const { convertUrlToWebSocket } = require('../utils')
+ 
+ const level = 'warn'
+ 
+@@ -35,7 +36,8 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
+ async function processRequest (t, frontendURL, path, expected) {
+   const url = new URL(path, frontendURL)
+   t.comment('ws connecting to ' + url.toString())
+-  const ws = new WebSocket(url)
++  const wsUrl = convertUrlToWebSocket(url.href)
++  const ws = new WebSocket(wsUrl)
+   let wsResult, gotResult
+ 
+   try {
+diff --git a/test/ws-prefix-rewrite.js b/test/ws-prefix-rewrite.js
+index 7da53dc..abc84dd 100644
+--- a/test/ws-prefix-rewrite.js
++++ b/test/ws-prefix-rewrite.js
+@@ -34,7 +34,8 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
+ async function processRequest (t, frontendURL, path, expected) {
+   const url = new URL(path, frontendURL)
+   t.comment('ws connecting to ' + url.toString())
+-  const ws = new WebSocket(url)
++  const wsUrl = url.href.replace('http:', 'ws:')
++  const ws = new WebSocket(wsUrl)
+   let wsResult, gotResult
+ 
+   try {

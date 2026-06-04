@@ -1,0 +1,391 @@
+diff --git a/audit.json b/audit.json
+new file mode 100644
+index 0000000000..6d39bc9ae9
+--- /dev/null
++++ b/audit.json
+@@ -0,0 +1,22 @@
++{
++  "auditReportVersion": 2,
++  "vulnerabilities": {},
++  "metadata": {
++    "vulnerabilities": {
++      "info": 0,
++      "low": 0,
++      "moderate": 0,
++      "high": 0,
++      "critical": 0,
++      "total": 0
++    },
++    "dependencies": {
++      "prod": 205,
++      "dev": 1789,
++      "optional": 26,
++      "peer": 18,
++      "peerOptional": 0,
++      "total": 2005
++    }
++  }
++}
+diff --git a/packages/browser/src/login/oidc/ClientRegistrar.ts b/packages/browser/src/login/oidc/ClientRegistrar.ts
+index 6aa28744ef..3aa6049383 100644
+--- a/packages/browser/src/login/oidc/ClientRegistrar.ts
++++ b/packages/browser/src/login/oidc/ClientRegistrar.ts
+@@ -37,7 +37,9 @@ import { registerClient } from "@inrupt/oidc-client-ext";
+  * @hidden
+  */
+ export default class ClientRegistrar implements IClientRegistrar {
+-  constructor(private storageUtility: IStorageUtility) {}
++  constructor(private storageUtility: IStorageUtility) {
++    this.storageUtility = storageUtility;
++  }
+ 
+   async getClient(
+     options: IClientRegistrarOptions,
+diff --git a/packages/browser/src/login/oidc/IssuerConfigFetcher.ts b/packages/browser/src/login/oidc/IssuerConfigFetcher.ts
+index e38ee9f358..dcf48f37f2 100644
+--- a/packages/browser/src/login/oidc/IssuerConfigFetcher.ts
++++ b/packages/browser/src/login/oidc/IssuerConfigFetcher.ts
+@@ -153,7 +153,9 @@ function processConfig(
+  * @hidden
+  */
+ export default class IssuerConfigFetcher implements IIssuerConfigFetcher {
+-  constructor(private storageUtility: IStorageUtility) {}
++  constructor(private storageUtility: IStorageUtility) {
++    this.storageUtility = storageUtility;
++  }
+ 
+   // This method needs no state (so can be static), and can be exposed to allow
+   // callers to know where this implementation puts state it needs.
+diff --git a/packages/browser/src/login/oidc/OidcLoginHandler.ts b/packages/browser/src/login/oidc/OidcLoginHandler.ts
+index 7539b85198..263f382760 100644
+--- a/packages/browser/src/login/oidc/OidcLoginHandler.ts
++++ b/packages/browser/src/login/oidc/OidcLoginHandler.ts
+@@ -65,7 +65,12 @@ export default class OidcLoginHandler implements ILoginHandler {
+     private oidcHandler: IOidcHandler,
+     private issuerConfigFetcher: IIssuerConfigFetcher,
+     private clientRegistrar: IClientRegistrar,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.oidcHandler = oidcHandler;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++    this.clientRegistrar = clientRegistrar;
++  }
+ 
+   async canHandle(options: ILoginOptions): Promise<boolean> {
+     return hasIssuer(options) && hasRedirectUrl(options);
+diff --git a/packages/browser/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts b/packages/browser/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts
+index 242aede6f7..c005454565 100644
+--- a/packages/browser/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts
++++ b/packages/browser/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts
+@@ -62,7 +62,13 @@ export class AuthCodeRedirectHandler implements IIncomingRedirectHandler {
+     private issuerConfigFetcher: IIssuerConfigFetcher,
+     private clientRegistrar: IClientRegistrar,
+     private tokerRefresher: ITokenRefresher,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.sessionInfoManager = sessionInfoManager;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++    this.clientRegistrar = clientRegistrar;
++    this.tokerRefresher = tokerRefresher;
++  }
+ 
+   async canHandle(redirectUrl: string): Promise<boolean> {
+     try {
+diff --git a/packages/browser/src/login/oidc/refresh/TokenRefresher.ts b/packages/browser/src/login/oidc/refresh/TokenRefresher.ts
+index e288f8f669..ad5b181b0d 100644
+--- a/packages/browser/src/login/oidc/refresh/TokenRefresher.ts
++++ b/packages/browser/src/login/oidc/refresh/TokenRefresher.ts
+@@ -52,7 +52,11 @@ export default class TokenRefresher implements ITokenRefresher {
+     private storageUtility: IStorageUtility,
+     private issuerConfigFetcher: IIssuerConfigFetcher,
+     private clientRegistrar: IClientRegistrar,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++    this.clientRegistrar = clientRegistrar;
++  }
+ 
+   async refresh(
+     sessionId: string,
+diff --git a/packages/core/src/ClientAuthentication.ts b/packages/core/src/ClientAuthentication.ts
+index ceb6ee1295..739b8488b6 100644
+--- a/packages/core/src/ClientAuthentication.ts
++++ b/packages/core/src/ClientAuthentication.ts
+@@ -53,7 +53,13 @@ export default class ClientAuthentication {
+     protected logoutHandler: ILogoutHandler,
+     protected sessionInfoManager: ISessionInfoManager,
+     protected issuerConfigFetcher?: IIssuerConfigFetcher,
+-  ) {}
++  ) {
++    this.loginHandler = loginHandler;
++    this.redirectHandler = redirectHandler;
++    this.logoutHandler = logoutHandler;
++    this.sessionInfoManager = sessionInfoManager;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++  }
+ 
+   // By default, our fetch() resolves to the environment fetch() function.
+   fetch = globalFetch;
+diff --git a/packages/core/src/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.ts b/packages/core/src/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.ts
+index e69f6b1446..a87de8b73f 100644
+--- a/packages/core/src/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.ts
++++ b/packages/core/src/login/oidc/oidcHandlers/AuthorizationCodeWithPkceOidcHandler.ts
+@@ -36,7 +36,10 @@ export default abstract class AuthorizationCodeWithPkceOidcHandlerBase {
+   constructor(
+     protected storageUtility: IStorageUtility,
+     protected redirector: IRedirector,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.redirector = redirector;
++  }
+ 
+   async canHandle(oidcLoginOptions: IOidcOptions): Promise<boolean> {
+     return !!(
+diff --git a/packages/core/src/logout/GeneralLogoutHandler.ts b/packages/core/src/logout/GeneralLogoutHandler.ts
+index a9efc72c05..a1a81adb81 100644
+--- a/packages/core/src/logout/GeneralLogoutHandler.ts
++++ b/packages/core/src/logout/GeneralLogoutHandler.ts
+@@ -31,7 +31,9 @@ import type { ISessionInfoManager } from "../sessionInfo/ISessionInfoManager";
+  * @hidden
+  */
+ export default class GeneralLogoutHandler implements ILogoutHandler {
+-  constructor(private sessionInfoManager: ISessionInfoManager) {}
++  constructor(private sessionInfoManager: ISessionInfoManager) {
++    this.sessionInfoManager = sessionInfoManager;
++  }
+ 
+   async canHandle(): Promise<boolean> {
+     return true;
+diff --git a/packages/core/src/logout/RpLogoutHandler.ts b/packages/core/src/logout/RpLogoutHandler.ts
+index 02b59770fb..fc0f66d3f4 100644
+--- a/packages/core/src/logout/RpLogoutHandler.ts
++++ b/packages/core/src/logout/RpLogoutHandler.ts
+@@ -23,7 +23,9 @@ import type { IRedirector } from "../login/oidc/IRedirector";
+ import type { ILogoutHandlerOptions } from "./ILogoutHandler";
+ 
+ export default class IRpLogoutHandler implements ILogoutHandler {
+-  constructor(protected redirector: IRedirector) {}
++  constructor(protected redirector: IRedirector) {
++    this.redirector = redirector;
++  }
+ 
+   async canHandle(
+     userId: string,
+diff --git a/packages/core/src/sessionInfo/SessionInfoManager.ts b/packages/core/src/sessionInfo/SessionInfoManager.ts
+index 20dab559e3..0dc57af6a5 100644
+--- a/packages/core/src/sessionInfo/SessionInfoManager.ts
++++ b/packages/core/src/sessionInfo/SessionInfoManager.ts
+@@ -63,7 +63,9 @@ export async function clear(
+  * @hidden
+  */
+ export abstract class SessionInfoManagerBase implements ISessionInfoManager {
+-  constructor(protected storageUtility: IStorageUtility) {}
++  constructor(protected storageUtility: IStorageUtility) {
++    this.storageUtility = storageUtility;
++  }
+ 
+   update(
+     _sessionId: string,
+diff --git a/packages/core/src/storage/StorageUtility.ts b/packages/core/src/storage/StorageUtility.ts
+index 06140b5353..86d60c2a21 100644
+--- a/packages/core/src/storage/StorageUtility.ts
++++ b/packages/core/src/storage/StorageUtility.ts
+@@ -141,7 +141,10 @@ export default class StorageUtility implements IStorageUtility {
+   constructor(
+     private secureStorage: IStorage,
+     private insecureStorage: IStorage,
+-  ) {}
++  ) {
++    this.secureStorage = secureStorage;
++    this.insecureStorage = insecureStorage;
++  }
+ 
+   private getKey(userId: string): string {
+     return `solidClientAuthenticationUser:${userId}`;
+diff --git a/packages/core/src/util/handlerPattern/AggregateHandler.ts b/packages/core/src/util/handlerPattern/AggregateHandler.ts
+index 6314f451b8..f573f857d4 100644
+--- a/packages/core/src/util/handlerPattern/AggregateHandler.ts
++++ b/packages/core/src/util/handlerPattern/AggregateHandler.ts
+@@ -35,7 +35,9 @@ import type IHandleable from "./IHandleable";
+ export default class AggregateHandler<P extends Array<unknown>, R>
+   implements IHandleable<P, R>
+ {
+-  constructor(private handleables: IHandleable<P, R>[]) {}
++  constructor(private handleables: IHandleable<P, R>[]) {
++    this.handleables = handleables;
++  }
+ 
+   /**
+    * Helper function that will asynchronously determine the proper handler to use. If multiple
+diff --git a/packages/node/src/dependencies.ts b/packages/node/src/dependencies.ts
+index 9c343e6c2e..99aec486f1 100644
+--- a/packages/node/src/dependencies.ts
++++ b/packages/node/src/dependencies.ts
+@@ -67,7 +67,7 @@ export const buildLoginHandler = (
+     storageUtility,
+     new AggregateOidcHandler([
+       new RefreshTokenOidcHandler(tokenRefresher, storageUtility),
+-      new ClientCredentialsOidcHandler(tokenRefresher, storageUtility),
++      new ClientCredentialsOidcHandler(tokenRefresher),
+       new AuthorizationCodeWithPkceOidcHandler(
+         storageUtility,
+         new Redirector(),
+diff --git a/packages/node/src/login/oidc/ClientRegistrar.ts b/packages/node/src/login/oidc/ClientRegistrar.ts
+index 65985e666d..2370ab694c 100644
+--- a/packages/node/src/login/oidc/ClientRegistrar.ts
++++ b/packages/node/src/login/oidc/ClientRegistrar.ts
+@@ -72,7 +72,9 @@ export function negotiateClientSigningAlg(
+  * @hidden
+  */
+ export default class ClientRegistrar implements IClientRegistrar {
+-  constructor(private storageUtility: IStorageUtility) {}
++  constructor(private storageUtility: IStorageUtility) {
++    this.storageUtility = storageUtility;
++  }
+ 
+   async getClient(
+     options: IClientRegistrarOptions,
+diff --git a/packages/node/src/login/oidc/IssuerConfigFetcher.ts b/packages/node/src/login/oidc/IssuerConfigFetcher.ts
+index 1fd6037264..d40667092a 100644
+--- a/packages/node/src/login/oidc/IssuerConfigFetcher.ts
++++ b/packages/node/src/login/oidc/IssuerConfigFetcher.ts
+@@ -145,7 +145,9 @@ export function configToIssuerMetadata(config: IIssuerConfig): IssuerMetadata {
+  * @hidden
+  */
+ export default class IssuerConfigFetcher implements IIssuerConfigFetcher {
+-  constructor(private storageUtility: IStorageUtility) {}
++  constructor(private storageUtility: IStorageUtility) {
++    this.storageUtility = storageUtility;
++  }
+ 
+   // This method needs no state (so can be static), and can be exposed to allow
+   // callers to know where this implementation puts state it needs.
+diff --git a/packages/node/src/login/oidc/OidcLoginHandler.ts b/packages/node/src/login/oidc/OidcLoginHandler.ts
+index 15f0ec167f..596c03207d 100644
+--- a/packages/node/src/login/oidc/OidcLoginHandler.ts
++++ b/packages/node/src/login/oidc/OidcLoginHandler.ts
+@@ -66,7 +66,12 @@ export default class OidcLoginHandler implements ILoginHandler {
+     private oidcHandler: IOidcHandler,
+     private issuerConfigFetcher: IIssuerConfigFetcher,
+     private clientRegistrar: IClientRegistrar,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.oidcHandler = oidcHandler;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++    this.clientRegistrar = clientRegistrar;
++  }
+ 
+   async canHandle(options: ILoginOptions): Promise<boolean> {
+     return hasIssuer(options);
+diff --git a/packages/node/src/login/oidc/TokenRequester.ts b/packages/node/src/login/oidc/TokenRequester.ts
+index 5eb11aec40..e5070870c4 100644
+--- a/packages/node/src/login/oidc/TokenRequester.ts
++++ b/packages/node/src/login/oidc/TokenRequester.ts
+@@ -24,11 +24,6 @@
+  * @packageDocumentation
+  */
+ 
+-import type {
+-  IClientRegistrar,
+-  IStorageUtility,
+-  IIssuerConfigFetcher,
+-} from "@inrupt/solid-client-authn-core";
+ import { NotImplementedError } from "@inrupt/solid-client-authn-core";
+ 
+ /**
+@@ -42,12 +37,6 @@ export interface ITokenRequester {
+  * @hidden
+  */
+ export default class TokenRequester {
+-  constructor(
+-    private storageUtility: IStorageUtility,
+-    private issuerConfigFetcher: IIssuerConfigFetcher,
+-    private clientRegistrar: IClientRegistrar,
+-  ) {}
+-
+   async request(
+     _sessionId: string,
+     _body: Record<string, string>,
+diff --git a/packages/node/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts b/packages/node/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts
+index 40fd20a16b..a12f7567e2 100644
+--- a/packages/node/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts
++++ b/packages/node/src/login/oidc/incomingRedirectHandler/AuthCodeRedirectHandler.ts
+@@ -66,7 +66,13 @@ export class AuthCodeRedirectHandler implements IIncomingRedirectHandler {
+     private issuerConfigFetcher: IIssuerConfigFetcher,
+     private clientRegistrar: IClientRegistrar,
+     private tokenRefresher: ITokenRefresher,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.sessionInfoManager = sessionInfoManager;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++    this.clientRegistrar = clientRegistrar;
++    this.tokenRefresher = tokenRefresher;
++  }
+ 
+   async canHandle(redirectUrl: string): Promise<boolean> {
+     try {
+diff --git a/packages/node/src/login/oidc/oidcHandlers/ClientCredentialsOidcHandler.ts b/packages/node/src/login/oidc/oidcHandlers/ClientCredentialsOidcHandler.ts
+index a5e430b083..d9fb976907 100644
+--- a/packages/node/src/login/oidc/oidcHandlers/ClientCredentialsOidcHandler.ts
++++ b/packages/node/src/login/oidc/oidcHandlers/ClientCredentialsOidcHandler.ts
+@@ -31,7 +31,6 @@ import type {
+   IOidcHandler,
+   IOidcOptions,
+   LoginResult,
+-  IStorageUtility,
+   ISessionInfo,
+   KeyPair,
+   ITokenRefresher,
+@@ -52,10 +51,9 @@ import { configToIssuerMetadata } from "../IssuerConfigFetcher";
+  * @hidden
+  */
+ export default class ClientCredentialsOidcHandler implements IOidcHandler {
+-  constructor(
+-    private tokenRefresher: ITokenRefresher,
+-    private _storageUtility: IStorageUtility,
+-  ) {}
++  constructor(private tokenRefresher: ITokenRefresher) {
++    this.tokenRefresher = tokenRefresher;
++  }
+ 
+   async canHandle(oidcLoginOptions: IOidcOptions): Promise<boolean> {
+     return (
+diff --git a/packages/node/src/login/oidc/oidcHandlers/RefreshTokenOidcHandler.ts b/packages/node/src/login/oidc/oidcHandlers/RefreshTokenOidcHandler.ts
+index 8a2eca2bad..a3607b851f 100644
+--- a/packages/node/src/login/oidc/oidcHandlers/RefreshTokenOidcHandler.ts
++++ b/packages/node/src/login/oidc/oidcHandlers/RefreshTokenOidcHandler.ts
+@@ -117,7 +117,10 @@ export default class RefreshTokenOidcHandler implements IOidcHandler {
+   constructor(
+     private tokenRefresher: ITokenRefresher,
+     private storageUtility: IStorageUtility,
+-  ) {}
++  ) {
++    this.tokenRefresher = tokenRefresher;
++    this.storageUtility = storageUtility;
++  }
+ 
+   async canHandle(oidcLoginOptions: IOidcOptions): Promise<boolean> {
+     return validateOptions(oidcLoginOptions);
+diff --git a/packages/node/src/login/oidc/refresh/TokenRefresher.ts b/packages/node/src/login/oidc/refresh/TokenRefresher.ts
+index d2190e8921..2a2d830821 100644
+--- a/packages/node/src/login/oidc/refresh/TokenRefresher.ts
++++ b/packages/node/src/login/oidc/refresh/TokenRefresher.ts
+@@ -82,7 +82,11 @@ export default class TokenRefresher implements ITokenRefresher {
+     private storageUtility: IStorageUtility,
+     private issuerConfigFetcher: IIssuerConfigFetcher,
+     private clientRegistrar: IClientRegistrar,
+-  ) {}
++  ) {
++    this.storageUtility = storageUtility;
++    this.issuerConfigFetcher = issuerConfigFetcher;
++    this.clientRegistrar = clientRegistrar;
++  }
+ 
+   async refresh(
+     sessionId: string,

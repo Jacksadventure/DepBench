@@ -1,0 +1,510 @@
+diff --git a/packages/core/benchmark/chrome.js b/packages/core/benchmark/chrome.js
+index a200a0299..43c76b4ee 100644
+--- a/packages/core/benchmark/chrome.js
++++ b/packages/core/benchmark/chrome.js
+@@ -26,7 +26,7 @@ puppeteer.launch({ args: ['--disable-gpu', '--no-sandbox', '--single-process', '
+       header_footer: true,
+       attributes: 'linkcss copycss! toc! numbered! icons! compat-mode'
+     }
+-    var asciidoctor = Asciidoctor({ 'runtime': { 'ioModule': 'xmlhttprequest' } })
++    var asciidoctor = Asciidoctor({ runtime: { ioModule: 'xmlhttprequest' } })
+     var content
+     if (environment.include) {
+       content = 'include::' + environment.baseDir + '/userguide.adoc[]'
+diff --git a/packages/core/benchmark/node.js b/packages/core/benchmark/node.js
+index dc9d13641..e336dfa77 100644
+--- a/packages/core/benchmark/node.js
++++ b/packages/core/benchmark/node.js
+@@ -17,7 +17,7 @@ const options = {
+   header_footer: true,
+   attributes: 'linkcss copycss! toc! numbered! icons! compat-mode'
+ }
+-const asciidoctor = Asciidoctor({ 'runtime': { 'platform': 'node' } })
++const asciidoctor = Asciidoctor({ runtime: { platform: 'node' } })
+ 
+ let content
+ if (include) {
+@@ -28,9 +28,9 @@ if (include) {
+ let html
+ const durations = []
+ for (let i = 1; i <= runs; i++) {
+-  let start = new Date().getTime()
++  const start = new Date().getTime()
+   html = asciidoctor.convert(content, options)
+-  let duration = new Date().getTime() - start
++  const duration = new Date().getTime() - start
+   durations.push(duration)
+   console.log(`Run #${i}: ${(duration / 1000.0)}s`)
+ }
+diff --git a/packages/core/benchmark/stats.js b/packages/core/benchmark/stats.js
+index c3a7a2acd..ec7d0c777 100644
+--- a/packages/core/benchmark/stats.js
++++ b/packages/core/benchmark/stats.js
+@@ -10,7 +10,7 @@ const sortNumber = (a, b) => a - b
+ 
+ const quantile = (durations, percentile) => {
+   durations.sort(sortNumber)
+-  let index = percentile / 100.0 * (durations.length - 1)
++  const index = percentile / 100.0 * (durations.length - 1)
+   let result
+   let i
+   let fraction
+diff --git a/packages/core/src/asciidoctor-core-api.js b/packages/core/src/asciidoctor-core-api.js
+index a71a4f2a2..0c948e6e4 100644
+--- a/packages/core/src/asciidoctor-core-api.js
++++ b/packages/core/src/asciidoctor-core-api.js
+@@ -52,7 +52,7 @@ function initializeClass (superClass, className, functions, defaultFunctions, ar
+   var constructorFunction
+   var defaultFunctionsOverridden = {}
+   for (var functionName in functions) {
+-    if (functions.hasOwnProperty(functionName)) {
++    if (Object.prototype.hasOwnProperty.call(functions, functionName)) {
+       (function (functionName) {
+         var userFunction = functions[functionName]
+         if (functionName === 'postConstruct') {
+@@ -62,12 +62,12 @@ function initializeClass (superClass, className, functions, defaultFunctions, ar
+         } else if (functionName === 'constructor') {
+           constructorFunction = userFunction
+         } else {
+-          if (defaultFunctions && defaultFunctions.hasOwnProperty(functionName)) {
++          if (defaultFunctions && Object.prototype.hasOwnProperty.call(defaultFunctions, functionName)) {
+             defaultFunctionsOverridden[functionName] = true
+           }
+           Opal.def(scope, '$' + functionName, function () {
+             var args
+-            if (argProxyFunctions && argProxyFunctions.hasOwnProperty(functionName)) {
++            if (argProxyFunctions && Object.prototype.hasOwnProperty.call(argProxyFunctions, functionName)) {
+               args = argProxyFunctions[functionName](arguments)
+             } else {
+               args = arguments
+@@ -135,7 +135,7 @@ function initializeClass (superClass, className, functions, defaultFunctions, ar
+   })
+   if (defaultFunctions) {
+     for (var defaultFunctionName in defaultFunctions) {
+-      if (defaultFunctions.hasOwnProperty(defaultFunctionName) && !defaultFunctionsOverridden.hasOwnProperty(defaultFunctionName)) {
++      if (Object.prototype.hasOwnProperty.call(defaultFunctions, defaultFunctionName) && !Object.prototype.hasOwnProperty.call(defaultFunctionsOverridden, defaultFunctionName)) {
+         (function (defaultFunctionName) {
+           var defaultFunction = defaultFunctions[defaultFunctionName]
+           Opal.def(scope, '$' + defaultFunctionName, function () {
+@@ -174,7 +174,7 @@ function initializeClass (superClass, className, functions, defaultFunctions, ar
+  *
+  * const doc = asciidoctor.load("= Document Title\n\nfirst paragraph\n\nsecond paragraph", { 'safe': 'safe' }) // Parse an AsciiDoc string into a document object
+  */
+-var Asciidoctor = Opal.Asciidoctor['$$class']
++var Asciidoctor = Opal.Asciidoctor.$$class
+ 
+ /**
+  * Get Asciidoctor core version number.
+@@ -368,19 +368,19 @@ AbstractBlock.prototype.getSourceLocation = function () {
+   if (sourceLocation === Opal.nil) {
+     return undefined
+   }
+-  sourceLocation['getFile'] = function () {
++  sourceLocation.getFile = function () {
+     var file = this.file
+     return file === Opal.nil ? undefined : file
+   }
+-  sourceLocation['getDirectory'] = function () {
++  sourceLocation.getDirectory = function () {
+     var dir = this.dir
+     return dir === Opal.nil ? undefined : dir
+   }
+-  sourceLocation['getPath'] = function () {
++  sourceLocation.getPath = function () {
+     var path = this.path
+     return path === Opal.nil ? undefined : path
+   }
+-  sourceLocation['getLineNumber'] = function () {
++  sourceLocation.getLineNumber = function () {
+     var lineno = this.lineno
+     return lineno === Opal.nil ? undefined : lineno
+   }
+@@ -2513,7 +2513,7 @@ Reader.prototype.isEmpty = function () {
+  */
+ Reader.prototype.peekLine = function (direct) {
+   direct = direct || false
+-  var line = this['$peek_line'](direct)
++  var line = this.$peek_line(direct)
+   return line === Opal.nil ? undefined : line
+ }
+ 
+@@ -2526,7 +2526,7 @@ Reader.prototype.peekLine = function (direct) {
+  * @memberof Reader
+  */
+ Reader.prototype.readLine = function () {
+-  var line = this['$read_line']()
++  var line = this.$read_line()
+   return line === Opal.nil ? undefined : line
+ }
+ 
+@@ -2542,7 +2542,7 @@ Reader.prototype.readLine = function () {
+  * @memberof Reader
+  */
+ Reader.prototype.readLines = function () {
+-  return this['$read_lines']()
++  return this.$read_lines()
+ }
+ 
+ /**
+@@ -2556,7 +2556,7 @@ Reader.prototype.readLines = function () {
+  * @memberof Reader
+  */
+ Reader.prototype.read = function () {
+-  return this['$read']()
++  return this.$read()
+ }
+ 
+ /**
+@@ -2566,7 +2566,7 @@ Reader.prototype.read = function () {
+  * @memberof Reader
+  */
+ Reader.prototype.advance = function () {
+-  return this['$advance']()
++  return this.$advance()
+ }
+ 
+ // Cursor API
+@@ -2618,7 +2618,7 @@ Cursor.prototype.getLineNumber = function () {
+ function initializeLoggerFormatterClass (className, functions) {
+   var superclass = Opal.const_get_qualified(Opal.Logger, 'Formatter')
+   return initializeClass(superclass, className, functions, {}, {
+-    'call': function (args) {
++    call: function (args) {
+       for (var i = 0; i < args.length; i++) {
+         // convert all (Opal) Hash arguments to JSON.
+         if (typeof args[i] === 'object' && '$$smap' in args[i]) {
+@@ -2633,17 +2633,17 @@ function initializeLoggerFormatterClass (className, functions) {
+ function initializeLoggerClass (className, functions) {
+   var superClass = Opal.const_get_qualified(Opal.Asciidoctor, 'Logger')
+   return initializeClass(superClass, className, functions, {}, {
+-    'add': function (args) {
++    add: function (args) {
+       if (args.length >= 2 && typeof args[2] === 'object' && '$$smap' in args[2]) {
+         var message = args[2]
+         var messageObject = fromHash(message)
+         messageObject.getText = function () {
+-          return this['text']
++          return this.text
+         }
+         messageObject.getSourceLocation = function () {
+-          return this['source_location']
++          return this.source_location
+         }
+-        messageObject['$inspect'] = function () {
++        messageObject.$inspect = function () {
+           var sourceLocation = this.getSourceLocation()
+           if (sourceLocation) {
+             return sourceLocation.getPath() + ': line ' + sourceLocation.getLineNumber() + ': ' + this.getText()
+@@ -2762,14 +2762,14 @@ MemoryLogger.prototype.getMessages = function () {
+       // also convert the message attribute
+       messageObject.message = fromHash(messageObject.message)
+       messageObject.getText = function () {
+-        return this.message['text']
++        return this.message.text
+       }
+     }
+     messageObject.getSeverity = function () {
+       return this.severity.toString()
+     }
+     messageObject.getSourceLocation = function () {
+-      return this.message['source_location']
++      return this.message.source_location
+     }
+     result.push(messageObject)
+   }
+@@ -2874,7 +2874,7 @@ var log = function (logger, level, message) {
+ }
+ RubyLogger.prototype.add = function (severity, message, programName) {
+   var severityValue = typeof severity === 'string' ? LoggerSeverity[severity.toUpperCase()] : severity
+-  this['$add'](severityValue, message, programName)
++  this.$add(severityValue, message, programName)
+ }
+ RubyLogger.prototype.log = RubyLogger.prototype.add
+ RubyLogger.prototype.debug = function (message) {
+@@ -2966,9 +2966,9 @@ Timings.create = function () {
+ Timings.prototype.printReport = function (to, subject) {
+   var outputFunction
+   if (to) {
+-    if (typeof to['$add'] === 'function') {
++    if (typeof to.$add === 'function') {
+       outputFunction = function (message) {
+-        to['$add'](1, message)
++        to.$add(1, message)
+       }
+     } else if (typeof to.log === 'function') {
+       outputFunction = to.log
+@@ -2981,7 +2981,7 @@ Timings.prototype.printReport = function (to, subject) {
+     }
+   } else {
+     outputFunction = function (message) {
+-      Opal.gvars.stdout['$write'](message)
++      Opal.gvars.stdout.$write(message)
+     }
+   }
+   if (subject) {
+@@ -3038,7 +3038,7 @@ SyntaxHighlighter.register = function (names, functions) {
+     }
+   }
+   var scope = initializeClass(SyntaxHighlighterBase, name, functions, {}, {
+-    'format': function (args) {
++    format: function (args) {
+       if (args.length >= 2 && typeof args[2] === 'object' && '$$smap' in args[2]) {
+         args[2] = fromHash(args[2])
+       }
+@@ -3047,7 +3047,7 @@ SyntaxHighlighter.register = function (names, functions) {
+       }
+       return args
+     },
+-    'highlight': function (args) {
++    highlight: function (args) {
+       if (args.length >= 3 && typeof args[3] === 'object' && '$$smap' in args[3]) {
+         var opts = args[3]
+         opts = fromHash(opts)
+@@ -3078,7 +3078,7 @@ SyntaxHighlighter.register = function (names, functions) {
+     }
+   })
+   for (var functionName in functions) {
+-    if (functions.hasOwnProperty(functionName)) {
++    if (Object.prototype.hasOwnProperty.call(functions, functionName)) {
+       (function (functionName) {
+         var userFunction = functions[functionName]
+         if (functionName === 'handlesHighlighting') {
+@@ -3096,7 +3096,7 @@ SyntaxHighlighter.register = function (names, functions) {
+   Opal.def(scope, '$name', function () {
+     return name
+   })
+-  SyntaxHighlighter['$register'](scope, names)
++  SyntaxHighlighter.$register(scope, names)
+   return scope
+ }
+ 
+@@ -3136,7 +3136,7 @@ Opal.Asciidoctor.SyntaxHighlighterBase = SyntaxHighlighterBase
+  * @memberof SyntaxHighlighterBase
+  */
+ SyntaxHighlighterBase.prototype.registerFor = function (names) {
+-  SyntaxHighlighter['$register'](this, names)
++  SyntaxHighlighter.$register(this, names)
+ }
+ 
+ // Table API
+@@ -3494,7 +3494,7 @@ Cell.prototype.setRowSpan = function (value) {
+  * @memberof Cell
+  */
+ Cell.prototype.getContent = function () {
+-  return this['$content']()
++  return this.$content()
+ }
+ 
+ /**
+@@ -3503,7 +3503,7 @@ Cell.prototype.getContent = function () {
+  * @memberof Cell
+  */
+ Cell.prototype.getText = function () {
+-  return this['$text']()
++  return this.$text()
+ }
+ 
+ /**
+@@ -3512,7 +3512,7 @@ Cell.prototype.getText = function () {
+  * @memberof Cell
+  */
+ Cell.prototype.getSource = function () {
+-  return this['$source']()
++  return this.$source()
+ }
+ 
+ /**
+@@ -3521,7 +3521,7 @@ Cell.prototype.getSource = function () {
+  * @memberof Cell
+  */
+ Cell.prototype.getLines = function () {
+-  return this['$lines']()
++  return this.$lines()
+ }
+ 
+ /**
+@@ -3530,7 +3530,7 @@ Cell.prototype.getLines = function () {
+  * @memberof Cell
+  */
+ Cell.prototype.getLineNumber = function () {
+-  var lineno = this['$lineno']()
++  var lineno = this.$lineno()
+   return lineno === Opal.nil ? undefined : lineno
+ }
+ 
+@@ -3540,7 +3540,7 @@ Cell.prototype.getLineNumber = function () {
+  * @memberof Cell
+  */
+ Cell.prototype.getFile = function () {
+-  var file = this['$file']()
++  var file = this.$file()
+   return file === Opal.nil ? undefined : file
+ }
+ 
+@@ -3550,7 +3550,7 @@ Cell.prototype.getFile = function () {
+  * @memberof Cell
+  */
+ Cell.prototype.getStyle = function () {
+-  var style = this['$style']()
++  var style = this.$style()
+   return style === Opal.nil ? undefined : style
+ }
+ 
+diff --git a/packages/core/src/asciidoctor-extensions-api.js b/packages/core/src/asciidoctor-extensions-api.js
+index 13eacc7e0..cadc69dfe 100644
+--- a/packages/core/src/asciidoctor-extensions-api.js
++++ b/packages/core/src/asciidoctor-extensions-api.js
+@@ -161,7 +161,7 @@ Registry.prototype.prefer = function (name, processor) {
+   }
+   if (typeof processor === 'object' || processor.$$is_class) {
+     // processor is an instance or a class
+-    return this['$prefer'](name, processor)
++    return this.$prefer(name, processor)
+   } else {
+     // processor is a function/lambda
+     return Opal.send(this, 'prefer', name && [name], toBlock(processor))
+@@ -344,7 +344,7 @@ Registry.prototype.hasInlineMacros = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getPreprocessors = function () {
+-  return this['$preprocessors']()
++  return this.$preprocessors()
+ }
+ 
+ /**
+@@ -354,7 +354,7 @@ Registry.prototype.getPreprocessors = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getTreeProcessors = function () {
+-  return this['$tree_processors']()
++  return this.$tree_processors()
+ }
+ 
+ /**
+@@ -364,7 +364,7 @@ Registry.prototype.getTreeProcessors = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getIncludeProcessors = function () {
+-  return this['$include_processors']()
++  return this.$include_processors()
+ }
+ 
+ /**
+@@ -374,7 +374,7 @@ Registry.prototype.getIncludeProcessors = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getPostprocessors = function () {
+-  return this['$postprocessors']()
++  return this.$postprocessors()
+ }
+ 
+ /**
+@@ -385,7 +385,7 @@ Registry.prototype.getPostprocessors = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getDocinfoProcessors = function (location) {
+-  return this['$docinfo_processors'](location)
++  return this.$docinfo_processors(location)
+ }
+ 
+ /**
+@@ -395,7 +395,7 @@ Registry.prototype.getDocinfoProcessors = function (location) {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getBlocks = function () {
+-  return this.block_extensions['$values']()
++  return this.block_extensions.$values()
+ }
+ 
+ /**
+@@ -405,7 +405,7 @@ Registry.prototype.getBlocks = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getBlockMacros = function () {
+-  return this.block_macro_extensions['$values']()
++  return this.block_macro_extensions.$values()
+ }
+ 
+ /**
+@@ -415,7 +415,7 @@ Registry.prototype.getBlockMacros = function () {
+  * @returns an {array} of Extension proxy objects.
+  */
+ Registry.prototype.getInlineMacros = function () {
+-  return this['$inline_macros']()
++  return this.$inline_macros()
+ }
+ 
+ /**
+@@ -439,7 +439,7 @@ Registry.prototype.getInlineMacroFor = function (name) {
+  */
+ Registry.prototype.getBlockFor = function (name, context) {
+   if (typeof context === 'undefined') {
+-    var ext = this['$find_block_extension'](name)
++    var ext = this.$find_block_extension(name)
+     return ext === Opal.nil ? undefined : ext
+   }
+   var result = this['$registered_for_block?'](name, context)
+@@ -1293,7 +1293,7 @@ ConverterFactory.register = function (converter, backends) {
+   if (typeof converter === 'function') {
+     // Class
+     object = initializeClass(ConverterBase, converter.constructor.name, {
+-      'initialize': function (backend, opts) {
++      initialize: function (backend, opts) {
+         var self = this
+         var result = new converter(backend, opts) // eslint-disable-line
+         Object.assign(this, result)
+diff --git a/packages/core/tasks/module/builder.js b/packages/core/tasks/module/builder.js
+index 3440e4b09..9c9ea0bd5 100644
+--- a/packages/core/tasks/module/builder.js
++++ b/packages/core/tasks/module/builder.js
+@@ -82,13 +82,13 @@ const generateFlavors = (asciidoctorCoreTarget, environments) => {
+     } else {
+       data = opalExtData.concat('\n').concat(asciidoctorCoreData)
+     }
+-    let asciidoctorData = parseTemplateData(data, {
++    const asciidoctorData = parseTemplateData(data, {
+       '//{{requireOpalRuntimeExt}}': `self.$require("asciidoctor/js/opal_ext/${environment}");`,
+       // no specific runtime for GraalVM
+       '//{{requireAsciidoctorRuntimeExt}}': environment === 'graalvm' ? '' : `self.$require("asciidoctor/js/asciidoctor_ext/${environment}");`
+     })
+     let templateFile
+-    let target = `build/asciidoctor-${environment}.js`
++    const target = `build/asciidoctor-${environment}.js`
+     if (environment === 'node' || environment === 'electron') {
+       templateFile = 'src/template-asciidoctor-node.js'
+     } else {
+diff --git a/packages/core/tasks/module/compiler.js b/packages/core/tasks/module/compiler.js
+index 425684996..200d996ec 100644
+--- a/packages/core/tasks/module/compiler.js
++++ b/packages/core/tasks/module/compiler.js
+@@ -21,7 +21,7 @@ const compileExt = (name, environment, skipped) => {
+     // For performance reason we build "asciidoctor_ext" without "asciidoctor" core.
+     // As a result Ruby modules required in "asciidoctor_ext" won't be found at compile time but will be resolved at runtime.
+     opalBuilder.missing_require_severity = 'ignore'
+-    let data = opalBuilder.build(module).toString()
++    const data = opalBuilder.build(module).toString()
+     fs.writeFileSync(target, data, 'utf8')
+   }
+ }
+@@ -41,7 +41,7 @@ const compileRuntimeEnvironments = (environments) => {
+ 
+ const compileAsciidoctorCore = (asciidoctorCoreDependency) => {
+   log.task('compile core lib')
+-  const module = `asciidoctor/lib`
++  const module = 'asciidoctor/lib'
+   log.debug(module)
+   const target = asciidoctorCoreDependency.target
+   if (fs.existsSync(target)) {
+diff --git a/packages/core/tasks/module/exec.js b/packages/core/tasks/module/exec.js
+index 6b5d93b0b..dbf7c59b8 100644
+--- a/packages/core/tasks/module/exec.js
++++ b/packages/core/tasks/module/exec.js
+@@ -5,7 +5,7 @@ const log = require('bestikk-log')
+ module.exports.execSync = (command) => {
+   log.debug(command)
+   if (!process.env.DRY_RUN) {
+-    let stdout = childProcess.execSync(command)
++    const stdout = childProcess.execSync(command)
+     process.stdout.write(stdout)
+     return stdout
+   }

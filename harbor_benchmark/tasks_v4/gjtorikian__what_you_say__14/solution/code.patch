@@ -1,0 +1,70 @@
+diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
+index fc08f01..d25b549 100644
+--- a/.github/workflows/test.yml
++++ b/.github/workflows/test.yml
+@@ -17,6 +17,8 @@ jobs:
+ 
+     steps:
+       - uses: actions/checkout@v4
++        with:
++          ref: ${{ github.head_ref }}
+ 
+       - uses: gjtorikian/actions/setup-ruby-and-rust@main
+         with:
+diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+index 9b6c655..3f1efe4 100644
+--- a/.vscode/extensions.json
++++ b/.vscode/extensions.json
+@@ -1,7 +1,7 @@
+ {
+     "recommendations": [
+         "rust-lang.rust-analyzer",
+-        "bungcip.better-toml",
++        "tamasfe.even-better-toml",
+         "Shopify.ruby-lsp",
+     ]
+ }
+diff --git a/ext/what_you_say/src/lib.rs b/ext/what_you_say/src/lib.rs
+index 4c4777b..6d05e07 100644
+--- a/ext/what_you_say/src/lib.rs
++++ b/ext/what_you_say/src/lib.rs
+@@ -16,12 +16,7 @@ struct WhatYouSay {
+ 
+ impl WhatYouSay {
+     fn new(args: &[Value]) -> Result<Self, magnus::Error> {
+-        let args = scan_args::scan_args(args)?;
+-        let _: () = args.required;
+-        let _: () = args.optional;
+-        let _: () = args.splat;
+-        let _: () = args.trailing;
+-        let _: () = args.block;
++        let args = scan_args::scan_args::<(), (), (), (), _, ()>(args)?;
+ 
+         let kwargs = scan_args::get_kwargs::<_, (), (Option<RArray>,), ()>(
+             args.keywords,
+@@ -76,12 +71,12 @@ impl WhatYouSay {
+ 
+ #[magnus::init]
+ fn init() -> Result<(), Error> {
+-    let c_whatyousay = define_class("WhatYouSay", Default::default())?;
++    let c_whatyousay = define_class("WhatYouSay", magnus::class::object())?;
+ 
+     c_whatyousay.define_singleton_method("new", function!(WhatYouSay::new, -1))?;
+     c_whatyousay.define_method("detect_text", method!(WhatYouSay::detect_text, 1))?;
+ 
+-    let c_lang = c_whatyousay.define_class("Lang", Default::default())?;
++    let c_lang = c_whatyousay.define_class("Lang", magnus::class::object())?;
+     c_lang.define_singleton_method("all", function!(WhatYouSayLang::all, 0))?;
+     c_lang.define_method("code", method!(WhatYouSayLang::code, 0))?;
+     c_lang.define_method("eng_name", method!(WhatYouSayLang::eng_name, 0))?;
+diff --git a/lib/what_you_say/version.rb b/lib/what_you_say/version.rb
+index 5871023..ce383fa 100644
+--- a/lib/what_you_say/version.rb
++++ b/lib/what_you_say/version.rb
+@@ -1,5 +1,5 @@
+ # frozen_string_literal: true
+ 
+ class WhatYouSay
+-  VERSION = "0.6.3"
++  VERSION = "0.6.4"
+ end

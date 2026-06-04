@@ -1,0 +1,4784 @@
+diff --git a/packages/cli/src/commands/cliExecuteSwap.ts b/packages/cli/src/commands/cliExecuteSwap.ts
+index 0ce3186dc..5adcae0a4 100644
+--- a/packages/cli/src/commands/cliExecuteSwap.ts
++++ b/packages/cli/src/commands/cliExecuteSwap.ts
+@@ -1,4 +1,4 @@
+-import { getDefaultProvider, providers, Wallet } from 'ethers';
++import { AlchemyProvider, getDefaultProvider, Wallet } from 'ethers';
+ import { ArgumentsCamelCase, InferredOptionTypes, Options } from 'yargs';
+ import { assetChains, Assets, ChainflipNetworks } from '@/shared/enums';
+ import { assert } from '@/shared/guards';
+@@ -73,7 +73,7 @@ export default async function cliExecuteSwap(
+ 
+   const wallet = new Wallet(privateKey).connect(
+     process.env.ALCHEMY_KEY
+-      ? new providers.AlchemyProvider(ethNetwork, process.env.ALCHEMY_KEY)
++      ? new AlchemyProvider(ethNetwork, process.env.ALCHEMY_KEY)
+       : getDefaultProvider(ethNetwork),
+   );
+ 
+@@ -103,7 +103,7 @@ export default async function cliExecuteSwap(
+       srcAsset: args.srcAsset,
+       destChain: assetChains[args.destAsset],
+       destAsset: args.destAsset,
+-      amount: args.amount,
++      amount: BigInt(args.amount),
+       destAddress: args.destAddress,
+       ccmMetadata,
+     } as ExecuteSwapParams,
+@@ -111,5 +111,5 @@ export default async function cliExecuteSwap(
+     {},
+   );
+ 
+-  console.log(`Swap executed. Transaction hash: ${receipt.transactionHash}`);
++  console.log(`Swap executed. Transaction hash: ${receipt.hash}`);
+ }
+diff --git a/packages/cli/src/commands/cliFundStateChainAccount.ts b/packages/cli/src/commands/cliFundStateChainAccount.ts
+index 72e38ff12..6e7c56256 100644
+--- a/packages/cli/src/commands/cliFundStateChainAccount.ts
++++ b/packages/cli/src/commands/cliFundStateChainAccount.ts
+@@ -1,4 +1,4 @@
+-import { Wallet, getDefaultProvider, providers } from 'ethers';
++import { AlchemyProvider, Wallet, getDefaultProvider } from 'ethers';
+ import { ArgumentsCamelCase, InferredOptionTypes, Options } from 'yargs';
+ import { ChainflipNetworks } from '@/shared/enums';
+ import { FundingNetworkOptions, fundStateChainAccount } from '../lib';
+@@ -50,7 +50,7 @@ export default async function cliFundStateChainAccount(
+ 
+   const wallet = new Wallet(privateKey).connect(
+     process.env.ALCHEMY_KEY
+-      ? new providers.AlchemyProvider(ethNetwork, process.env.ALCHEMY_KEY)
++      ? new AlchemyProvider(ethNetwork, process.env.ALCHEMY_KEY)
+       : getDefaultProvider(ethNetwork),
+   );
+ 
+@@ -67,10 +67,10 @@ export default async function cliFundStateChainAccount(
+ 
+   const receipt = await fundStateChainAccount(
+     args.srcAccountId as `0x${string}`,
+-    args.amount,
++    BigInt(args.amount),
+     networkOpts,
+     {},
+   );
+ 
+-  console.log(`Call executed. Transaction hash: ${receipt.transactionHash}`);
++  console.log(`Call executed. Transaction hash: ${receipt.hash}`);
+ }
+diff --git a/packages/cli/src/utils.ts b/packages/cli/src/utils.ts
+index 152694e96..f4b37a5b2 100644
+--- a/packages/cli/src/utils.ts
++++ b/packages/cli/src/utils.ts
+@@ -18,7 +18,7 @@ type GetEthNetworkOptions =
+   | { chainflipNetwork: ChainflipNetwork };
+ 
+ export function getEthNetwork(opts: GetEthNetworkOptions) {
+-  if (opts.chainflipNetwork === 'localnet') return opts.ethNetwork;
++  if (opts.chainflipNetwork === 'localnet') return opts.ethNetwork as string;
+   if (opts.chainflipNetwork === ChainflipNetworks.mainnet) return 'mainnet';
+   return 'goerli';
+ }
+diff --git a/packages/sdk/.eslintignore b/packages/sdk/.eslintignore
+deleted file mode 100644
+index 135f8bda1..000000000
+--- a/packages/sdk/.eslintignore
++++ /dev/null
+@@ -1 +0,0 @@
+-types/ethers-contracts
+diff --git a/packages/sdk/src/funding/index.ts b/packages/sdk/src/funding/index.ts
+index 7e9537217..beb4584ec 100644
+--- a/packages/sdk/src/funding/index.ts
++++ b/packages/sdk/src/funding/index.ts
+@@ -32,7 +32,7 @@ export class FundingSDK {
+    */
+   async fundStateChainAccount(
+     accountId: `0x${string}`,
+-    amount: string,
++    amount: bigint,
+     txOpts: TransactionOptions = {},
+   ): Promise<TransactionHash> {
+     const tx = await fundStateChainAccount(
+@@ -41,7 +41,7 @@ export class FundingSDK {
+       this.options,
+       txOpts,
+     );
+-    return tx.transactionHash;
++    return tx.hash;
+   }
+ 
+   /**
+@@ -52,15 +52,14 @@ export class FundingSDK {
+     txOpts: TransactionOptions = {},
+   ): Promise<TransactionHash> {
+     const tx = await executeRedemption(accountId, this.options, txOpts);
+-    return tx.transactionHash;
++    return tx.hash;
+   }
+ 
+   async getMinimumFunding(): Promise<bigint> {
+-    const amount = await getMinimumFunding(this.options);
+-    return amount.toBigInt();
++    return getMinimumFunding(this.options);
+   }
+ 
+-  async getRedemptionDelay(): Promise<number> {
++  async getRedemptionDelay(): Promise<bigint> {
+     return getRedemptionDelay(this.options);
+   }
+ 
+@@ -73,7 +72,7 @@ export class FundingSDK {
+    * @returns the transaction hash or null if no approval was required
+    */
+   async approveStateChainGateway(
+-    amount: bigint | string | number,
++    amount: bigint,
+     txOpts: TransactionOptions = {},
+   ): Promise<TransactionHash | null> {
+     const receipt = await approveStateChainGateway(
+@@ -82,6 +81,6 @@ export class FundingSDK {
+       txOpts,
+     );
+ 
+-    return receipt && receipt.transactionHash;
++    return receipt && receipt.hash;
+   }
+ }
+diff --git a/packages/sdk/src/swap/sdk.ts b/packages/sdk/src/swap/sdk.ts
+index 30b3f5ae4..137af1c60 100644
+--- a/packages/sdk/src/swap/sdk.ts
++++ b/packages/sdk/src/swap/sdk.ts
+@@ -87,7 +87,7 @@ export class SwapSDK {
+       },
+       txOpts,
+     );
+-    return receipt.transactionHash;
++    return receipt.hash;
+   }
+ 
+   async approveVault(
+@@ -105,6 +105,6 @@ export class SwapSDK {
+       },
+       txOpts,
+     );
+-    return receipt && receipt.transactionHash;
++    return receipt && receipt.hash;
+   }
+ }
+diff --git a/packages/shared/.eslintignore b/packages/shared/.eslintignore
+new file mode 100644
+index 000000000..10149667f
+--- /dev/null
++++ b/packages/shared/.eslintignore
+@@ -0,0 +1 @@
++src/abis
+\ No newline at end of file
+diff --git a/packages/shared/src/abis/ERC20.ts b/packages/shared/src/abis/ERC20.ts
+index a70081ad3..c2199be01 100644
+--- a/packages/shared/src/abis/ERC20.ts
++++ b/packages/shared/src/abis/ERC20.ts
+@@ -3,159 +3,125 @@
+ /* eslint-disable */
+ import type {
+   BaseContract,
+-  BigNumber,
+   BigNumberish,
+   BytesLike,
+-  CallOverrides,
+-  ContractTransaction,
+-  Overrides,
+-  PopulatedTransaction,
+-  Signer,
+-  utils,
++  FunctionFragment,
++  Result,
++  Interface,
++  AddressLike,
++  ContractRunner,
++  ContractMethod,
++  Listener,
+ } from "ethers";
+-import type { FunctionFragment, Result } from "@ethersproject/abi";
+-import type { Listener, Provider } from "@ethersproject/providers";
+ import type {
+-  TypedEventFilter,
+-  TypedEvent,
++  TypedContractEvent,
++  TypedDeferredTopicFilter,
++  TypedEventLog,
+   TypedListener,
+-  OnEvent,
++  TypedContractMethod,
+ } from "./common";
+ 
+-export interface ERC20Interface extends utils.Interface {
+-  functions: {
+-    "allowance(address,address)": FunctionFragment;
+-    "approve(address,uint256)": FunctionFragment;
+-    "balanceOf(address)": FunctionFragment;
+-  };
+-
++export interface ERC20Interface extends Interface {
+   getFunction(
+-    nameOrSignatureOrTopic: "allowance" | "approve" | "balanceOf"
++    nameOrSignature: "allowance" | "approve" | "balanceOf"
+   ): FunctionFragment;
+ 
+   encodeFunctionData(
+     functionFragment: "allowance",
+-    values: [string, string]
++    values: [AddressLike, AddressLike]
+   ): string;
+   encodeFunctionData(
+     functionFragment: "approve",
+-    values: [string, BigNumberish]
++    values: [AddressLike, BigNumberish]
++  ): string;
++  encodeFunctionData(
++    functionFragment: "balanceOf",
++    values: [AddressLike]
+   ): string;
+-  encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
+ 
+   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
+   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
+   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+-
+-  events: {};
+ }
+ 
+ export interface ERC20 extends BaseContract {
+-  connect(signerOrProvider: Signer | Provider | string): this;
+-  attach(addressOrName: string): this;
+-  deployed(): Promise<this>;
++  connect(runner?: ContractRunner | null): ERC20;
++  waitForDeployment(): Promise<this>;
+ 
+   interface: ERC20Interface;
+ 
+-  queryFilter<TEvent extends TypedEvent>(
+-    event: TypedEventFilter<TEvent>,
++  queryFilter<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
+     fromBlockOrBlockhash?: string | number | undefined,
+     toBlock?: string | number | undefined
+-  ): Promise<Array<TEvent>>;
+-
+-  listeners<TEvent extends TypedEvent>(
+-    eventFilter?: TypedEventFilter<TEvent>
+-  ): Array<TypedListener<TEvent>>;
+-  listeners(eventName?: string): Array<Listener>;
+-  removeAllListeners<TEvent extends TypedEvent>(
+-    eventFilter: TypedEventFilter<TEvent>
+-  ): this;
+-  removeAllListeners(eventName?: string): this;
+-  off: OnEvent<this>;
+-  on: OnEvent<this>;
+-  once: OnEvent<this>;
+-  removeListener: OnEvent<this>;
+-
+-  functions: {
+-    allowance(
+-      owner: string,
+-      spender: string,
+-      overrides?: CallOverrides
+-    ): Promise<[BigNumber]>;
+-
+-    approve(
+-      spender: string,
+-      amount: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    balanceOf(account: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+-  };
+-
+-  allowance(
+-    owner: string,
+-    spender: string,
+-    overrides?: CallOverrides
+-  ): Promise<BigNumber>;
+-
+-  approve(
+-    spender: string,
+-    amount: BigNumberish,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+-
+-  callStatic: {
+-    allowance(
+-      owner: string,
+-      spender: string,
+-      overrides?: CallOverrides
+-    ): Promise<BigNumber>;
+-
+-    approve(
+-      spender: string,
+-      amount: BigNumberish,
+-      overrides?: CallOverrides
+-    ): Promise<boolean>;
++  ): Promise<Array<TypedEventLog<TCEvent>>>;
++  queryFilter<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    fromBlockOrBlockhash?: string | number | undefined,
++    toBlock?: string | number | undefined
++  ): Promise<Array<TypedEventLog<TCEvent>>>;
++
++  on<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++  on<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++
++  once<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++  once<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++
++  listeners<TCEvent extends TypedContractEvent>(
++    event: TCEvent
++  ): Promise<Array<TypedListener<TCEvent>>>;
++  listeners(eventName?: string): Promise<Array<Listener>>;
++  removeAllListeners<TCEvent extends TypedContractEvent>(
++    event?: TCEvent
++  ): Promise<this>;
++
++  allowance: TypedContractMethod<
++    [owner: AddressLike, spender: AddressLike],
++    [bigint],
++    "view"
++  >;
++
++  approve: TypedContractMethod<
++    [spender: AddressLike, amount: BigNumberish],
++    [boolean],
++    "nonpayable"
++  >;
++
++  balanceOf: TypedContractMethod<[account: AddressLike], [bigint], "view">;
++
++  getFunction<T extends ContractMethod = ContractMethod>(
++    key: string | FunctionFragment
++  ): T;
+ 
+-    balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+-  };
++  getFunction(
++    nameOrSignature: "allowance"
++  ): TypedContractMethod<
++    [owner: AddressLike, spender: AddressLike],
++    [bigint],
++    "view"
++  >;
++  getFunction(
++    nameOrSignature: "approve"
++  ): TypedContractMethod<
++    [spender: AddressLike, amount: BigNumberish],
++    [boolean],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "balanceOf"
++  ): TypedContractMethod<[account: AddressLike], [bigint], "view">;
+ 
+   filters: {};
+-
+-  estimateGas: {
+-    allowance(
+-      owner: string,
+-      spender: string,
+-      overrides?: CallOverrides
+-    ): Promise<BigNumber>;
+-
+-    approve(
+-      spender: string,
+-      amount: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+-  };
+-
+-  populateTransaction: {
+-    allowance(
+-      owner: string,
+-      spender: string,
+-      overrides?: CallOverrides
+-    ): Promise<PopulatedTransaction>;
+-
+-    approve(
+-      spender: string,
+-      amount: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    balanceOf(
+-      account: string,
+-      overrides?: CallOverrides
+-    ): Promise<PopulatedTransaction>;
+-  };
+ }
+diff --git a/packages/shared/src/abis/StateChainGateway.ts b/packages/shared/src/abis/StateChainGateway.ts
+index bc76f909e..a28ca03e1 100644
+--- a/packages/shared/src/abis/StateChainGateway.ts
++++ b/packages/shared/src/abis/StateChainGateway.ts
+@@ -3,42 +3,44 @@
+ /* eslint-disable */
+ import type {
+   BaseContract,
+-  BigNumber,
+   BigNumberish,
+   BytesLike,
+-  CallOverrides,
+-  ContractTransaction,
+-  Overrides,
+-  PopulatedTransaction,
+-  Signer,
+-  utils,
+-} from "ethers";
+-import type {
+   FunctionFragment,
+   Result,
++  Interface,
+   EventFragment,
+-} from "@ethersproject/abi";
+-import type { Listener, Provider } from "@ethersproject/providers";
++  AddressLike,
++  ContractRunner,
++  ContractMethod,
++  Listener,
++} from "ethers";
+ import type {
+-  TypedEventFilter,
+-  TypedEvent,
++  TypedContractEvent,
++  TypedDeferredTopicFilter,
++  TypedEventLog,
++  TypedLogDescription,
+   TypedListener,
+-  OnEvent,
++  TypedContractMethod,
+ } from "./common";
+ 
+ export declare namespace IStateChainGateway {
+   export type RedemptionStruct = {
+     amount: BigNumberish;
+-    redeemAddress: string;
++    redeemAddress: AddressLike;
+     startTime: BigNumberish;
+     expiryTime: BigNumberish;
+   };
+ 
+-  export type RedemptionStructOutput = [BigNumber, string, number, number] & {
+-    amount: BigNumber;
++  export type RedemptionStructOutput = [
++    amount: bigint,
++    redeemAddress: string,
++    startTime: bigint,
++    expiryTime: bigint
++  ] & {
++    amount: bigint;
+     redeemAddress: string;
+-    startTime: number;
+-    expiryTime: number;
++    startTime: bigint;
++    expiryTime: bigint;
+   };
+ }
+ 
+@@ -46,46 +48,19 @@ export declare namespace IShared {
+   export type SigDataStruct = {
+     sig: BigNumberish;
+     nonce: BigNumberish;
+-    kTimesGAddress: string;
++    kTimesGAddress: AddressLike;
+   };
+ 
+-  export type SigDataStructOutput = [BigNumber, BigNumber, string] & {
+-    sig: BigNumber;
+-    nonce: BigNumber;
+-    kTimesGAddress: string;
+-  };
++  export type SigDataStructOutput = [
++    sig: bigint,
++    nonce: bigint,
++    kTimesGAddress: string
++  ] & { sig: bigint; nonce: bigint; kTimesGAddress: string };
+ }
+ 
+-export interface StateChainGatewayInterface extends utils.Interface {
+-  functions: {
+-    "REDEMPTION_DELAY()": FunctionFragment;
+-    "disableCommunityGuard()": FunctionFragment;
+-    "enableCommunityGuard()": FunctionFragment;
+-    "executeRedemption(bytes32)": FunctionFragment;
+-    "fundStateChainAccount(bytes32,uint256)": FunctionFragment;
+-    "getCommunityGuardDisabled()": FunctionFragment;
+-    "getCommunityKey()": FunctionFragment;
+-    "getFLIP()": FunctionFragment;
+-    "getGovernor()": FunctionFragment;
+-    "getKeyManager()": FunctionFragment;
+-    "getLastSupplyUpdateBlockNumber()": FunctionFragment;
+-    "getMinimumFunding()": FunctionFragment;
+-    "getPendingRedemption(bytes32)": FunctionFragment;
+-    "getSuspendedState()": FunctionFragment;
+-    "govUpdateFlipIssuer()": FunctionFragment;
+-    "govWithdraw()": FunctionFragment;
+-    "registerRedemption((uint256,uint256,address),bytes32,uint256,address,uint48)": FunctionFragment;
+-    "resume()": FunctionFragment;
+-    "setFlip(address)": FunctionFragment;
+-    "setMinFunding(uint256)": FunctionFragment;
+-    "suspend()": FunctionFragment;
+-    "updateFlipIssuer((uint256,uint256,address),address,bool)": FunctionFragment;
+-    "updateFlipSupply((uint256,uint256,address),uint256,uint256)": FunctionFragment;
+-    "updateKeyManager((uint256,uint256,address),address,bool)": FunctionFragment;
+-  };
+-
++export interface StateChainGatewayInterface extends Interface {
+   getFunction(
+-    nameOrSignatureOrTopic:
++    nameOrSignature:
+       | "REDEMPTION_DELAY"
+       | "disableCommunityGuard"
+       | "enableCommunityGuard"
+@@ -112,6 +87,21 @@ export interface StateChainGatewayInterface extends utils.Interface {
+       | "updateKeyManager"
+   ): FunctionFragment;
+ 
++  getEvent(
++    nameOrSignatureOrTopic:
++      | "CommunityGuardDisabled"
++      | "FLIPSet"
++      | "FlipSupplyUpdated"
++      | "Funded"
++      | "GovernanceWithdrawal"
++      | "MinFundingChanged"
++      | "RedemptionExecuted"
++      | "RedemptionExpired"
++      | "RedemptionRegistered"
++      | "Suspended"
++      | "UpdatedKeyManager"
++  ): EventFragment;
++
+   encodeFunctionData(
+     functionFragment: "REDEMPTION_DELAY",
+     values?: undefined
+@@ -179,12 +169,15 @@ export interface StateChainGatewayInterface extends utils.Interface {
+       IShared.SigDataStruct,
+       BytesLike,
+       BigNumberish,
+-      string,
++      AddressLike,
+       BigNumberish
+     ]
+   ): string;
+   encodeFunctionData(functionFragment: "resume", values?: undefined): string;
+-  encodeFunctionData(functionFragment: "setFlip", values: [string]): string;
++  encodeFunctionData(
++    functionFragment: "setFlip",
++    values: [AddressLike]
++  ): string;
+   encodeFunctionData(
+     functionFragment: "setMinFunding",
+     values: [BigNumberish]
+@@ -192,7 +185,7 @@ export interface StateChainGatewayInterface extends utils.Interface {
+   encodeFunctionData(functionFragment: "suspend", values?: undefined): string;
+   encodeFunctionData(
+     functionFragment: "updateFlipIssuer",
+-    values: [IShared.SigDataStruct, string, boolean]
++    values: [IShared.SigDataStruct, AddressLike, boolean]
+   ): string;
+   encodeFunctionData(
+     functionFragment: "updateFlipSupply",
+@@ -200,7 +193,7 @@ export interface StateChainGatewayInterface extends utils.Interface {
+   ): string;
+   encodeFunctionData(
+     functionFragment: "updateKeyManager",
+-    values: [IShared.SigDataStruct, string, boolean]
++    values: [IShared.SigDataStruct, AddressLike, boolean]
+   ): string;
+ 
+   decodeFunctionResult(
+@@ -287,761 +280,637 @@ export interface StateChainGatewayInterface extends utils.Interface {
+     functionFragment: "updateKeyManager",
+     data: BytesLike
+   ): Result;
+-
+-  events: {
+-    "CommunityGuardDisabled(bool)": EventFragment;
+-    "FLIPSet(address)": EventFragment;
+-    "FlipSupplyUpdated(uint256,uint256,uint256)": EventFragment;
+-    "Funded(bytes32,uint256,address)": EventFragment;
+-    "GovernanceWithdrawal(address,uint256)": EventFragment;
+-    "MinFundingChanged(uint256,uint256)": EventFragment;
+-    "RedemptionExecuted(bytes32,uint256)": EventFragment;
+-    "RedemptionExpired(bytes32,uint256)": EventFragment;
+-    "RedemptionRegistered(bytes32,uint256,address,uint48,uint48)": EventFragment;
+-    "Suspended(bool)": EventFragment;
+-    "UpdatedKeyManager(address)": EventFragment;
+-  };
+-
+-  getEvent(nameOrSignatureOrTopic: "CommunityGuardDisabled"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "FLIPSet"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "FlipSupplyUpdated"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "Funded"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "GovernanceWithdrawal"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "MinFundingChanged"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "RedemptionExecuted"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "RedemptionExpired"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "RedemptionRegistered"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "Suspended"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "UpdatedKeyManager"): EventFragment;
+ }
+ 
+-export interface CommunityGuardDisabledEventObject {
+-  communityGuardDisabled: boolean;
++export namespace CommunityGuardDisabledEvent {
++  export type InputTuple = [communityGuardDisabled: boolean];
++  export type OutputTuple = [communityGuardDisabled: boolean];
++  export interface OutputObject {
++    communityGuardDisabled: boolean;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type CommunityGuardDisabledEvent = TypedEvent<
+-  [boolean],
+-  CommunityGuardDisabledEventObject
+->;
+-
+-export type CommunityGuardDisabledEventFilter =
+-  TypedEventFilter<CommunityGuardDisabledEvent>;
+ 
+-export interface FLIPSetEventObject {
+-  flip: string;
++export namespace FLIPSetEvent {
++  export type InputTuple = [flip: AddressLike];
++  export type OutputTuple = [flip: string];
++  export interface OutputObject {
++    flip: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type FLIPSetEvent = TypedEvent<[string], FLIPSetEventObject>;
+ 
+-export type FLIPSetEventFilter = TypedEventFilter<FLIPSetEvent>;
+-
+-export interface FlipSupplyUpdatedEventObject {
+-  oldSupply: BigNumber;
+-  newSupply: BigNumber;
+-  stateChainBlockNumber: BigNumber;
++export namespace FlipSupplyUpdatedEvent {
++  export type InputTuple = [
++    oldSupply: BigNumberish,
++    newSupply: BigNumberish,
++    stateChainBlockNumber: BigNumberish
++  ];
++  export type OutputTuple = [
++    oldSupply: bigint,
++    newSupply: bigint,
++    stateChainBlockNumber: bigint
++  ];
++  export interface OutputObject {
++    oldSupply: bigint;
++    newSupply: bigint;
++    stateChainBlockNumber: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type FlipSupplyUpdatedEvent = TypedEvent<
+-  [BigNumber, BigNumber, BigNumber],
+-  FlipSupplyUpdatedEventObject
+->;
+-
+-export type FlipSupplyUpdatedEventFilter =
+-  TypedEventFilter<FlipSupplyUpdatedEvent>;
+ 
+-export interface FundedEventObject {
+-  nodeID: string;
+-  amount: BigNumber;
+-  funder: string;
++export namespace FundedEvent {
++  export type InputTuple = [
++    nodeID: BytesLike,
++    amount: BigNumberish,
++    funder: AddressLike
++  ];
++  export type OutputTuple = [nodeID: string, amount: bigint, funder: string];
++  export interface OutputObject {
++    nodeID: string;
++    amount: bigint;
++    funder: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type FundedEvent = TypedEvent<
+-  [string, BigNumber, string],
+-  FundedEventObject
+->;
+-
+-export type FundedEventFilter = TypedEventFilter<FundedEvent>;
+ 
+-export interface GovernanceWithdrawalEventObject {
+-  to: string;
+-  amount: BigNumber;
++export namespace GovernanceWithdrawalEvent {
++  export type InputTuple = [to: AddressLike, amount: BigNumberish];
++  export type OutputTuple = [to: string, amount: bigint];
++  export interface OutputObject {
++    to: string;
++    amount: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type GovernanceWithdrawalEvent = TypedEvent<
+-  [string, BigNumber],
+-  GovernanceWithdrawalEventObject
+->;
+-
+-export type GovernanceWithdrawalEventFilter =
+-  TypedEventFilter<GovernanceWithdrawalEvent>;
+ 
+-export interface MinFundingChangedEventObject {
+-  oldMinFunding: BigNumber;
+-  newMinFunding: BigNumber;
++export namespace MinFundingChangedEvent {
++  export type InputTuple = [
++    oldMinFunding: BigNumberish,
++    newMinFunding: BigNumberish
++  ];
++  export type OutputTuple = [oldMinFunding: bigint, newMinFunding: bigint];
++  export interface OutputObject {
++    oldMinFunding: bigint;
++    newMinFunding: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type MinFundingChangedEvent = TypedEvent<
+-  [BigNumber, BigNumber],
+-  MinFundingChangedEventObject
+->;
+ 
+-export type MinFundingChangedEventFilter =
+-  TypedEventFilter<MinFundingChangedEvent>;
+-
+-export interface RedemptionExecutedEventObject {
+-  nodeID: string;
+-  amount: BigNumber;
++export namespace RedemptionExecutedEvent {
++  export type InputTuple = [nodeID: BytesLike, amount: BigNumberish];
++  export type OutputTuple = [nodeID: string, amount: bigint];
++  export interface OutputObject {
++    nodeID: string;
++    amount: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type RedemptionExecutedEvent = TypedEvent<
+-  [string, BigNumber],
+-  RedemptionExecutedEventObject
+->;
+-
+-export type RedemptionExecutedEventFilter =
+-  TypedEventFilter<RedemptionExecutedEvent>;
+ 
+-export interface RedemptionExpiredEventObject {
+-  nodeID: string;
+-  amount: BigNumber;
++export namespace RedemptionExpiredEvent {
++  export type InputTuple = [nodeID: BytesLike, amount: BigNumberish];
++  export type OutputTuple = [nodeID: string, amount: bigint];
++  export interface OutputObject {
++    nodeID: string;
++    amount: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type RedemptionExpiredEvent = TypedEvent<
+-  [string, BigNumber],
+-  RedemptionExpiredEventObject
+->;
+-
+-export type RedemptionExpiredEventFilter =
+-  TypedEventFilter<RedemptionExpiredEvent>;
+ 
+-export interface RedemptionRegisteredEventObject {
+-  nodeID: string;
+-  amount: BigNumber;
+-  redeemAddress: string;
+-  startTime: number;
+-  expiryTime: number;
++export namespace RedemptionRegisteredEvent {
++  export type InputTuple = [
++    nodeID: BytesLike,
++    amount: BigNumberish,
++    redeemAddress: AddressLike,
++    startTime: BigNumberish,
++    expiryTime: BigNumberish
++  ];
++  export type OutputTuple = [
++    nodeID: string,
++    amount: bigint,
++    redeemAddress: string,
++    startTime: bigint,
++    expiryTime: bigint
++  ];
++  export interface OutputObject {
++    nodeID: string;
++    amount: bigint;
++    redeemAddress: string;
++    startTime: bigint;
++    expiryTime: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type RedemptionRegisteredEvent = TypedEvent<
+-  [string, BigNumber, string, number, number],
+-  RedemptionRegisteredEventObject
+->;
+ 
+-export type RedemptionRegisteredEventFilter =
+-  TypedEventFilter<RedemptionRegisteredEvent>;
+-
+-export interface SuspendedEventObject {
+-  suspended: boolean;
++export namespace SuspendedEvent {
++  export type InputTuple = [suspended: boolean];
++  export type OutputTuple = [suspended: boolean];
++  export interface OutputObject {
++    suspended: boolean;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type SuspendedEvent = TypedEvent<[boolean], SuspendedEventObject>;
+-
+-export type SuspendedEventFilter = TypedEventFilter<SuspendedEvent>;
+ 
+-export interface UpdatedKeyManagerEventObject {
+-  keyManager: string;
++export namespace UpdatedKeyManagerEvent {
++  export type InputTuple = [keyManager: AddressLike];
++  export type OutputTuple = [keyManager: string];
++  export interface OutputObject {
++    keyManager: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type UpdatedKeyManagerEvent = TypedEvent<
+-  [string],
+-  UpdatedKeyManagerEventObject
+->;
+-
+-export type UpdatedKeyManagerEventFilter =
+-  TypedEventFilter<UpdatedKeyManagerEvent>;
+ 
+ export interface StateChainGateway extends BaseContract {
+-  connect(signerOrProvider: Signer | Provider | string): this;
+-  attach(addressOrName: string): this;
+-  deployed(): Promise<this>;
++  connect(runner?: ContractRunner | null): StateChainGateway;
++  waitForDeployment(): Promise<this>;
+ 
+   interface: StateChainGatewayInterface;
+ 
+-  queryFilter<TEvent extends TypedEvent>(
+-    event: TypedEventFilter<TEvent>,
++  queryFilter<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
+     fromBlockOrBlockhash?: string | number | undefined,
+     toBlock?: string | number | undefined
+-  ): Promise<Array<TEvent>>;
+-
+-  listeners<TEvent extends TypedEvent>(
+-    eventFilter?: TypedEventFilter<TEvent>
+-  ): Array<TypedListener<TEvent>>;
+-  listeners(eventName?: string): Array<Listener>;
+-  removeAllListeners<TEvent extends TypedEvent>(
+-    eventFilter: TypedEventFilter<TEvent>
+-  ): this;
+-  removeAllListeners(eventName?: string): this;
+-  off: OnEvent<this>;
+-  on: OnEvent<this>;
+-  once: OnEvent<this>;
+-  removeListener: OnEvent<this>;
+-
+-  functions: {
+-    REDEMPTION_DELAY(overrides?: CallOverrides): Promise<[number]>;
+-
+-    disableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    enableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    executeRedemption(
+-      nodeID: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    fundStateChainAccount(
+-      nodeID: BytesLike,
+-      amount: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    getCommunityGuardDisabled(overrides?: CallOverrides): Promise<[boolean]>;
+-
+-    getCommunityKey(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getFLIP(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getGovernor(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getKeyManager(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getLastSupplyUpdateBlockNumber(
+-      overrides?: CallOverrides
+-    ): Promise<[BigNumber]>;
+-
+-    getMinimumFunding(overrides?: CallOverrides): Promise<[BigNumber]>;
+-
+-    getPendingRedemption(
+-      nodeID: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<[IStateChainGateway.RedemptionStructOutput]>;
+-
+-    getSuspendedState(overrides?: CallOverrides): Promise<[boolean]>;
+-
+-    govUpdateFlipIssuer(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    govWithdraw(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    registerRedemption(
+-      sigData: IShared.SigDataStruct,
+-      nodeID: BytesLike,
+-      amount: BigNumberish,
+-      redeemAddress: string,
+-      expiryTime: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    resume(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    setFlip(
+-      flip: string,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    setMinFunding(
+-      newMinFunding: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    suspend(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    updateFlipIssuer(
+-      sigData: IShared.SigDataStruct,
+-      newIssuer: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    updateFlipSupply(
+-      sigData: IShared.SigDataStruct,
+-      newTotalSupply: BigNumberish,
+-      stateChainBlockNumber: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    updateKeyManager(
+-      sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-  };
+-
+-  REDEMPTION_DELAY(overrides?: CallOverrides): Promise<number>;
+-
+-  disableCommunityGuard(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  enableCommunityGuard(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  executeRedemption(
+-    nodeID: BytesLike,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  fundStateChainAccount(
+-    nodeID: BytesLike,
+-    amount: BigNumberish,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  getCommunityGuardDisabled(overrides?: CallOverrides): Promise<boolean>;
+-
+-  getCommunityKey(overrides?: CallOverrides): Promise<string>;
+-
+-  getFLIP(overrides?: CallOverrides): Promise<string>;
+-
+-  getGovernor(overrides?: CallOverrides): Promise<string>;
+-
+-  getKeyManager(overrides?: CallOverrides): Promise<string>;
+-
+-  getLastSupplyUpdateBlockNumber(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-  getMinimumFunding(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-  getPendingRedemption(
+-    nodeID: BytesLike,
+-    overrides?: CallOverrides
+-  ): Promise<IStateChainGateway.RedemptionStructOutput>;
+-
+-  getSuspendedState(overrides?: CallOverrides): Promise<boolean>;
+-
+-  govUpdateFlipIssuer(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  govWithdraw(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  registerRedemption(
+-    sigData: IShared.SigDataStruct,
+-    nodeID: BytesLike,
+-    amount: BigNumberish,
+-    redeemAddress: string,
+-    expiryTime: BigNumberish,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  resume(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  setFlip(
+-    flip: string,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  setMinFunding(
+-    newMinFunding: BigNumberish,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  suspend(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++  ): Promise<Array<TypedEventLog<TCEvent>>>;
++  queryFilter<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    fromBlockOrBlockhash?: string | number | undefined,
++    toBlock?: string | number | undefined
++  ): Promise<Array<TypedEventLog<TCEvent>>>;
+ 
+-  updateFlipIssuer(
+-    sigData: IShared.SigDataStruct,
+-    newIssuer: string,
+-    omitChecks: boolean,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++  on<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++  on<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
+ 
+-  updateFlipSupply(
+-    sigData: IShared.SigDataStruct,
+-    newTotalSupply: BigNumberish,
+-    stateChainBlockNumber: BigNumberish,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++  once<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++  once<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
+ 
+-  updateKeyManager(
+-    sigData: IShared.SigDataStruct,
+-    keyManager: string,
+-    omitChecks: boolean,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++  listeners<TCEvent extends TypedContractEvent>(
++    event: TCEvent
++  ): Promise<Array<TypedListener<TCEvent>>>;
++  listeners(eventName?: string): Promise<Array<Listener>>;
++  removeAllListeners<TCEvent extends TypedContractEvent>(
++    event?: TCEvent
++  ): Promise<this>;
+ 
+-  callStatic: {
+-    REDEMPTION_DELAY(overrides?: CallOverrides): Promise<number>;
++  REDEMPTION_DELAY: TypedContractMethod<[], [bigint], "view">;
+ 
+-    disableCommunityGuard(overrides?: CallOverrides): Promise<void>;
++  disableCommunityGuard: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    enableCommunityGuard(overrides?: CallOverrides): Promise<void>;
++  enableCommunityGuard: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    executeRedemption(
+-      nodeID: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++  executeRedemption: TypedContractMethod<
++    [nodeID: BytesLike],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    fundStateChainAccount(
+-      nodeID: BytesLike,
+-      amount: BigNumberish,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++  fundStateChainAccount: TypedContractMethod<
++    [nodeID: BytesLike, amount: BigNumberish],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    getCommunityGuardDisabled(overrides?: CallOverrides): Promise<boolean>;
++  getCommunityGuardDisabled: TypedContractMethod<[], [boolean], "view">;
+ 
+-    getCommunityKey(overrides?: CallOverrides): Promise<string>;
++  getCommunityKey: TypedContractMethod<[], [string], "view">;
+ 
+-    getFLIP(overrides?: CallOverrides): Promise<string>;
++  getFLIP: TypedContractMethod<[], [string], "view">;
+ 
+-    getGovernor(overrides?: CallOverrides): Promise<string>;
++  getGovernor: TypedContractMethod<[], [string], "view">;
+ 
+-    getKeyManager(overrides?: CallOverrides): Promise<string>;
++  getKeyManager: TypedContractMethod<[], [string], "view">;
+ 
+-    getLastSupplyUpdateBlockNumber(
+-      overrides?: CallOverrides
+-    ): Promise<BigNumber>;
++  getLastSupplyUpdateBlockNumber: TypedContractMethod<[], [bigint], "view">;
+ 
+-    getMinimumFunding(overrides?: CallOverrides): Promise<BigNumber>;
++  getMinimumFunding: TypedContractMethod<[], [bigint], "view">;
+ 
+-    getPendingRedemption(
+-      nodeID: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<IStateChainGateway.RedemptionStructOutput>;
++  getPendingRedemption: TypedContractMethod<
++    [nodeID: BytesLike],
++    [IStateChainGateway.RedemptionStructOutput],
++    "view"
++  >;
+ 
+-    getSuspendedState(overrides?: CallOverrides): Promise<boolean>;
++  getSuspendedState: TypedContractMethod<[], [boolean], "view">;
+ 
+-    govUpdateFlipIssuer(overrides?: CallOverrides): Promise<void>;
++  govUpdateFlipIssuer: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    govWithdraw(overrides?: CallOverrides): Promise<void>;
++  govWithdraw: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    registerRedemption(
++  registerRedemption: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       nodeID: BytesLike,
+       amount: BigNumberish,
+-      redeemAddress: string,
+-      expiryTime: BigNumberish,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++      redeemAddress: AddressLike,
++      expiryTime: BigNumberish
++    ],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    resume(overrides?: CallOverrides): Promise<void>;
++  resume: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    setFlip(flip: string, overrides?: CallOverrides): Promise<void>;
++  setFlip: TypedContractMethod<[flip: AddressLike], [void], "nonpayable">;
+ 
+-    setMinFunding(
+-      newMinFunding: BigNumberish,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++  setMinFunding: TypedContractMethod<
++    [newMinFunding: BigNumberish],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    suspend(overrides?: CallOverrides): Promise<void>;
++  suspend: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    updateFlipIssuer(
++  updateFlipIssuer: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      newIssuer: string,
+-      omitChecks: boolean,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    updateFlipSupply(
++      newIssuer: AddressLike,
++      omitChecks: boolean
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  updateFlipSupply: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       newTotalSupply: BigNumberish,
+-      stateChainBlockNumber: BigNumberish,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    updateKeyManager(
++      stateChainBlockNumber: BigNumberish
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  updateKeyManager: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-  };
+-
+-  filters: {
+-    "CommunityGuardDisabled(bool)"(
+-      communityGuardDisabled?: null
+-    ): CommunityGuardDisabledEventFilter;
+-    CommunityGuardDisabled(
+-      communityGuardDisabled?: null
+-    ): CommunityGuardDisabledEventFilter;
+-
+-    "FLIPSet(address)"(flip?: null): FLIPSetEventFilter;
+-    FLIPSet(flip?: null): FLIPSetEventFilter;
+-
+-    "FlipSupplyUpdated(uint256,uint256,uint256)"(
+-      oldSupply?: null,
+-      newSupply?: null,
+-      stateChainBlockNumber?: null
+-    ): FlipSupplyUpdatedEventFilter;
+-    FlipSupplyUpdated(
+-      oldSupply?: null,
+-      newSupply?: null,
+-      stateChainBlockNumber?: null
+-    ): FlipSupplyUpdatedEventFilter;
+-
+-    "Funded(bytes32,uint256,address)"(
+-      nodeID?: BytesLike | null,
+-      amount?: null,
+-      funder?: null
+-    ): FundedEventFilter;
+-    Funded(
+-      nodeID?: BytesLike | null,
+-      amount?: null,
+-      funder?: null
+-    ): FundedEventFilter;
+-
+-    "GovernanceWithdrawal(address,uint256)"(
+-      to?: null,
+-      amount?: null
+-    ): GovernanceWithdrawalEventFilter;
+-    GovernanceWithdrawal(
+-      to?: null,
+-      amount?: null
+-    ): GovernanceWithdrawalEventFilter;
+-
+-    "MinFundingChanged(uint256,uint256)"(
+-      oldMinFunding?: null,
+-      newMinFunding?: null
+-    ): MinFundingChangedEventFilter;
+-    MinFundingChanged(
+-      oldMinFunding?: null,
+-      newMinFunding?: null
+-    ): MinFundingChangedEventFilter;
+-
+-    "RedemptionExecuted(bytes32,uint256)"(
+-      nodeID?: BytesLike | null,
+-      amount?: null
+-    ): RedemptionExecutedEventFilter;
+-    RedemptionExecuted(
+-      nodeID?: BytesLike | null,
+-      amount?: null
+-    ): RedemptionExecutedEventFilter;
+-
+-    "RedemptionExpired(bytes32,uint256)"(
+-      nodeID?: BytesLike | null,
+-      amount?: null
+-    ): RedemptionExpiredEventFilter;
+-    RedemptionExpired(
+-      nodeID?: BytesLike | null,
+-      amount?: null
+-    ): RedemptionExpiredEventFilter;
+-
+-    "RedemptionRegistered(bytes32,uint256,address,uint48,uint48)"(
+-      nodeID?: BytesLike | null,
+-      amount?: null,
+-      redeemAddress?: string | null,
+-      startTime?: null,
+-      expiryTime?: null
+-    ): RedemptionRegisteredEventFilter;
+-    RedemptionRegistered(
+-      nodeID?: BytesLike | null,
+-      amount?: null,
+-      redeemAddress?: string | null,
+-      startTime?: null,
+-      expiryTime?: null
+-    ): RedemptionRegisteredEventFilter;
+-
+-    "Suspended(bool)"(suspended?: null): SuspendedEventFilter;
+-    Suspended(suspended?: null): SuspendedEventFilter;
+-
+-    "UpdatedKeyManager(address)"(
+-      keyManager?: null
+-    ): UpdatedKeyManagerEventFilter;
+-    UpdatedKeyManager(keyManager?: null): UpdatedKeyManagerEventFilter;
+-  };
+-
+-  estimateGas: {
+-    REDEMPTION_DELAY(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    disableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    enableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    executeRedemption(
+-      nodeID: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    fundStateChainAccount(
+-      nodeID: BytesLike,
+-      amount: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    getCommunityGuardDisabled(overrides?: CallOverrides): Promise<BigNumber>;
++      keyManager: AddressLike,
++      omitChecks: boolean
++    ],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    getCommunityKey(overrides?: CallOverrides): Promise<BigNumber>;
++  getFunction<T extends ContractMethod = ContractMethod>(
++    key: string | FunctionFragment
++  ): T;
+ 
+-    getFLIP(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getGovernor(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getKeyManager(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getLastSupplyUpdateBlockNumber(
+-      overrides?: CallOverrides
+-    ): Promise<BigNumber>;
+-
+-    getMinimumFunding(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getPendingRedemption(
+-      nodeID: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<BigNumber>;
+-
+-    getSuspendedState(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    govUpdateFlipIssuer(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    govWithdraw(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
+-
+-    registerRedemption(
++  getFunction(
++    nameOrSignature: "REDEMPTION_DELAY"
++  ): TypedContractMethod<[], [bigint], "view">;
++  getFunction(
++    nameOrSignature: "disableCommunityGuard"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "enableCommunityGuard"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "executeRedemption"
++  ): TypedContractMethod<[nodeID: BytesLike], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "fundStateChainAccount"
++  ): TypedContractMethod<
++    [nodeID: BytesLike, amount: BigNumberish],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "getCommunityGuardDisabled"
++  ): TypedContractMethod<[], [boolean], "view">;
++  getFunction(
++    nameOrSignature: "getCommunityKey"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getFLIP"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getGovernor"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getKeyManager"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getLastSupplyUpdateBlockNumber"
++  ): TypedContractMethod<[], [bigint], "view">;
++  getFunction(
++    nameOrSignature: "getMinimumFunding"
++  ): TypedContractMethod<[], [bigint], "view">;
++  getFunction(
++    nameOrSignature: "getPendingRedemption"
++  ): TypedContractMethod<
++    [nodeID: BytesLike],
++    [IStateChainGateway.RedemptionStructOutput],
++    "view"
++  >;
++  getFunction(
++    nameOrSignature: "getSuspendedState"
++  ): TypedContractMethod<[], [boolean], "view">;
++  getFunction(
++    nameOrSignature: "govUpdateFlipIssuer"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "govWithdraw"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "registerRedemption"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       nodeID: BytesLike,
+       amount: BigNumberish,
+-      redeemAddress: string,
+-      expiryTime: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    resume(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
+-
+-    setFlip(
+-      flip: string,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    setMinFunding(
+-      newMinFunding: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    suspend(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
+-
+-    updateFlipIssuer(
++      redeemAddress: AddressLike,
++      expiryTime: BigNumberish
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "resume"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "setFlip"
++  ): TypedContractMethod<[flip: AddressLike], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "setMinFunding"
++  ): TypedContractMethod<[newMinFunding: BigNumberish], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "suspend"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "updateFlipIssuer"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      newIssuer: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    updateFlipSupply(
++      newIssuer: AddressLike,
++      omitChecks: boolean
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "updateFlipSupply"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       newTotalSupply: BigNumberish,
+-      stateChainBlockNumber: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    updateKeyManager(
+-      sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-  };
+-
+-  populateTransaction: {
+-    REDEMPTION_DELAY(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    disableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    enableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    executeRedemption(
+-      nodeID: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    fundStateChainAccount(
+-      nodeID: BytesLike,
+-      amount: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    getCommunityGuardDisabled(
+-      overrides?: CallOverrides
+-    ): Promise<PopulatedTransaction>;
+-
+-    getCommunityKey(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getFLIP(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getGovernor(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getKeyManager(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getLastSupplyUpdateBlockNumber(
+-      overrides?: CallOverrides
+-    ): Promise<PopulatedTransaction>;
+-
+-    getMinimumFunding(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getPendingRedemption(
+-      nodeID: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<PopulatedTransaction>;
+-
+-    getSuspendedState(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    govUpdateFlipIssuer(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    govWithdraw(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    registerRedemption(
+-      sigData: IShared.SigDataStruct,
+-      nodeID: BytesLike,
+-      amount: BigNumberish,
+-      redeemAddress: string,
+-      expiryTime: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    resume(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    setFlip(
+-      flip: string,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    setMinFunding(
+-      newMinFunding: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    suspend(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    updateFlipIssuer(
+-      sigData: IShared.SigDataStruct,
+-      newIssuer: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    updateFlipSupply(
++      stateChainBlockNumber: BigNumberish
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "updateKeyManager"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      newTotalSupply: BigNumberish,
+-      stateChainBlockNumber: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
++      keyManager: AddressLike,
++      omitChecks: boolean
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  getEvent(
++    key: "CommunityGuardDisabled"
++  ): TypedContractEvent<
++    CommunityGuardDisabledEvent.InputTuple,
++    CommunityGuardDisabledEvent.OutputTuple,
++    CommunityGuardDisabledEvent.OutputObject
++  >;
++  getEvent(
++    key: "FLIPSet"
++  ): TypedContractEvent<
++    FLIPSetEvent.InputTuple,
++    FLIPSetEvent.OutputTuple,
++    FLIPSetEvent.OutputObject
++  >;
++  getEvent(
++    key: "FlipSupplyUpdated"
++  ): TypedContractEvent<
++    FlipSupplyUpdatedEvent.InputTuple,
++    FlipSupplyUpdatedEvent.OutputTuple,
++    FlipSupplyUpdatedEvent.OutputObject
++  >;
++  getEvent(
++    key: "Funded"
++  ): TypedContractEvent<
++    FundedEvent.InputTuple,
++    FundedEvent.OutputTuple,
++    FundedEvent.OutputObject
++  >;
++  getEvent(
++    key: "GovernanceWithdrawal"
++  ): TypedContractEvent<
++    GovernanceWithdrawalEvent.InputTuple,
++    GovernanceWithdrawalEvent.OutputTuple,
++    GovernanceWithdrawalEvent.OutputObject
++  >;
++  getEvent(
++    key: "MinFundingChanged"
++  ): TypedContractEvent<
++    MinFundingChangedEvent.InputTuple,
++    MinFundingChangedEvent.OutputTuple,
++    MinFundingChangedEvent.OutputObject
++  >;
++  getEvent(
++    key: "RedemptionExecuted"
++  ): TypedContractEvent<
++    RedemptionExecutedEvent.InputTuple,
++    RedemptionExecutedEvent.OutputTuple,
++    RedemptionExecutedEvent.OutputObject
++  >;
++  getEvent(
++    key: "RedemptionExpired"
++  ): TypedContractEvent<
++    RedemptionExpiredEvent.InputTuple,
++    RedemptionExpiredEvent.OutputTuple,
++    RedemptionExpiredEvent.OutputObject
++  >;
++  getEvent(
++    key: "RedemptionRegistered"
++  ): TypedContractEvent<
++    RedemptionRegisteredEvent.InputTuple,
++    RedemptionRegisteredEvent.OutputTuple,
++    RedemptionRegisteredEvent.OutputObject
++  >;
++  getEvent(
++    key: "Suspended"
++  ): TypedContractEvent<
++    SuspendedEvent.InputTuple,
++    SuspendedEvent.OutputTuple,
++    SuspendedEvent.OutputObject
++  >;
++  getEvent(
++    key: "UpdatedKeyManager"
++  ): TypedContractEvent<
++    UpdatedKeyManagerEvent.InputTuple,
++    UpdatedKeyManagerEvent.OutputTuple,
++    UpdatedKeyManagerEvent.OutputObject
++  >;
+ 
+-    updateKeyManager(
+-      sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
++  filters: {
++    "CommunityGuardDisabled(bool)": TypedContractEvent<
++      CommunityGuardDisabledEvent.InputTuple,
++      CommunityGuardDisabledEvent.OutputTuple,
++      CommunityGuardDisabledEvent.OutputObject
++    >;
++    CommunityGuardDisabled: TypedContractEvent<
++      CommunityGuardDisabledEvent.InputTuple,
++      CommunityGuardDisabledEvent.OutputTuple,
++      CommunityGuardDisabledEvent.OutputObject
++    >;
++
++    "FLIPSet(address)": TypedContractEvent<
++      FLIPSetEvent.InputTuple,
++      FLIPSetEvent.OutputTuple,
++      FLIPSetEvent.OutputObject
++    >;
++    FLIPSet: TypedContractEvent<
++      FLIPSetEvent.InputTuple,
++      FLIPSetEvent.OutputTuple,
++      FLIPSetEvent.OutputObject
++    >;
++
++    "FlipSupplyUpdated(uint256,uint256,uint256)": TypedContractEvent<
++      FlipSupplyUpdatedEvent.InputTuple,
++      FlipSupplyUpdatedEvent.OutputTuple,
++      FlipSupplyUpdatedEvent.OutputObject
++    >;
++    FlipSupplyUpdated: TypedContractEvent<
++      FlipSupplyUpdatedEvent.InputTuple,
++      FlipSupplyUpdatedEvent.OutputTuple,
++      FlipSupplyUpdatedEvent.OutputObject
++    >;
++
++    "Funded(bytes32,uint256,address)": TypedContractEvent<
++      FundedEvent.InputTuple,
++      FundedEvent.OutputTuple,
++      FundedEvent.OutputObject
++    >;
++    Funded: TypedContractEvent<
++      FundedEvent.InputTuple,
++      FundedEvent.OutputTuple,
++      FundedEvent.OutputObject
++    >;
++
++    "GovernanceWithdrawal(address,uint256)": TypedContractEvent<
++      GovernanceWithdrawalEvent.InputTuple,
++      GovernanceWithdrawalEvent.OutputTuple,
++      GovernanceWithdrawalEvent.OutputObject
++    >;
++    GovernanceWithdrawal: TypedContractEvent<
++      GovernanceWithdrawalEvent.InputTuple,
++      GovernanceWithdrawalEvent.OutputTuple,
++      GovernanceWithdrawalEvent.OutputObject
++    >;
++
++    "MinFundingChanged(uint256,uint256)": TypedContractEvent<
++      MinFundingChangedEvent.InputTuple,
++      MinFundingChangedEvent.OutputTuple,
++      MinFundingChangedEvent.OutputObject
++    >;
++    MinFundingChanged: TypedContractEvent<
++      MinFundingChangedEvent.InputTuple,
++      MinFundingChangedEvent.OutputTuple,
++      MinFundingChangedEvent.OutputObject
++    >;
++
++    "RedemptionExecuted(bytes32,uint256)": TypedContractEvent<
++      RedemptionExecutedEvent.InputTuple,
++      RedemptionExecutedEvent.OutputTuple,
++      RedemptionExecutedEvent.OutputObject
++    >;
++    RedemptionExecuted: TypedContractEvent<
++      RedemptionExecutedEvent.InputTuple,
++      RedemptionExecutedEvent.OutputTuple,
++      RedemptionExecutedEvent.OutputObject
++    >;
++
++    "RedemptionExpired(bytes32,uint256)": TypedContractEvent<
++      RedemptionExpiredEvent.InputTuple,
++      RedemptionExpiredEvent.OutputTuple,
++      RedemptionExpiredEvent.OutputObject
++    >;
++    RedemptionExpired: TypedContractEvent<
++      RedemptionExpiredEvent.InputTuple,
++      RedemptionExpiredEvent.OutputTuple,
++      RedemptionExpiredEvent.OutputObject
++    >;
++
++    "RedemptionRegistered(bytes32,uint256,address,uint48,uint48)": TypedContractEvent<
++      RedemptionRegisteredEvent.InputTuple,
++      RedemptionRegisteredEvent.OutputTuple,
++      RedemptionRegisteredEvent.OutputObject
++    >;
++    RedemptionRegistered: TypedContractEvent<
++      RedemptionRegisteredEvent.InputTuple,
++      RedemptionRegisteredEvent.OutputTuple,
++      RedemptionRegisteredEvent.OutputObject
++    >;
++
++    "Suspended(bool)": TypedContractEvent<
++      SuspendedEvent.InputTuple,
++      SuspendedEvent.OutputTuple,
++      SuspendedEvent.OutputObject
++    >;
++    Suspended: TypedContractEvent<
++      SuspendedEvent.InputTuple,
++      SuspendedEvent.OutputTuple,
++      SuspendedEvent.OutputObject
++    >;
++
++    "UpdatedKeyManager(address)": TypedContractEvent<
++      UpdatedKeyManagerEvent.InputTuple,
++      UpdatedKeyManagerEvent.OutputTuple,
++      UpdatedKeyManagerEvent.OutputObject
++    >;
++    UpdatedKeyManager: TypedContractEvent<
++      UpdatedKeyManagerEvent.InputTuple,
++      UpdatedKeyManagerEvent.OutputTuple,
++      UpdatedKeyManagerEvent.OutputObject
++    >;
+   };
+ }
+diff --git a/packages/shared/src/abis/Vault.ts b/packages/shared/src/abis/Vault.ts
+index c31121254..661805161 100644
+--- a/packages/shared/src/abis/Vault.ts
++++ b/packages/shared/src/abis/Vault.ts
+@@ -3,119 +3,99 @@
+ /* eslint-disable */
+ import type {
+   BaseContract,
+-  BigNumber,
+   BigNumberish,
+   BytesLike,
+-  CallOverrides,
+-  ContractTransaction,
+-  Overrides,
+-  PayableOverrides,
+-  PopulatedTransaction,
+-  Signer,
+-  utils,
+-} from "ethers";
+-import type {
+   FunctionFragment,
+   Result,
++  Interface,
+   EventFragment,
+-} from "@ethersproject/abi";
+-import type { Listener, Provider } from "@ethersproject/providers";
++  AddressLike,
++  ContractRunner,
++  ContractMethod,
++  Listener,
++} from "ethers";
+ import type {
+-  TypedEventFilter,
+-  TypedEvent,
++  TypedContractEvent,
++  TypedDeferredTopicFilter,
++  TypedEventLog,
++  TypedLogDescription,
+   TypedListener,
+-  OnEvent,
++  TypedContractMethod,
+ } from "./common";
+ 
+ export declare namespace IShared {
+   export type SigDataStruct = {
+     sig: BigNumberish;
+     nonce: BigNumberish;
+-    kTimesGAddress: string;
+-  };
+-
+-  export type SigDataStructOutput = [BigNumber, BigNumber, string] & {
+-    sig: BigNumber;
+-    nonce: BigNumber;
+-    kTimesGAddress: string;
++    kTimesGAddress: AddressLike;
+   };
+ 
+-  export type DeployFetchParamsStruct = { swapID: BytesLike; token: string };
++  export type SigDataStructOutput = [
++    sig: bigint,
++    nonce: bigint,
++    kTimesGAddress: string
++  ] & { sig: bigint; nonce: bigint; kTimesGAddress: string };
+ 
+-  export type DeployFetchParamsStructOutput = [string, string] & {
+-    swapID: string;
+-    token: string;
++  export type DeployFetchParamsStruct = {
++    swapID: BytesLike;
++    token: AddressLike;
+   };
+ 
+-  export type FetchParamsStruct = { fetchContract: string; token: string };
++  export type DeployFetchParamsStructOutput = [
++    swapID: string,
++    token: string
++  ] & { swapID: string; token: string };
+ 
+-  export type FetchParamsStructOutput = [string, string] & {
+-    fetchContract: string;
+-    token: string;
++  export type FetchParamsStruct = {
++    fetchContract: AddressLike;
++    token: AddressLike;
+   };
+ 
++  export type FetchParamsStructOutput = [
++    fetchContract: string,
++    token: string
++  ] & { fetchContract: string; token: string };
++
+   export type TransferParamsStruct = {
+-    token: string;
+-    recipient: string;
++    token: AddressLike;
++    recipient: AddressLike;
+     amount: BigNumberish;
+   };
+ 
+-  export type TransferParamsStructOutput = [string, string, BigNumber] & {
+-    token: string;
+-    recipient: string;
+-    amount: BigNumber;
+-  };
++  export type TransferParamsStructOutput = [
++    token: string,
++    recipient: string,
++    amount: bigint
++  ] & { token: string; recipient: string; amount: bigint };
+ }
+ 
+ export declare namespace IMulticall {
+   export type CallStruct = {
+     callType: BigNumberish;
+-    target: string;
++    target: AddressLike;
+     value: BigNumberish;
+     callData: BytesLike;
+     payload: BytesLike;
+   };
+ 
+-  export type CallStructOutput = [number, string, BigNumber, string, string] & {
+-    callType: number;
++  export type CallStructOutput = [
++    callType: bigint,
++    target: string,
++    value: bigint,
++    callData: string,
++    payload: string
++  ] & {
++    callType: bigint;
+     target: string;
+-    value: BigNumber;
++    value: bigint;
+     callData: string;
+     payload: string;
+   };
+ }
+ 
+-export interface VaultInterface extends utils.Interface {
+-  functions: {
+-    "addGasNative(bytes32)": FunctionFragment;
+-    "addGasToken(bytes32,uint256,address)": FunctionFragment;
+-    "allBatch((uint256,uint256,address),(bytes32,address)[],(address,address)[],(address,address,uint256)[])": FunctionFragment;
+-    "deployAndFetchBatch((uint256,uint256,address),(bytes32,address)[])": FunctionFragment;
+-    "disableCommunityGuard()": FunctionFragment;
+-    "enableCommunityGuard()": FunctionFragment;
+-    "executeActions((uint256,uint256,address),(address,address,uint256),(uint8,address,uint256,bytes,bytes)[],uint256)": FunctionFragment;
+-    "executexCall((uint256,uint256,address),address,uint32,bytes,bytes)": FunctionFragment;
+-    "executexSwapAndCall((uint256,uint256,address),(address,address,uint256),uint32,bytes,bytes)": FunctionFragment;
+-    "fetchBatch((uint256,uint256,address),(address,address)[])": FunctionFragment;
+-    "getCommunityGuardDisabled()": FunctionFragment;
+-    "getCommunityKey()": FunctionFragment;
+-    "getGovernor()": FunctionFragment;
+-    "getKeyManager()": FunctionFragment;
+-    "getSuspendedState()": FunctionFragment;
+-    "govWithdraw(address[])": FunctionFragment;
+-    "resume()": FunctionFragment;
+-    "suspend()": FunctionFragment;
+-    "transfer((uint256,uint256,address),(address,address,uint256))": FunctionFragment;
+-    "transferBatch((uint256,uint256,address),(address,address,uint256)[])": FunctionFragment;
+-    "updateKeyManager((uint256,uint256,address),address,bool)": FunctionFragment;
+-    "xCallNative(uint32,bytes,uint32,bytes,uint256,bytes)": FunctionFragment;
+-    "xCallToken(uint32,bytes,uint32,bytes,uint256,address,uint256,bytes)": FunctionFragment;
+-    "xSwapNative(uint32,bytes,uint32,bytes)": FunctionFragment;
+-    "xSwapToken(uint32,bytes,uint32,address,uint256,bytes)": FunctionFragment;
+-  };
+-
++export interface VaultInterface extends Interface {
+   getFunction(
+-    nameOrSignatureOrTopic:
++    nameOrSignature:
+       | "addGasNative"
+       | "addGasToken"
+       | "allBatch"
+@@ -143,13 +123,29 @@ export interface VaultInterface extends utils.Interface {
+       | "xSwapToken"
+   ): FunctionFragment;
+ 
++  getEvent(
++    nameOrSignatureOrTopic:
++      | "AddGasNative"
++      | "AddGasToken"
++      | "CommunityGuardDisabled"
++      | "ExecuteActionsFailed"
++      | "Suspended"
++      | "SwapNative"
++      | "SwapToken"
++      | "TransferNativeFailed"
++      | "TransferTokenFailed"
++      | "UpdatedKeyManager"
++      | "XCallNative"
++      | "XCallToken"
++  ): EventFragment;
++
+   encodeFunctionData(
+     functionFragment: "addGasNative",
+     values: [BytesLike]
+   ): string;
+   encodeFunctionData(
+     functionFragment: "addGasToken",
+-    values: [BytesLike, BigNumberish, string]
++    values: [BytesLike, BigNumberish, AddressLike]
+   ): string;
+   encodeFunctionData(
+     functionFragment: "allBatch",
+@@ -183,7 +179,13 @@ export interface VaultInterface extends utils.Interface {
+   ): string;
+   encodeFunctionData(
+     functionFragment: "executexCall",
+-    values: [IShared.SigDataStruct, string, BigNumberish, BytesLike, BytesLike]
++    values: [
++      IShared.SigDataStruct,
++      AddressLike,
++      BigNumberish,
++      BytesLike,
++      BytesLike
++    ]
+   ): string;
+   encodeFunctionData(
+     functionFragment: "executexSwapAndCall",
+@@ -221,7 +223,7 @@ export interface VaultInterface extends utils.Interface {
+   ): string;
+   encodeFunctionData(
+     functionFragment: "govWithdraw",
+-    values: [string[]]
++    values: [AddressLike[]]
+   ): string;
+   encodeFunctionData(functionFragment: "resume", values?: undefined): string;
+   encodeFunctionData(functionFragment: "suspend", values?: undefined): string;
+@@ -235,7 +237,7 @@ export interface VaultInterface extends utils.Interface {
+   ): string;
+   encodeFunctionData(
+     functionFragment: "updateKeyManager",
+-    values: [IShared.SigDataStruct, string, boolean]
++    values: [IShared.SigDataStruct, AddressLike, boolean]
+   ): string;
+   encodeFunctionData(
+     functionFragment: "xCallNative",
+@@ -256,7 +258,7 @@ export interface VaultInterface extends utils.Interface {
+       BigNumberish,
+       BytesLike,
+       BigNumberish,
+-      string,
++      AddressLike,
+       BigNumberish,
+       BytesLike
+     ]
+@@ -271,7 +273,7 @@ export interface VaultInterface extends utils.Interface {
+       BigNumberish,
+       BytesLike,
+       BigNumberish,
+-      string,
++      AddressLike,
+       BigNumberish,
+       BytesLike
+     ]
+@@ -356,1108 +358,917 @@ export interface VaultInterface extends utils.Interface {
+     data: BytesLike
+   ): Result;
+   decodeFunctionResult(functionFragment: "xSwapToken", data: BytesLike): Result;
+-
+-  events: {
+-    "AddGasNative(bytes32,uint256)": EventFragment;
+-    "AddGasToken(bytes32,uint256,address)": EventFragment;
+-    "CommunityGuardDisabled(bool)": EventFragment;
+-    "ExecuteActionsFailed(address,uint256,address,bytes)": EventFragment;
+-    "Suspended(bool)": EventFragment;
+-    "SwapNative(uint32,bytes,uint32,uint256,address,bytes)": EventFragment;
+-    "SwapToken(uint32,bytes,uint32,address,uint256,address,bytes)": EventFragment;
+-    "TransferNativeFailed(address,uint256)": EventFragment;
+-    "TransferTokenFailed(address,uint256,address,bytes)": EventFragment;
+-    "UpdatedKeyManager(address)": EventFragment;
+-    "XCallNative(uint32,bytes,uint32,uint256,address,bytes,uint256,bytes)": EventFragment;
+-    "XCallToken(uint32,bytes,uint32,address,uint256,address,bytes,uint256,bytes)": EventFragment;
+-  };
+-
+-  getEvent(nameOrSignatureOrTopic: "AddGasNative"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "AddGasToken"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "CommunityGuardDisabled"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "ExecuteActionsFailed"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "Suspended"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "SwapNative"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "SwapToken"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "TransferNativeFailed"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "TransferTokenFailed"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "UpdatedKeyManager"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "XCallNative"): EventFragment;
+-  getEvent(nameOrSignatureOrTopic: "XCallToken"): EventFragment;
+ }
+ 
+-export interface AddGasNativeEventObject {
+-  swapID: string;
+-  amount: BigNumber;
++export namespace AddGasNativeEvent {
++  export type InputTuple = [swapID: BytesLike, amount: BigNumberish];
++  export type OutputTuple = [swapID: string, amount: bigint];
++  export interface OutputObject {
++    swapID: string;
++    amount: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type AddGasNativeEvent = TypedEvent<
+-  [string, BigNumber],
+-  AddGasNativeEventObject
+->;
+-
+-export type AddGasNativeEventFilter = TypedEventFilter<AddGasNativeEvent>;
+ 
+-export interface AddGasTokenEventObject {
+-  swapID: string;
+-  amount: BigNumber;
+-  token: string;
++export namespace AddGasTokenEvent {
++  export type InputTuple = [
++    swapID: BytesLike,
++    amount: BigNumberish,
++    token: AddressLike
++  ];
++  export type OutputTuple = [swapID: string, amount: bigint, token: string];
++  export interface OutputObject {
++    swapID: string;
++    amount: bigint;
++    token: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type AddGasTokenEvent = TypedEvent<
+-  [string, BigNumber, string],
+-  AddGasTokenEventObject
+->;
+-
+-export type AddGasTokenEventFilter = TypedEventFilter<AddGasTokenEvent>;
+ 
+-export interface CommunityGuardDisabledEventObject {
+-  communityGuardDisabled: boolean;
++export namespace CommunityGuardDisabledEvent {
++  export type InputTuple = [communityGuardDisabled: boolean];
++  export type OutputTuple = [communityGuardDisabled: boolean];
++  export interface OutputObject {
++    communityGuardDisabled: boolean;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type CommunityGuardDisabledEvent = TypedEvent<
+-  [boolean],
+-  CommunityGuardDisabledEventObject
+->;
+-
+-export type CommunityGuardDisabledEventFilter =
+-  TypedEventFilter<CommunityGuardDisabledEvent>;
+-
+-export interface ExecuteActionsFailedEventObject {
+-  multicallAddress: string;
+-  amount: BigNumber;
+-  token: string;
+-  reason: string;
+-}
+-export type ExecuteActionsFailedEvent = TypedEvent<
+-  [string, BigNumber, string, string],
+-  ExecuteActionsFailedEventObject
+->;
+-
+-export type ExecuteActionsFailedEventFilter =
+-  TypedEventFilter<ExecuteActionsFailedEvent>;
+ 
+-export interface SuspendedEventObject {
+-  suspended: boolean;
++export namespace ExecuteActionsFailedEvent {
++  export type InputTuple = [
++    multicallAddress: AddressLike,
++    amount: BigNumberish,
++    token: AddressLike,
++    reason: BytesLike
++  ];
++  export type OutputTuple = [
++    multicallAddress: string,
++    amount: bigint,
++    token: string,
++    reason: string
++  ];
++  export interface OutputObject {
++    multicallAddress: string;
++    amount: bigint;
++    token: string;
++    reason: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type SuspendedEvent = TypedEvent<[boolean], SuspendedEventObject>;
+ 
+-export type SuspendedEventFilter = TypedEventFilter<SuspendedEvent>;
+-
+-export interface SwapNativeEventObject {
+-  dstChain: number;
+-  dstAddress: string;
+-  dstToken: number;
+-  amount: BigNumber;
+-  sender: string;
+-  cfParameters: string;
+-}
+-export type SwapNativeEvent = TypedEvent<
+-  [number, string, number, BigNumber, string, string],
+-  SwapNativeEventObject
+->;
+-
+-export type SwapNativeEventFilter = TypedEventFilter<SwapNativeEvent>;
+-
+-export interface SwapTokenEventObject {
+-  dstChain: number;
+-  dstAddress: string;
+-  dstToken: number;
+-  srcToken: string;
+-  amount: BigNumber;
+-  sender: string;
+-  cfParameters: string;
++export namespace SuspendedEvent {
++  export type InputTuple = [suspended: boolean];
++  export type OutputTuple = [suspended: boolean];
++  export interface OutputObject {
++    suspended: boolean;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type SwapTokenEvent = TypedEvent<
+-  [number, string, number, string, BigNumber, string, string],
+-  SwapTokenEventObject
+->;
+ 
+-export type SwapTokenEventFilter = TypedEventFilter<SwapTokenEvent>;
+-
+-export interface TransferNativeFailedEventObject {
+-  recipient: string;
+-  amount: BigNumber;
+-}
+-export type TransferNativeFailedEvent = TypedEvent<
+-  [string, BigNumber],
+-  TransferNativeFailedEventObject
+->;
+-
+-export type TransferNativeFailedEventFilter =
+-  TypedEventFilter<TransferNativeFailedEvent>;
+-
+-export interface TransferTokenFailedEventObject {
+-  recipient: string;
+-  amount: BigNumber;
+-  token: string;
+-  reason: string;
++export namespace SwapNativeEvent {
++  export type InputTuple = [
++    dstChain: BigNumberish,
++    dstAddress: BytesLike,
++    dstToken: BigNumberish,
++    amount: BigNumberish,
++    sender: AddressLike,
++    cfParameters: BytesLike
++  ];
++  export type OutputTuple = [
++    dstChain: bigint,
++    dstAddress: string,
++    dstToken: bigint,
++    amount: bigint,
++    sender: string,
++    cfParameters: string
++  ];
++  export interface OutputObject {
++    dstChain: bigint;
++    dstAddress: string;
++    dstToken: bigint;
++    amount: bigint;
++    sender: string;
++    cfParameters: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type TransferTokenFailedEvent = TypedEvent<
+-  [string, BigNumber, string, string],
+-  TransferTokenFailedEventObject
+->;
+-
+-export type TransferTokenFailedEventFilter =
+-  TypedEventFilter<TransferTokenFailedEvent>;
+ 
+-export interface UpdatedKeyManagerEventObject {
+-  keyManager: string;
+-}
+-export type UpdatedKeyManagerEvent = TypedEvent<
+-  [string],
+-  UpdatedKeyManagerEventObject
+->;
+-
+-export type UpdatedKeyManagerEventFilter =
+-  TypedEventFilter<UpdatedKeyManagerEvent>;
+-
+-export interface XCallNativeEventObject {
+-  dstChain: number;
+-  dstAddress: string;
+-  dstToken: number;
+-  amount: BigNumber;
+-  sender: string;
+-  message: string;
+-  gasAmount: BigNumber;
+-  cfParameters: string;
+-}
+-export type XCallNativeEvent = TypedEvent<
+-  [number, string, number, BigNumber, string, string, BigNumber, string],
+-  XCallNativeEventObject
+->;
+-
+-export type XCallNativeEventFilter = TypedEventFilter<XCallNativeEvent>;
+-
+-export interface XCallTokenEventObject {
+-  dstChain: number;
+-  dstAddress: string;
+-  dstToken: number;
+-  srcToken: string;
+-  amount: BigNumber;
+-  sender: string;
+-  message: string;
+-  gasAmount: BigNumber;
+-  cfParameters: string;
++export namespace SwapTokenEvent {
++  export type InputTuple = [
++    dstChain: BigNumberish,
++    dstAddress: BytesLike,
++    dstToken: BigNumberish,
++    srcToken: AddressLike,
++    amount: BigNumberish,
++    sender: AddressLike,
++    cfParameters: BytesLike
++  ];
++  export type OutputTuple = [
++    dstChain: bigint,
++    dstAddress: string,
++    dstToken: bigint,
++    srcToken: string,
++    amount: bigint,
++    sender: string,
++    cfParameters: string
++  ];
++  export interface OutputObject {
++    dstChain: bigint;
++    dstAddress: string;
++    dstToken: bigint;
++    srcToken: string;
++    amount: bigint;
++    sender: string;
++    cfParameters: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
+ }
+-export type XCallTokenEvent = TypedEvent<
+-  [
+-    number,
+-    string,
+-    number,
+-    string,
+-    BigNumber,
+-    string,
+-    string,
+-    BigNumber,
+-    string
+-  ],
+-  XCallTokenEventObject
+->;
+-
+-export type XCallTokenEventFilter = TypedEventFilter<XCallTokenEvent>;
+-
+-export interface Vault extends BaseContract {
+-  connect(signerOrProvider: Signer | Provider | string): this;
+-  attach(addressOrName: string): this;
+-  deployed(): Promise<this>;
+-
+-  interface: VaultInterface;
+-
+-  queryFilter<TEvent extends TypedEvent>(
+-    event: TypedEventFilter<TEvent>,
+-    fromBlockOrBlockhash?: string | number | undefined,
+-    toBlock?: string | number | undefined
+-  ): Promise<Array<TEvent>>;
+-
+-  listeners<TEvent extends TypedEvent>(
+-    eventFilter?: TypedEventFilter<TEvent>
+-  ): Array<TypedListener<TEvent>>;
+-  listeners(eventName?: string): Array<Listener>;
+-  removeAllListeners<TEvent extends TypedEvent>(
+-    eventFilter: TypedEventFilter<TEvent>
+-  ): this;
+-  removeAllListeners(eventName?: string): this;
+-  off: OnEvent<this>;
+-  on: OnEvent<this>;
+-  once: OnEvent<this>;
+-  removeListener: OnEvent<this>;
+-
+-  functions: {
+-    addGasNative(
+-      swapID: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    addGasToken(
+-      swapID: BytesLike,
+-      amount: BigNumberish,
+-      token: string,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    allBatch(
+-      sigData: IShared.SigDataStruct,
+-      deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-      fetchParamsArray: IShared.FetchParamsStruct[],
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    deployAndFetchBatch(
+-      sigData: IShared.SigDataStruct,
+-      deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    disableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    enableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    executeActions(
+-      sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      calls: IMulticall.CallStruct[],
+-      gasMulticall: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+ 
+-    executexCall(
+-      sigData: IShared.SigDataStruct,
+-      recipient: string,
+-      srcChain: BigNumberish,
+-      srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    executexSwapAndCall(
+-      sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      srcChain: BigNumberish,
+-      srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    fetchBatch(
+-      sigData: IShared.SigDataStruct,
+-      fetchParamsArray: IShared.FetchParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    getCommunityGuardDisabled(overrides?: CallOverrides): Promise<[boolean]>;
+-
+-    getCommunityKey(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getGovernor(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getKeyManager(overrides?: CallOverrides): Promise<[string]>;
+-
+-    getSuspendedState(overrides?: CallOverrides): Promise<[boolean]>;
+-
+-    govWithdraw(
+-      tokens: string[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    resume(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    suspend(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    transfer(
+-      sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    transferBatch(
+-      sigData: IShared.SigDataStruct,
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    updateKeyManager(
+-      sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    xCallNative(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      message: BytesLike,
+-      gasAmount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    xCallToken(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      message: BytesLike,
+-      gasAmount: BigNumberish,
+-      srcToken: string,
+-      amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    xSwapNative(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-
+-    xSwapToken(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      srcToken: string,
+-      amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<ContractTransaction>;
+-  };
+-
+-  addGasNative(
+-    swapID: BytesLike,
+-    overrides?: PayableOverrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++export namespace TransferNativeFailedEvent {
++  export type InputTuple = [recipient: AddressLike, amount: BigNumberish];
++  export type OutputTuple = [recipient: string, amount: bigint];
++  export interface OutputObject {
++    recipient: string;
++    amount: bigint;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
++}
+ 
+-  addGasToken(
+-    swapID: BytesLike,
++export namespace TransferTokenFailedEvent {
++  export type InputTuple = [
++    recipient: AddressLike,
+     amount: BigNumberish,
+-    token: string,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  allBatch(
+-    sigData: IShared.SigDataStruct,
+-    deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-    fetchParamsArray: IShared.FetchParamsStruct[],
+-    transferParamsArray: IShared.TransferParamsStruct[],
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  deployAndFetchBatch(
+-    sigData: IShared.SigDataStruct,
+-    deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  disableCommunityGuard(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  enableCommunityGuard(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  executeActions(
+-    sigData: IShared.SigDataStruct,
+-    transferParams: IShared.TransferParamsStruct,
+-    calls: IMulticall.CallStruct[],
+-    gasMulticall: BigNumberish,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  executexCall(
+-    sigData: IShared.SigDataStruct,
++    token: AddressLike,
++    reason: BytesLike
++  ];
++  export type OutputTuple = [
+     recipient: string,
+-    srcChain: BigNumberish,
+-    srcAddress: BytesLike,
+-    message: BytesLike,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  executexSwapAndCall(
+-    sigData: IShared.SigDataStruct,
+-    transferParams: IShared.TransferParamsStruct,
+-    srcChain: BigNumberish,
+-    srcAddress: BytesLike,
+-    message: BytesLike,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  fetchBatch(
+-    sigData: IShared.SigDataStruct,
+-    fetchParamsArray: IShared.FetchParamsStruct[],
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  getCommunityGuardDisabled(overrides?: CallOverrides): Promise<boolean>;
+-
+-  getCommunityKey(overrides?: CallOverrides): Promise<string>;
+-
+-  getGovernor(overrides?: CallOverrides): Promise<string>;
+-
+-  getKeyManager(overrides?: CallOverrides): Promise<string>;
+-
+-  getSuspendedState(overrides?: CallOverrides): Promise<boolean>;
+-
+-  govWithdraw(
+-    tokens: string[],
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  resume(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  suspend(
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  transfer(
+-    sigData: IShared.SigDataStruct,
+-    transferParams: IShared.TransferParamsStruct,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  transferBatch(
+-    sigData: IShared.SigDataStruct,
+-    transferParamsArray: IShared.TransferParamsStruct[],
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++    amount: bigint,
++    token: string,
++    reason: string
++  ];
++  export interface OutputObject {
++    recipient: string;
++    amount: bigint;
++    token: string;
++    reason: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
++}
+ 
+-  updateKeyManager(
+-    sigData: IShared.SigDataStruct,
+-    keyManager: string,
+-    omitChecks: boolean,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++export namespace UpdatedKeyManagerEvent {
++  export type InputTuple = [keyManager: AddressLike];
++  export type OutputTuple = [keyManager: string];
++  export interface OutputObject {
++    keyManager: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
++}
+ 
+-  xCallNative(
++export namespace XCallNativeEvent {
++  export type InputTuple = [
+     dstChain: BigNumberish,
+     dstAddress: BytesLike,
+     dstToken: BigNumberish,
++    amount: BigNumberish,
++    sender: AddressLike,
+     message: BytesLike,
+     gasAmount: BigNumberish,
+-    cfParameters: BytesLike,
+-    overrides?: PayableOverrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++    cfParameters: BytesLike
++  ];
++  export type OutputTuple = [
++    dstChain: bigint,
++    dstAddress: string,
++    dstToken: bigint,
++    amount: bigint,
++    sender: string,
++    message: string,
++    gasAmount: bigint,
++    cfParameters: string
++  ];
++  export interface OutputObject {
++    dstChain: bigint;
++    dstAddress: string;
++    dstToken: bigint;
++    amount: bigint;
++    sender: string;
++    message: string;
++    gasAmount: bigint;
++    cfParameters: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
++}
+ 
+-  xCallToken(
++export namespace XCallTokenEvent {
++  export type InputTuple = [
+     dstChain: BigNumberish,
+     dstAddress: BytesLike,
+     dstToken: BigNumberish,
++    srcToken: AddressLike,
++    amount: BigNumberish,
++    sender: AddressLike,
+     message: BytesLike,
+     gasAmount: BigNumberish,
++    cfParameters: BytesLike
++  ];
++  export type OutputTuple = [
++    dstChain: bigint,
++    dstAddress: string,
++    dstToken: bigint,
+     srcToken: string,
+-    amount: BigNumberish,
+-    cfParameters: BytesLike,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  xSwapNative(
+-    dstChain: BigNumberish,
+-    dstAddress: BytesLike,
+-    dstToken: BigNumberish,
+-    cfParameters: BytesLike,
+-    overrides?: PayableOverrides & { from?: string }
+-  ): Promise<ContractTransaction>;
+-
+-  xSwapToken(
+-    dstChain: BigNumberish,
+-    dstAddress: BytesLike,
+-    dstToken: BigNumberish,
+-    srcToken: string,
+-    amount: BigNumberish,
+-    cfParameters: BytesLike,
+-    overrides?: Overrides & { from?: string }
+-  ): Promise<ContractTransaction>;
++    amount: bigint,
++    sender: string,
++    message: string,
++    gasAmount: bigint,
++    cfParameters: string
++  ];
++  export interface OutputObject {
++    dstChain: bigint;
++    dstAddress: string;
++    dstToken: bigint;
++    srcToken: string;
++    amount: bigint;
++    sender: string;
++    message: string;
++    gasAmount: bigint;
++    cfParameters: string;
++  }
++  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
++  export type Filter = TypedDeferredTopicFilter<Event>;
++  export type Log = TypedEventLog<Event>;
++  export type LogDescription = TypedLogDescription<Event>;
++}
+ 
+-  callStatic: {
+-    addGasNative(swapID: BytesLike, overrides?: CallOverrides): Promise<void>;
++export interface Vault extends BaseContract {
++  connect(runner?: ContractRunner | null): Vault;
++  waitForDeployment(): Promise<this>;
+ 
+-    addGasToken(
+-      swapID: BytesLike,
+-      amount: BigNumberish,
+-      token: string,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++  interface: VaultInterface;
+ 
+-    allBatch(
++  queryFilter<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    fromBlockOrBlockhash?: string | number | undefined,
++    toBlock?: string | number | undefined
++  ): Promise<Array<TypedEventLog<TCEvent>>>;
++  queryFilter<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    fromBlockOrBlockhash?: string | number | undefined,
++    toBlock?: string | number | undefined
++  ): Promise<Array<TypedEventLog<TCEvent>>>;
++
++  on<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++  on<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++
++  once<TCEvent extends TypedContractEvent>(
++    event: TCEvent,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++  once<TCEvent extends TypedContractEvent>(
++    filter: TypedDeferredTopicFilter<TCEvent>,
++    listener: TypedListener<TCEvent>
++  ): Promise<this>;
++
++  listeners<TCEvent extends TypedContractEvent>(
++    event: TCEvent
++  ): Promise<Array<TypedListener<TCEvent>>>;
++  listeners(eventName?: string): Promise<Array<Listener>>;
++  removeAllListeners<TCEvent extends TypedContractEvent>(
++    event?: TCEvent
++  ): Promise<this>;
++
++  addGasNative: TypedContractMethod<[swapID: BytesLike], [void], "payable">;
++
++  addGasToken: TypedContractMethod<
++    [swapID: BytesLike, amount: BigNumberish, token: AddressLike],
++    [void],
++    "nonpayable"
++  >;
++
++  allBatch: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+       fetchParamsArray: IShared.FetchParamsStruct[],
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    deployAndFetchBatch(
++      transferParamsArray: IShared.TransferParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  deployAndFetchBatch: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++      deployFetchParamsArray: IShared.DeployFetchParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    disableCommunityGuard(overrides?: CallOverrides): Promise<void>;
++  disableCommunityGuard: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    enableCommunityGuard(overrides?: CallOverrides): Promise<void>;
++  enableCommunityGuard: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    executeActions(
++  executeActions: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       transferParams: IShared.TransferParamsStruct,
+       calls: IMulticall.CallStruct[],
+-      gasMulticall: BigNumberish,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    executexCall(
++      gasMulticall: BigNumberish
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  executexCall: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      recipient: string,
++      recipient: AddressLike,
+       srcChain: BigNumberish,
+       srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    executexSwapAndCall(
++      message: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  executexSwapAndCall: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       transferParams: IShared.TransferParamsStruct,
+       srcChain: BigNumberish,
+       srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    fetchBatch(
++      message: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  fetchBatch: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      fetchParamsArray: IShared.FetchParamsStruct[],
+-      overrides?: CallOverrides
+-    ): Promise<void>;
++      fetchParamsArray: IShared.FetchParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    getCommunityGuardDisabled(overrides?: CallOverrides): Promise<boolean>;
++  getCommunityGuardDisabled: TypedContractMethod<[], [boolean], "view">;
+ 
+-    getCommunityKey(overrides?: CallOverrides): Promise<string>;
++  getCommunityKey: TypedContractMethod<[], [string], "view">;
+ 
+-    getGovernor(overrides?: CallOverrides): Promise<string>;
++  getGovernor: TypedContractMethod<[], [string], "view">;
+ 
+-    getKeyManager(overrides?: CallOverrides): Promise<string>;
++  getKeyManager: TypedContractMethod<[], [string], "view">;
+ 
+-    getSuspendedState(overrides?: CallOverrides): Promise<boolean>;
++  getSuspendedState: TypedContractMethod<[], [boolean], "view">;
+ 
+-    govWithdraw(tokens: string[], overrides?: CallOverrides): Promise<void>;
++  govWithdraw: TypedContractMethod<
++    [tokens: AddressLike[]],
++    [void],
++    "nonpayable"
++  >;
+ 
+-    resume(overrides?: CallOverrides): Promise<void>;
++  resume: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    suspend(overrides?: CallOverrides): Promise<void>;
++  suspend: TypedContractMethod<[], [void], "nonpayable">;
+ 
+-    transfer(
++  transfer: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    transferBatch(
++      transferParams: IShared.TransferParamsStruct
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  transferBatch: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    updateKeyManager(
++      transferParamsArray: IShared.TransferParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  updateKeyManager: TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    xCallNative(
++      keyManager: AddressLike,
++      omitChecks: boolean
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  xCallNative: TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+       message: BytesLike,
+       gasAmount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    xCallToken(
++      cfParameters: BytesLike
++    ],
++    [void],
++    "payable"
++  >;
++
++  xCallToken: TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+       message: BytesLike,
+       gasAmount: BigNumberish,
+-      srcToken: string,
++      srcToken: AddressLike,
+       amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    xSwapNative(
++      cfParameters: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  xSwapNative: TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-
+-    xSwapToken(
++      cfParameters: BytesLike
++    ],
++    [void],
++    "payable"
++  >;
++
++  xSwapToken: TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+-      srcToken: string,
++      srcToken: AddressLike,
+       amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: CallOverrides
+-    ): Promise<void>;
+-  };
+-
+-  filters: {
+-    "AddGasNative(bytes32,uint256)"(
+-      swapID?: null,
+-      amount?: null
+-    ): AddGasNativeEventFilter;
+-    AddGasNative(swapID?: null, amount?: null): AddGasNativeEventFilter;
+-
+-    "AddGasToken(bytes32,uint256,address)"(
+-      swapID?: null,
+-      amount?: null,
+-      token?: null
+-    ): AddGasTokenEventFilter;
+-    AddGasToken(
+-      swapID?: null,
+-      amount?: null,
+-      token?: null
+-    ): AddGasTokenEventFilter;
+-
+-    "CommunityGuardDisabled(bool)"(
+-      communityGuardDisabled?: null
+-    ): CommunityGuardDisabledEventFilter;
+-    CommunityGuardDisabled(
+-      communityGuardDisabled?: null
+-    ): CommunityGuardDisabledEventFilter;
+-
+-    "ExecuteActionsFailed(address,uint256,address,bytes)"(
+-      multicallAddress?: string | null,
+-      amount?: null,
+-      token?: string | null,
+-      reason?: null
+-    ): ExecuteActionsFailedEventFilter;
+-    ExecuteActionsFailed(
+-      multicallAddress?: string | null,
+-      amount?: null,
+-      token?: string | null,
+-      reason?: null
+-    ): ExecuteActionsFailedEventFilter;
+-
+-    "Suspended(bool)"(suspended?: null): SuspendedEventFilter;
+-    Suspended(suspended?: null): SuspendedEventFilter;
+-
+-    "SwapNative(uint32,bytes,uint32,uint256,address,bytes)"(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      cfParameters?: null
+-    ): SwapNativeEventFilter;
+-    SwapNative(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      cfParameters?: null
+-    ): SwapNativeEventFilter;
+-
+-    "SwapToken(uint32,bytes,uint32,address,uint256,address,bytes)"(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      srcToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      cfParameters?: null
+-    ): SwapTokenEventFilter;
+-    SwapToken(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      srcToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      cfParameters?: null
+-    ): SwapTokenEventFilter;
+-
+-    "TransferNativeFailed(address,uint256)"(
+-      recipient?: string | null,
+-      amount?: null
+-    ): TransferNativeFailedEventFilter;
+-    TransferNativeFailed(
+-      recipient?: string | null,
+-      amount?: null
+-    ): TransferNativeFailedEventFilter;
+-
+-    "TransferTokenFailed(address,uint256,address,bytes)"(
+-      recipient?: string | null,
+-      amount?: null,
+-      token?: string | null,
+-      reason?: null
+-    ): TransferTokenFailedEventFilter;
+-    TransferTokenFailed(
+-      recipient?: string | null,
+-      amount?: null,
+-      token?: string | null,
+-      reason?: null
+-    ): TransferTokenFailedEventFilter;
+-
+-    "UpdatedKeyManager(address)"(
+-      keyManager?: null
+-    ): UpdatedKeyManagerEventFilter;
+-    UpdatedKeyManager(keyManager?: null): UpdatedKeyManagerEventFilter;
+-
+-    "XCallNative(uint32,bytes,uint32,uint256,address,bytes,uint256,bytes)"(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      message?: null,
+-      gasAmount?: null,
+-      cfParameters?: null
+-    ): XCallNativeEventFilter;
+-    XCallNative(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      message?: null,
+-      gasAmount?: null,
+-      cfParameters?: null
+-    ): XCallNativeEventFilter;
+-
+-    "XCallToken(uint32,bytes,uint32,address,uint256,address,bytes,uint256,bytes)"(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      srcToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      message?: null,
+-      gasAmount?: null,
+-      cfParameters?: null
+-    ): XCallTokenEventFilter;
+-    XCallToken(
+-      dstChain?: null,
+-      dstAddress?: null,
+-      dstToken?: null,
+-      srcToken?: null,
+-      amount?: null,
+-      sender?: string | null,
+-      message?: null,
+-      gasAmount?: null,
+-      cfParameters?: null
+-    ): XCallTokenEventFilter;
+-  };
++      cfParameters: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
+ 
+-  estimateGas: {
+-    addGasNative(
+-      swapID: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<BigNumber>;
++  getFunction<T extends ContractMethod = ContractMethod>(
++    key: string | FunctionFragment
++  ): T;
+ 
+-    addGasToken(
+-      swapID: BytesLike,
+-      amount: BigNumberish,
+-      token: string,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    allBatch(
++  getFunction(
++    nameOrSignature: "addGasNative"
++  ): TypedContractMethod<[swapID: BytesLike], [void], "payable">;
++  getFunction(
++    nameOrSignature: "addGasToken"
++  ): TypedContractMethod<
++    [swapID: BytesLike, amount: BigNumberish, token: AddressLike],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "allBatch"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+       fetchParamsArray: IShared.FetchParamsStruct[],
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    deployAndFetchBatch(
++      transferParamsArray: IShared.TransferParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "deployAndFetchBatch"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    disableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    enableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    executeActions(
++      deployFetchParamsArray: IShared.DeployFetchParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "disableCommunityGuard"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "enableCommunityGuard"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "executeActions"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       transferParams: IShared.TransferParamsStruct,
+       calls: IMulticall.CallStruct[],
+-      gasMulticall: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    executexCall(
++      gasMulticall: BigNumberish
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "executexCall"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      recipient: string,
++      recipient: AddressLike,
+       srcChain: BigNumberish,
+       srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    executexSwapAndCall(
++      message: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "executexSwapAndCall"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+       transferParams: IShared.TransferParamsStruct,
+       srcChain: BigNumberish,
+       srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    fetchBatch(
++      message: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "fetchBatch"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      fetchParamsArray: IShared.FetchParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    getCommunityGuardDisabled(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getCommunityKey(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getGovernor(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getKeyManager(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    getSuspendedState(overrides?: CallOverrides): Promise<BigNumber>;
+-
+-    govWithdraw(
+-      tokens: string[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    resume(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
+-
+-    suspend(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
+-
+-    transfer(
++      fetchParamsArray: IShared.FetchParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "getCommunityGuardDisabled"
++  ): TypedContractMethod<[], [boolean], "view">;
++  getFunction(
++    nameOrSignature: "getCommunityKey"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getGovernor"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getKeyManager"
++  ): TypedContractMethod<[], [string], "view">;
++  getFunction(
++    nameOrSignature: "getSuspendedState"
++  ): TypedContractMethod<[], [boolean], "view">;
++  getFunction(
++    nameOrSignature: "govWithdraw"
++  ): TypedContractMethod<[tokens: AddressLike[]], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "resume"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "suspend"
++  ): TypedContractMethod<[], [void], "nonpayable">;
++  getFunction(
++    nameOrSignature: "transfer"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    transferBatch(
++      transferParams: IShared.TransferParamsStruct
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "transferBatch"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    updateKeyManager(
++      transferParamsArray: IShared.TransferParamsStruct[]
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "updateKeyManager"
++  ): TypedContractMethod<
++    [
+       sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    xCallNative(
++      keyManager: AddressLike,
++      omitChecks: boolean
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "xCallNative"
++  ): TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+       message: BytesLike,
+       gasAmount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    xCallToken(
++      cfParameters: BytesLike
++    ],
++    [void],
++    "payable"
++  >;
++  getFunction(
++    nameOrSignature: "xCallToken"
++  ): TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+       message: BytesLike,
+       gasAmount: BigNumberish,
+-      srcToken: string,
+-      amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    xSwapNative(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<BigNumber>;
+-
+-    xSwapToken(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      srcToken: string,
+-      amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<BigNumber>;
+-  };
+-
+-  populateTransaction: {
+-    addGasNative(
+-      swapID: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    addGasToken(
+-      swapID: BytesLike,
++      srcToken: AddressLike,
+       amount: BigNumberish,
+-      token: string,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    allBatch(
+-      sigData: IShared.SigDataStruct,
+-      deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-      fetchParamsArray: IShared.FetchParamsStruct[],
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    deployAndFetchBatch(
+-      sigData: IShared.SigDataStruct,
+-      deployFetchParamsArray: IShared.DeployFetchParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    disableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    enableCommunityGuard(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    executeActions(
+-      sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      calls: IMulticall.CallStruct[],
+-      gasMulticall: BigNumberish,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    executexCall(
+-      sigData: IShared.SigDataStruct,
+-      recipient: string,
+-      srcChain: BigNumberish,
+-      srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    executexSwapAndCall(
+-      sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      srcChain: BigNumberish,
+-      srcAddress: BytesLike,
+-      message: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    fetchBatch(
+-      sigData: IShared.SigDataStruct,
+-      fetchParamsArray: IShared.FetchParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    getCommunityGuardDisabled(
+-      overrides?: CallOverrides
+-    ): Promise<PopulatedTransaction>;
+-
+-    getCommunityKey(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getGovernor(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getKeyManager(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    getSuspendedState(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+-
+-    govWithdraw(
+-      tokens: string[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    resume(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    suspend(
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    transfer(
+-      sigData: IShared.SigDataStruct,
+-      transferParams: IShared.TransferParamsStruct,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    transferBatch(
+-      sigData: IShared.SigDataStruct,
+-      transferParamsArray: IShared.TransferParamsStruct[],
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    updateKeyManager(
+-      sigData: IShared.SigDataStruct,
+-      keyManager: string,
+-      omitChecks: boolean,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    xCallNative(
++      cfParameters: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++  getFunction(
++    nameOrSignature: "xSwapNative"
++  ): TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+-      message: BytesLike,
+-      gasAmount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    xCallToken(
++      cfParameters: BytesLike
++    ],
++    [void],
++    "payable"
++  >;
++  getFunction(
++    nameOrSignature: "xSwapToken"
++  ): TypedContractMethod<
++    [
+       dstChain: BigNumberish,
+       dstAddress: BytesLike,
+       dstToken: BigNumberish,
+-      message: BytesLike,
+-      gasAmount: BigNumberish,
+-      srcToken: string,
++      srcToken: AddressLike,
+       amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
++      cfParameters: BytesLike
++    ],
++    [void],
++    "nonpayable"
++  >;
++
++  getEvent(
++    key: "AddGasNative"
++  ): TypedContractEvent<
++    AddGasNativeEvent.InputTuple,
++    AddGasNativeEvent.OutputTuple,
++    AddGasNativeEvent.OutputObject
++  >;
++  getEvent(
++    key: "AddGasToken"
++  ): TypedContractEvent<
++    AddGasTokenEvent.InputTuple,
++    AddGasTokenEvent.OutputTuple,
++    AddGasTokenEvent.OutputObject
++  >;
++  getEvent(
++    key: "CommunityGuardDisabled"
++  ): TypedContractEvent<
++    CommunityGuardDisabledEvent.InputTuple,
++    CommunityGuardDisabledEvent.OutputTuple,
++    CommunityGuardDisabledEvent.OutputObject
++  >;
++  getEvent(
++    key: "ExecuteActionsFailed"
++  ): TypedContractEvent<
++    ExecuteActionsFailedEvent.InputTuple,
++    ExecuteActionsFailedEvent.OutputTuple,
++    ExecuteActionsFailedEvent.OutputObject
++  >;
++  getEvent(
++    key: "Suspended"
++  ): TypedContractEvent<
++    SuspendedEvent.InputTuple,
++    SuspendedEvent.OutputTuple,
++    SuspendedEvent.OutputObject
++  >;
++  getEvent(
++    key: "SwapNative"
++  ): TypedContractEvent<
++    SwapNativeEvent.InputTuple,
++    SwapNativeEvent.OutputTuple,
++    SwapNativeEvent.OutputObject
++  >;
++  getEvent(
++    key: "SwapToken"
++  ): TypedContractEvent<
++    SwapTokenEvent.InputTuple,
++    SwapTokenEvent.OutputTuple,
++    SwapTokenEvent.OutputObject
++  >;
++  getEvent(
++    key: "TransferNativeFailed"
++  ): TypedContractEvent<
++    TransferNativeFailedEvent.InputTuple,
++    TransferNativeFailedEvent.OutputTuple,
++    TransferNativeFailedEvent.OutputObject
++  >;
++  getEvent(
++    key: "TransferTokenFailed"
++  ): TypedContractEvent<
++    TransferTokenFailedEvent.InputTuple,
++    TransferTokenFailedEvent.OutputTuple,
++    TransferTokenFailedEvent.OutputObject
++  >;
++  getEvent(
++    key: "UpdatedKeyManager"
++  ): TypedContractEvent<
++    UpdatedKeyManagerEvent.InputTuple,
++    UpdatedKeyManagerEvent.OutputTuple,
++    UpdatedKeyManagerEvent.OutputObject
++  >;
++  getEvent(
++    key: "XCallNative"
++  ): TypedContractEvent<
++    XCallNativeEvent.InputTuple,
++    XCallNativeEvent.OutputTuple,
++    XCallNativeEvent.OutputObject
++  >;
++  getEvent(
++    key: "XCallToken"
++  ): TypedContractEvent<
++    XCallTokenEvent.InputTuple,
++    XCallTokenEvent.OutputTuple,
++    XCallTokenEvent.OutputObject
++  >;
+ 
+-    xSwapNative(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: PayableOverrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
+-
+-    xSwapToken(
+-      dstChain: BigNumberish,
+-      dstAddress: BytesLike,
+-      dstToken: BigNumberish,
+-      srcToken: string,
+-      amount: BigNumberish,
+-      cfParameters: BytesLike,
+-      overrides?: Overrides & { from?: string }
+-    ): Promise<PopulatedTransaction>;
++  filters: {
++    "AddGasNative(bytes32,uint256)": TypedContractEvent<
++      AddGasNativeEvent.InputTuple,
++      AddGasNativeEvent.OutputTuple,
++      AddGasNativeEvent.OutputObject
++    >;
++    AddGasNative: TypedContractEvent<
++      AddGasNativeEvent.InputTuple,
++      AddGasNativeEvent.OutputTuple,
++      AddGasNativeEvent.OutputObject
++    >;
++
++    "AddGasToken(bytes32,uint256,address)": TypedContractEvent<
++      AddGasTokenEvent.InputTuple,
++      AddGasTokenEvent.OutputTuple,
++      AddGasTokenEvent.OutputObject
++    >;
++    AddGasToken: TypedContractEvent<
++      AddGasTokenEvent.InputTuple,
++      AddGasTokenEvent.OutputTuple,
++      AddGasTokenEvent.OutputObject
++    >;
++
++    "CommunityGuardDisabled(bool)": TypedContractEvent<
++      CommunityGuardDisabledEvent.InputTuple,
++      CommunityGuardDisabledEvent.OutputTuple,
++      CommunityGuardDisabledEvent.OutputObject
++    >;
++    CommunityGuardDisabled: TypedContractEvent<
++      CommunityGuardDisabledEvent.InputTuple,
++      CommunityGuardDisabledEvent.OutputTuple,
++      CommunityGuardDisabledEvent.OutputObject
++    >;
++
++    "ExecuteActionsFailed(address,uint256,address,bytes)": TypedContractEvent<
++      ExecuteActionsFailedEvent.InputTuple,
++      ExecuteActionsFailedEvent.OutputTuple,
++      ExecuteActionsFailedEvent.OutputObject
++    >;
++    ExecuteActionsFailed: TypedContractEvent<
++      ExecuteActionsFailedEvent.InputTuple,
++      ExecuteActionsFailedEvent.OutputTuple,
++      ExecuteActionsFailedEvent.OutputObject
++    >;
++
++    "Suspended(bool)": TypedContractEvent<
++      SuspendedEvent.InputTuple,
++      SuspendedEvent.OutputTuple,
++      SuspendedEvent.OutputObject
++    >;
++    Suspended: TypedContractEvent<
++      SuspendedEvent.InputTuple,
++      SuspendedEvent.OutputTuple,
++      SuspendedEvent.OutputObject
++    >;
++
++    "SwapNative(uint32,bytes,uint32,uint256,address,bytes)": TypedContractEvent<
++      SwapNativeEvent.InputTuple,
++      SwapNativeEvent.OutputTuple,
++      SwapNativeEvent.OutputObject
++    >;
++    SwapNative: TypedContractEvent<
++      SwapNativeEvent.InputTuple,
++      SwapNativeEvent.OutputTuple,
++      SwapNativeEvent.OutputObject
++    >;
++
++    "SwapToken(uint32,bytes,uint32,address,uint256,address,bytes)": TypedContractEvent<
++      SwapTokenEvent.InputTuple,
++      SwapTokenEvent.OutputTuple,
++      SwapTokenEvent.OutputObject
++    >;
++    SwapToken: TypedContractEvent<
++      SwapTokenEvent.InputTuple,
++      SwapTokenEvent.OutputTuple,
++      SwapTokenEvent.OutputObject
++    >;
++
++    "TransferNativeFailed(address,uint256)": TypedContractEvent<
++      TransferNativeFailedEvent.InputTuple,
++      TransferNativeFailedEvent.OutputTuple,
++      TransferNativeFailedEvent.OutputObject
++    >;
++    TransferNativeFailed: TypedContractEvent<
++      TransferNativeFailedEvent.InputTuple,
++      TransferNativeFailedEvent.OutputTuple,
++      TransferNativeFailedEvent.OutputObject
++    >;
++
++    "TransferTokenFailed(address,uint256,address,bytes)": TypedContractEvent<
++      TransferTokenFailedEvent.InputTuple,
++      TransferTokenFailedEvent.OutputTuple,
++      TransferTokenFailedEvent.OutputObject
++    >;
++    TransferTokenFailed: TypedContractEvent<
++      TransferTokenFailedEvent.InputTuple,
++      TransferTokenFailedEvent.OutputTuple,
++      TransferTokenFailedEvent.OutputObject
++    >;
++
++    "UpdatedKeyManager(address)": TypedContractEvent<
++      UpdatedKeyManagerEvent.InputTuple,
++      UpdatedKeyManagerEvent.OutputTuple,
++      UpdatedKeyManagerEvent.OutputObject
++    >;
++    UpdatedKeyManager: TypedContractEvent<
++      UpdatedKeyManagerEvent.InputTuple,
++      UpdatedKeyManagerEvent.OutputTuple,
++      UpdatedKeyManagerEvent.OutputObject
++    >;
++
++    "XCallNative(uint32,bytes,uint32,uint256,address,bytes,uint256,bytes)": TypedContractEvent<
++      XCallNativeEvent.InputTuple,
++      XCallNativeEvent.OutputTuple,
++      XCallNativeEvent.OutputObject
++    >;
++    XCallNative: TypedContractEvent<
++      XCallNativeEvent.InputTuple,
++      XCallNativeEvent.OutputTuple,
++      XCallNativeEvent.OutputObject
++    >;
++
++    "XCallToken(uint32,bytes,uint32,address,uint256,address,bytes,uint256,bytes)": TypedContractEvent<
++      XCallTokenEvent.InputTuple,
++      XCallTokenEvent.OutputTuple,
++      XCallTokenEvent.OutputObject
++    >;
++    XCallToken: TypedContractEvent<
++      XCallTokenEvent.InputTuple,
++      XCallTokenEvent.OutputTuple,
++      XCallTokenEvent.OutputObject
++    >;
+   };
+ }
+diff --git a/packages/shared/src/abis/common.ts b/packages/shared/src/abis/common.ts
+index 2fc40c7fb..56b5f21e9 100644
+--- a/packages/shared/src/abis/common.ts
++++ b/packages/shared/src/abis/common.ts
+@@ -1,33 +1,66 @@
+ /* Autogenerated file. Do not edit manually. */
+ /* tslint:disable */
+ /* eslint-disable */
+-import type { Listener } from "@ethersproject/providers";
+-import type { Event, EventFilter } from "ethers";
+-
+-export interface TypedEvent<
+-  TArgsArray extends Array<any> = any,
+-  TArgsObject = any
+-> extends Event {
+-  args: TArgsArray & TArgsObject;
+-}
++import type {
++  FunctionFragment,
++  Typed,
++  EventFragment,
++  ContractTransaction,
++  ContractTransactionResponse,
++  DeferredTopicFilter,
++  EventLog,
++  TransactionRequest,
++  LogDescription,
++} from "ethers";
+ 
+-export interface TypedEventFilter<_TEvent extends TypedEvent>
+-  extends EventFilter {}
++export interface TypedDeferredTopicFilter<_TCEvent extends TypedContractEvent>
++  extends DeferredTopicFilter {}
+ 
+-export interface TypedListener<TEvent extends TypedEvent> {
+-  (...listenerArg: [...__TypechainArgsArray<TEvent>, TEvent]): void;
++export interface TypedContractEvent<
++  InputTuple extends Array<any> = any,
++  OutputTuple extends Array<any> = any,
++  OutputObject = any
++> {
++  (...args: Partial<InputTuple>): TypedDeferredTopicFilter<
++    TypedContractEvent<InputTuple, OutputTuple, OutputObject>
++  >;
++  name: string;
++  fragment: EventFragment;
++  getFragment(...args: Partial<InputTuple>): EventFragment;
+ }
+ 
+-type __TypechainArgsArray<T> = T extends TypedEvent<infer U> ? U : never;
++type __TypechainAOutputTuple<T> = T extends TypedContractEvent<
++  infer _U,
++  infer W
++>
++  ? W
++  : never;
++type __TypechainOutputObject<T> = T extends TypedContractEvent<
++  infer _U,
++  infer _W,
++  infer V
++>
++  ? V
++  : never;
++
++export interface TypedEventLog<TCEvent extends TypedContractEvent>
++  extends Omit<EventLog, "args"> {
++  args: __TypechainAOutputTuple<TCEvent> & __TypechainOutputObject<TCEvent>;
++}
+ 
+-export interface OnEvent<TRes> {
+-  <TEvent extends TypedEvent>(
+-    eventFilter: TypedEventFilter<TEvent>,
+-    listener: TypedListener<TEvent>
+-  ): TRes;
+-  (eventName: string, listener: Listener): TRes;
++export interface TypedLogDescription<TCEvent extends TypedContractEvent>
++  extends Omit<LogDescription, "args"> {
++  args: __TypechainAOutputTuple<TCEvent> & __TypechainOutputObject<TCEvent>;
+ }
+ 
++export type TypedListener<TCEvent extends TypedContractEvent> = (
++  ...listenerArg: [
++    ...__TypechainAOutputTuple<TCEvent>,
++    TypedEventLog<TCEvent>,
++    ...undefined[]
++  ]
++) => void;
++
+ export type MinEthersFactory<C, ARGS> = {
+   deploy(...a: ARGS[]): Promise<C>;
+ };
+@@ -38,7 +71,61 @@ export type GetContractTypeFromFactory<F> = F extends MinEthersFactory<
+ >
+   ? C
+   : never;
+-
+ export type GetARGsTypeFromFactory<F> = F extends MinEthersFactory<any, any>
+   ? Parameters<F["deploy"]>
+   : never;
++
++export type StateMutability = "nonpayable" | "payable" | "view";
++
++export type BaseOverrides = Omit<TransactionRequest, "to" | "data">;
++export type NonPayableOverrides = Omit<
++  BaseOverrides,
++  "value" | "blockTag" | "enableCcipRead"
++>;
++export type PayableOverrides = Omit<
++  BaseOverrides,
++  "blockTag" | "enableCcipRead"
++>;
++export type ViewOverrides = Omit<TransactionRequest, "to" | "data">;
++export type Overrides<S extends StateMutability> = S extends "nonpayable"
++  ? NonPayableOverrides
++  : S extends "payable"
++  ? PayableOverrides
++  : ViewOverrides;
++
++export type PostfixOverrides<A extends Array<any>, S extends StateMutability> =
++  | A
++  | [...A, Overrides<S>];
++export type ContractMethodArgs<
++  A extends Array<any>,
++  S extends StateMutability
++> = PostfixOverrides<{ [I in keyof A]-?: A[I] | Typed }, S>;
++
++export type DefaultReturnType<R> = R extends Array<any> ? R[0] : R;
++
++// export interface ContractMethod<A extends Array<any> = Array<any>, R = any, D extends R | ContractTransactionResponse = R | ContractTransactionResponse> {
++export interface TypedContractMethod<
++  A extends Array<any> = Array<any>,
++  R = any,
++  S extends StateMutability = "payable"
++> {
++  (...args: ContractMethodArgs<A, S>): S extends "view"
++    ? Promise<DefaultReturnType<R>>
++    : Promise<ContractTransactionResponse>;
++
++  name: string;
++
++  fragment: FunctionFragment;
++
++  getFragment(...args: ContractMethodArgs<A, S>): FunctionFragment;
++
++  populateTransaction(
++    ...args: ContractMethodArgs<A, S>
++  ): Promise<ContractTransaction>;
++  staticCall(
++    ...args: ContractMethodArgs<A, "view">
++  ): Promise<DefaultReturnType<R>>;
++  send(...args: ContractMethodArgs<A, S>): Promise<ContractTransactionResponse>;
++  estimateGas(...args: ContractMethodArgs<A, S>): Promise<bigint>;
++  staticCallResult(...args: ContractMethodArgs<A, "view">): Promise<R>;
++}
+diff --git a/packages/shared/src/abis/factories/ERC20__factory.ts b/packages/shared/src/abis/factories/ERC20__factory.ts
+index bf5e17c52..9438f8e58 100644
+--- a/packages/shared/src/abis/factories/ERC20__factory.ts
++++ b/packages/shared/src/abis/factories/ERC20__factory.ts
+@@ -2,8 +2,7 @@
+ /* tslint:disable */
+ /* eslint-disable */
+ 
+-import { Contract, Signer, utils } from "ethers";
+-import type { Provider } from "@ethersproject/providers";
++import { Contract, Interface, type ContractRunner } from "ethers";
+ import type { ERC20, ERC20Interface } from "../ERC20";
+ 
+ const _abi = [
+@@ -79,9 +78,9 @@ const _abi = [
+ export class ERC20__factory {
+   static readonly abi = _abi;
+   static createInterface(): ERC20Interface {
+-    return new utils.Interface(_abi) as ERC20Interface;
++    return new Interface(_abi) as ERC20Interface;
+   }
+-  static connect(address: string, signerOrProvider: Signer | Provider): ERC20 {
+-    return new Contract(address, _abi, signerOrProvider) as ERC20;
++  static connect(address: string, runner?: ContractRunner | null): ERC20 {
++    return new Contract(address, _abi, runner) as unknown as ERC20;
+   }
+ }
+diff --git a/packages/shared/src/abis/factories/StateChainGateway__factory.ts b/packages/shared/src/abis/factories/StateChainGateway__factory.ts
+index 7d76effe9..7b94a8cd6 100644
+--- a/packages/shared/src/abis/factories/StateChainGateway__factory.ts
++++ b/packages/shared/src/abis/factories/StateChainGateway__factory.ts
+@@ -2,8 +2,7 @@
+ /* tslint:disable */
+ /* eslint-disable */
+ 
+-import { Contract, Signer, utils } from "ethers";
+-import type { Provider } from "@ethersproject/providers";
++import { Contract, Interface, type ContractRunner } from "ethers";
+ import type {
+   StateChainGateway,
+   StateChainGatewayInterface,
+@@ -673,12 +672,12 @@ const _abi = [
+ export class StateChainGateway__factory {
+   static readonly abi = _abi;
+   static createInterface(): StateChainGatewayInterface {
+-    return new utils.Interface(_abi) as StateChainGatewayInterface;
++    return new Interface(_abi) as StateChainGatewayInterface;
+   }
+   static connect(
+     address: string,
+-    signerOrProvider: Signer | Provider
++    runner?: ContractRunner | null
+   ): StateChainGateway {
+-    return new Contract(address, _abi, signerOrProvider) as StateChainGateway;
++    return new Contract(address, _abi, runner) as unknown as StateChainGateway;
+   }
+ }
+diff --git a/packages/shared/src/abis/factories/Vault__factory.ts b/packages/shared/src/abis/factories/Vault__factory.ts
+index 8a52bd2f6..559ad99ea 100644
+--- a/packages/shared/src/abis/factories/Vault__factory.ts
++++ b/packages/shared/src/abis/factories/Vault__factory.ts
+@@ -2,8 +2,7 @@
+ /* tslint:disable */
+ /* eslint-disable */
+ 
+-import { Contract, Signer, utils } from "ethers";
+-import type { Provider } from "@ethersproject/providers";
++import { Contract, Interface, type ContractRunner } from "ethers";
+ import type { Vault, VaultInterface } from "../Vault";
+ 
+ const _abi = [
+@@ -1223,9 +1222,9 @@ const _abi = [
+ export class Vault__factory {
+   static readonly abi = _abi;
+   static createInterface(): VaultInterface {
+-    return new utils.Interface(_abi) as VaultInterface;
++    return new Interface(_abi) as VaultInterface;
+   }
+-  static connect(address: string, signerOrProvider: Signer | Provider): Vault {
+-    return new Contract(address, _abi, signerOrProvider) as Vault;
++  static connect(address: string, runner?: ContractRunner | null): Vault {
++    return new Contract(address, _abi, runner) as unknown as Vault;
+   }
+ }
+diff --git a/packages/shared/src/abis/factories/index.ts b/packages/shared/src/abis/factories/index.ts
+index d90b5d260..6cf0815b9 100644
+--- a/packages/shared/src/abis/factories/index.ts
++++ b/packages/shared/src/abis/factories/index.ts
+@@ -1,5 +1,6 @@
+ /* Autogenerated file. Do not edit manually. */
+ /* tslint:disable */
++/* eslint-disable */
+ export { ERC20__factory } from "./ERC20__factory";
+ export { StateChainGateway__factory } from "./StateChainGateway__factory";
+ export { Vault__factory } from "./Vault__factory";
+diff --git a/packages/shared/src/abis/index.ts b/packages/shared/src/abis/index.ts
+index 35da5d165..8bb1855a1 100644
+--- a/packages/shared/src/abis/index.ts
++++ b/packages/shared/src/abis/index.ts
+@@ -1,5 +1,6 @@
+ /* Autogenerated file. Do not edit manually. */
+ /* tslint:disable */
++/* eslint-disable */
+ export type { ERC20 } from "./ERC20";
+ export type { StateChainGateway } from "./StateChainGateway";
+ export type { Vault } from "./Vault";
+diff --git a/packages/shared/src/contracts.ts b/packages/shared/src/contracts.ts
+index 54c5cba2f..d2782bf84 100644
+--- a/packages/shared/src/contracts.ts
++++ b/packages/shared/src/contracts.ts
+@@ -1,9 +1,4 @@
+-import ethers, {
+-  BigNumberish,
+-  ContractReceipt,
+-  Signer,
+-  BigNumber,
+-} from 'ethers';
++import { Signer, Overrides, ContractTransactionReceipt } from 'ethers';
+ import { ERC20, ERC20__factory } from './abis';
+ import { ADDRESSES, GOERLI_USDC_CONTRACT_ADDRESS } from './consts';
+ import {
+@@ -19,13 +14,13 @@ export type TransactionOptions = {
+   gasPrice?: bigint;
+   maxFeePerGas?: bigint;
+   maxPriorityFeePerGas?: bigint;
+-  nonce?: bigint;
++  nonce?: number;
+   wait?: number;
+ };
+ 
+ export const extractOverrides = (
+   transactionOverrides: TransactionOptions,
+-): ethers.Overrides => {
++): Overrides => {
+   const { wait, ...ethersOverrides } = transactionOverrides;
+ 
+   return ethersOverrides;
+@@ -52,7 +47,7 @@ export const getStateChainGatewayContractAddress = (
+ };
+ 
+ export const checkAllowance = async (
+-  amount: BigNumberish,
++  amount: bigint,
+   spenderAddress: string,
+   erc20Address: string,
+   signer: Signer,
+@@ -60,23 +55,20 @@ export const checkAllowance = async (
+   const erc20 = ERC20__factory.connect(erc20Address, signer);
+   const signerAddress = await signer.getAddress();
+   const allowance = await erc20.allowance(signerAddress, spenderAddress);
+-  return { allowance, isAllowable: allowance.gte(amount), erc20 };
++  return { allowance, isAllowable: allowance >= amount, erc20 };
+ };
+ 
+ export const approve = async (
+-  amount: BigNumberish,
++  amount: bigint,
+   spenderAddress: string,
+   erc20: ERC20,
+-  allowance: BigNumberish,
++  allowance: bigint,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt | null> => {
+-  const amountBigNumber = BigNumber.from(amount);
+-  const allowanceBigNumber = BigNumber.from(allowance);
+-  if (allowanceBigNumber.gte(amountBigNumber)) return null;
+-  const requiredAmount = amountBigNumber.sub(allowanceBigNumber);
++): Promise<ContractTransactionReceipt | null> => {
++  if (allowance >= amount) return null;
+   const transaction = await erc20.approve(
+     spenderAddress,
+-    requiredAmount,
++    amount - allowance,
+     extractOverrides(txOpts),
+   );
+   return transaction.wait(txOpts.wait);
+@@ -95,6 +87,5 @@ export const getFlipBalance = async (
+ ): Promise<bigint> => {
+   const flipAddress = getTokenContractAddress('FLIP', network);
+   const flip = ERC20__factory.connect(flipAddress, signer);
+-  const balance = await flip.balanceOf(await signer.getAddress());
+-  return balance.toBigInt();
++  return flip.balanceOf(await signer.getAddress());
+ };
+diff --git a/packages/shared/src/parsers.ts b/packages/shared/src/parsers.ts
+index f6b1bcc91..f0dcd209c 100644
+--- a/packages/shared/src/parsers.ts
++++ b/packages/shared/src/parsers.ts
+@@ -21,9 +21,9 @@ export const numericString = string.regex(/^[0-9]+$/);
+ export const hexString = z.custom<`0x${string}`>(
+   (val) => typeof val === 'string' && /^0x[0-9a-f]+$/i.test(val),
+ );
+-export const hexStringFromNumber = numericString
+-  .transform((arg) => ethers.BigNumber.from(arg).toHexString())
+-  .refine((arg) => arg.startsWith('0x'));
++export const hexStringFromNumber = numericString.transform(
++  (arg) => `0x${BigInt(arg).toString(16)}`,
++);
+ export const bareHexString = string.regex(/^[0-9a-f]+$/);
+ 
+ export const btcAddress = (env?: ChainflipNetwork) => {
+@@ -54,7 +54,7 @@ export const dotAddress = z
+   .refine(isString);
+ 
+ export const ethereumAddress = hexString.refine((address) =>
+-  ethers.utils.isAddress(address),
++  ethers.isAddress(address),
+ );
+ 
+ export const u64 = numericString.transform((arg) => BigInt(arg));
+diff --git a/packages/shared/src/stateChainGateway/approval.ts b/packages/shared/src/stateChainGateway/approval.ts
+index d3360b797..67f464e5e 100644
+--- a/packages/shared/src/stateChainGateway/approval.ts
++++ b/packages/shared/src/stateChainGateway/approval.ts
+@@ -1,4 +1,4 @@
+-import { ContractReceipt } from 'ethers';
++import { ContractTransactionReceipt } from 'ethers';
+ import {
+   checkAllowance,
+   getStateChainGatewayContractAddress,
+@@ -10,7 +10,7 @@ import { Assets } from '../enums';
+ import { FundingNetworkOptions } from './index';
+ 
+ export const checkStateChainGatewayAllowance = async (
+-  amount: bigint | string | number,
++  amount: bigint,
+   networkOpts: FundingNetworkOptions,
+ ): ReturnType<typeof checkAllowance> => {
+   const flipContractAddress =
+@@ -32,10 +32,10 @@ export const checkStateChainGatewayAllowance = async (
+ };
+ 
+ export const approveStateChainGateway = async (
+-  amount: bigint | string | number,
++  amount: bigint,
+   networkOpts: FundingNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt | null> => {
++): Promise<ContractTransactionReceipt | null> => {
+   const { allowance, erc20, isAllowable } =
+     await checkStateChainGatewayAllowance(amount, networkOpts);
+ 
+diff --git a/packages/shared/src/stateChainGateway/index.ts b/packages/shared/src/stateChainGateway/index.ts
+index b169b5335..4080dc897 100644
+--- a/packages/shared/src/stateChainGateway/index.ts
++++ b/packages/shared/src/stateChainGateway/index.ts
+@@ -1,4 +1,4 @@
+-import type { BigNumber, ContractReceipt, Signer } from 'ethers';
++import { ContractTransactionReceipt, Signer } from 'ethers';
+ import { getStateChainGateway } from './utils';
+ import {
+   checkAllowance,
+@@ -20,10 +20,10 @@ export type FundingNetworkOptions =
+ 
+ export const fundStateChainAccount = async (
+   accountId: `0x${string}`,
+-  amount: string,
++  amount: bigint,
+   networkOpts: FundingNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const flipContractAddress =
+     networkOpts.network === 'localnet'
+       ? networkOpts.flipContractAddress
+@@ -33,7 +33,7 @@ export const fundStateChainAccount = async (
+ 
+   const { isAllowable } = await checkAllowance(
+     amount,
+-    stateChainGateway.address,
++    await stateChainGateway.getAddress(),
+     flipContractAddress,
+     networkOpts.signer,
+   );
+@@ -45,14 +45,14 @@ export const fundStateChainAccount = async (
+     extractOverrides(txOpts),
+   );
+ 
+-  return transaction.wait(txOpts.wait);
++  return transaction.wait(txOpts.wait) as Promise<ContractTransactionReceipt>;
+ };
+ 
+ export const executeRedemption = async (
+   accountId: `0x${string}`,
+   networkOpts: FundingNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const stateChainGateway = getStateChainGateway(networkOpts);
+ 
+   const transaction = await stateChainGateway.executeRedemption(
+@@ -60,12 +60,12 @@ export const executeRedemption = async (
+     extractOverrides(txOpts),
+   );
+ 
+-  return transaction.wait(txOpts.wait);
++  return transaction.wait(txOpts.wait) as Promise<ContractTransactionReceipt>;
+ };
+ 
+ export const getMinimumFunding = (
+   networkOpts: FundingNetworkOptions,
+-): Promise<BigNumber> => {
++): Promise<bigint> => {
+   const stateChainGateway = getStateChainGateway(networkOpts);
+ 
+   return stateChainGateway.getMinimumFunding();
+@@ -73,7 +73,7 @@ export const getMinimumFunding = (
+ 
+ export const getRedemptionDelay = (
+   networkOpts: FundingNetworkOptions,
+-): Promise<number> => {
++): Promise<bigint> => {
+   const stateChainGateway = getStateChainGateway(networkOpts);
+ 
+   return stateChainGateway.REDEMPTION_DELAY();
+diff --git a/packages/shared/src/validation/addressValidation.ts b/packages/shared/src/validation/addressValidation.ts
+index 225a5a2f5..e71dc2023 100644
+--- a/packages/shared/src/validation/addressValidation.ts
++++ b/packages/shared/src/validation/addressValidation.ts
+@@ -1,5 +1,9 @@
+ import { isHex, hexToU8a } from '@polkadot/util';
+-import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
++import {
++  base58Decode,
++  decodeAddress,
++  encodeAddress,
++} from '@polkadot/util-crypto';
+ import * as ethers from 'ethers';
+ import { isValidSegwitAddress } from './segwitAddr';
+ import { Asset, Assets, Chain, Chains } from '../enums';
+@@ -17,7 +21,7 @@ export const validatePolkadotAddress: AddressValidator = (address) => {
+ };
+ 
+ export const validateEvmAddress: AddressValidator = (address) =>
+-  ethers.utils.isAddress(address);
++  ethers.isAddress(address);
+ 
+ type BitcoinNetwork = 'mainnet' | 'testnet' | 'regtest';
+ 
+@@ -28,32 +32,13 @@ const assertArraylikeEqual = <T>(a: ArrayLike<T>, b: ArrayLike<T>) => {
+   }
+ };
+ 
+-// if we go back to ethers 6 when typechain updates
+-// const hexToUint8Array = (hex: string) => {
+-//   const withoutPrefix = hex.replace(/^0x/, '');
+-//   const padded =
+-//     withoutPrefix.length % 2 === 0 ? withoutPrefix : `0${withoutPrefix}`;
+-//   const matchArray = padded.match(/.{2}/g);
+-//   assert(matchArray, 'matchArray must not be null');
+-//   return new Uint8Array(matchArray.map((n) => Number.parseInt(n, 16)));
+-// };
+-
+-// const decodeBase58 = (address: string) => {
+-//   const bigint = ethers.decodeBase58(address);
+-//   // this regex will always match
+-//   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+-//   const leadingZeroes = address.match(/^1*/)![0].length;
+-//   const hex = `${'0'.repeat(leadingZeroes)}${bigint.toString(16)}`;
+-//   return hexToUint8Array(hex);
+-// };
+-
+ const validateP2PKHOrP2SHAddress = (
+   address: string,
+   network: BitcoinNetwork,
+ ) => {
+   try {
+     // The address must be a valid base58 encoded string.
+-    const decoded = ethers.utils.base58.decode(address);
++    const decoded = base58Decode(address);
+ 
+     // Decoding it must result in exactly 25 bytes.
+     assert(decoded.length === 25, 'decoded address must be 25 bytes long');
+@@ -73,8 +58,8 @@ const validateP2PKHOrP2SHAddress = (
+     }
+     // The last 4 decoded bytes must be equal to the first 4 bytes of the double sha256 of the first 21 decoded bytes
+     const checksum = decoded.slice(-4);
+-    const doubleHash = ethers.utils.arrayify(
+-      ethers.utils.sha256(ethers.utils.sha256(decoded.slice(0, 21))),
++    const doubleHash = ethers.getBytes(
++      ethers.sha256(ethers.sha256(decoded.slice(0, 21))),
+     );
+ 
+     assertArraylikeEqual(checksum, doubleHash.slice(0, 4));
+diff --git a/packages/shared/src/vault/approval.ts b/packages/shared/src/vault/approval.ts
+index 719a9321d..585e58359 100644
+--- a/packages/shared/src/vault/approval.ts
++++ b/packages/shared/src/vault/approval.ts
+@@ -1,4 +1,4 @@
+-import { ContractReceipt } from 'ethers';
++import { ContractTransactionReceipt } from 'ethers';
+ import { TokenSwapParams } from './schemas';
+ import {
+   checkAllowance,
+@@ -38,7 +38,7 @@ export const approveVault = async (
+   params: Pick<TokenSwapParams, 'srcAsset' | 'amount'>,
+   networkOpts: SwapNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt | null> => {
++): Promise<ContractTransactionReceipt | null> => {
+   const { isAllowable, erc20, allowance } = await checkVaultAllowance(
+     params,
+     networkOpts,
+diff --git a/packages/shared/src/vault/executeSwap.ts b/packages/shared/src/vault/executeSwap.ts
+index dd4631a3b..e0e4a7e80 100644
+--- a/packages/shared/src/vault/executeSwap.ts
++++ b/packages/shared/src/vault/executeSwap.ts
+@@ -1,4 +1,4 @@
+-import { ContractReceipt } from 'ethers';
++import { ContractTransactionReceipt } from 'ethers';
+ import {
+   type ExecuteSwapParams,
+   executeSwapParamsSchema,
+@@ -23,7 +23,7 @@ const swapNative = async (
+   { destChain, destAsset, destAddress, amount }: NativeSwapParams,
+   networkOpts: SwapNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const vaultContractAddress =
+     networkOpts.network === 'localnet'
+       ? networkOpts.vaultContractAddress
+@@ -38,18 +38,18 @@ const swapNative = async (
+     chainContractIds[destChain],
+     destAddress,
+     assetContractIds[destAsset],
+-    [],
++    '',
+     { value: amount, ...extractOverrides(txOpts) },
+   );
+ 
+-  return transaction.wait(txOpts.wait);
++  return transaction.wait(txOpts.wait) as Promise<ContractTransactionReceipt>;
+ };
+ 
+ const swapToken = async (
+   params: TokenSwapParams,
+   networkOpts: SwapNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const vaultContractAddress =
+     networkOpts.network === 'localnet'
+       ? networkOpts.vaultContractAddress
+@@ -81,18 +81,18 @@ const swapToken = async (
+     assetContractIds[params.destAsset],
+     erc20Address,
+     params.amount,
+-    [],
++    '',
+     extractOverrides(txOpts),
+   );
+ 
+-  return transaction.wait(txOpts.wait);
++  return transaction.wait(txOpts.wait) as Promise<ContractTransactionReceipt>;
+ };
+ 
+ const callNative = async (
+   params: NativeCallParams,
+   networkOpts: SwapNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const vaultContractAddress =
+     networkOpts.network === 'localnet'
+       ? networkOpts.vaultContractAddress
+@@ -109,18 +109,18 @@ const callNative = async (
+     assetContractIds[params.destAsset],
+     params.ccmMetadata.message,
+     params.ccmMetadata.gasBudget,
+-    [],
++    '',
+     { value: params.amount, ...extractOverrides(txOpts) },
+   );
+ 
+-  return transaction.wait(txOpts.wait);
++  return transaction.wait(txOpts.wait) as Promise<ContractTransactionReceipt>;
+ };
+ 
+ const callToken = async (
+   params: TokenCallParams,
+   networkOpts: SwapNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const vaultContractAddress =
+     networkOpts.network === 'localnet'
+       ? networkOpts.vaultContractAddress
+@@ -154,18 +154,18 @@ const callToken = async (
+     params.ccmMetadata.gasBudget,
+     erc20Address,
+     params.amount,
+-    [],
++    '',
+     extractOverrides(txOpts),
+   );
+ 
+-  return transaction.wait(txOpts.wait);
++  return transaction.wait(txOpts.wait) as Promise<ContractTransactionReceipt>;
+ };
+ 
+ const executeSwap = async (
+   params: ExecuteSwapParams,
+   networkOpts: SwapNetworkOptions,
+   txOpts: TransactionOptions,
+-): Promise<ContractReceipt> => {
++): Promise<ContractTransactionReceipt> => {
+   const parsedParams = executeSwapParamsSchema.parse(params);
+ 
+   if ('ccmMetadata' in parsedParams) {
+diff --git a/packages/shared/src/vault/schemas.ts b/packages/shared/src/vault/schemas.ts
+index 5dfc8a4fb..86e9883d2 100644
+--- a/packages/shared/src/vault/schemas.ts
++++ b/packages/shared/src/vault/schemas.ts
+@@ -5,7 +5,6 @@ import {
+   btcAddress,
+   dotAddress,
+   ethereumAddress,
+-  hexString,
+   numericString,
+ } from '../parsers';
+ 
+@@ -15,7 +14,7 @@ const bytesToHex = (arr: Uint8Array | number[]) =>
+ const utf8ToHex = (str: string) => `0x${Buffer.from(str).toString('hex')}`;
+ 
+ const eth = z.object({
+-  amount: z.union([numericString, hexString, z.bigint()]),
++  amount: z.bigint(),
+   srcChain: z.literal(Chains.Ethereum),
+   srcAsset: z.literal(Assets.ETH),
+ });
+diff --git a/packages/swap/src/deposit-tracking/bitcoin.ts b/packages/swap/src/deposit-tracking/bitcoin.ts
+index fcb890c9e..962be4548 100644
+--- a/packages/swap/src/deposit-tracking/bitcoin.ts
++++ b/packages/swap/src/deposit-tracking/bitcoin.ts
+@@ -48,7 +48,7 @@ export const fetchPendingBitcoinDeposit = async (address: string) => {
+ 
+     if (data.success && data.data.result[0]) {
+       return {
+-        amount: ethers.utils
++        amount: ethers
+           .parseUnits(String(data.data.result[0].value), assetDecimals.BTC)
+           .toString(),
+         transactionConfirmations: data.data.result[0].confirmations,

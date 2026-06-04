@@ -1,0 +1,945 @@
+diff --git a/packages/cli/src/__tests__/__snapshots__/cliExecuteSwap.test.ts.snap b/packages/cli/src/__tests__/__snapshots__/cliExecuteSwap.test.ts.snap
+index cadfe46c4..75e543650 100644
+--- a/packages/cli/src/__tests__/__snapshots__/cliExecuteSwap.test.ts.snap
++++ b/packages/cli/src/__tests__/__snapshots__/cliExecuteSwap.test.ts.snap
+@@ -4,7 +4,7 @@ exports[`cli calls the correct handler with the proper arguments (call) 1`] = `
+ [
+   [
+     {
+-      "amount": "1000000000",
++      "amount": 1000000000n,
+       "ccmMetadata": {
+         "gasBudget": "500000",
+         "message": "0xdeadc0de",
+@@ -30,7 +30,7 @@ exports[`cli calls the correct handler with the proper arguments (call) 2`] = `
+ [
+   [
+     {
+-      "amount": "1000000000",
++      "amount": 1000000000n,
+       "ccmMetadata": {
+         "gasBudget": "500000",
+         "message": "0xdeadc0de",
+@@ -54,7 +54,7 @@ exports[`cli calls the correct handler with the proper arguments (swap) 1`] = `
+ [
+   [
+     {
+-      "amount": "1000000000",
++      "amount": 1000000000n,
+       "ccmMetadata": undefined,
+       "destAddress": "0x0",
+       "destAsset": "USDC",
+@@ -77,7 +77,7 @@ exports[`cli calls the correct handler with the proper arguments (swap) 2`] = `
+ [
+   [
+     {
+-      "amount": "1000000000",
++      "amount": 1000000000n,
+       "ccmMetadata": undefined,
+       "destAddress": "0x0",
+       "destAsset": "USDC",
+diff --git a/packages/cli/src/__tests__/__snapshots__/cliFundStateChainAccount.test.ts.snap b/packages/cli/src/__tests__/__snapshots__/cliFundStateChainAccount.test.ts.snap
+index 7a99dd64e..aa89b8b72 100644
+--- a/packages/cli/src/__tests__/__snapshots__/cliFundStateChainAccount.test.ts.snap
++++ b/packages/cli/src/__tests__/__snapshots__/cliFundStateChainAccount.test.ts.snap
+@@ -4,7 +4,7 @@ exports[`cli calls the correct handler with the proper arguments 1`] = `
+ [
+   [
+     "0x1",
+-    "1000000",
++    1000000n,
+     {
+       "flipContractAddress": "0x4",
+       "network": "localnet",
+@@ -20,7 +20,7 @@ exports[`cli calls the correct handler with the proper arguments 2`] = `
+ [
+   [
+     "0x1",
+-    "1000000",
++    1000000n,
+     {
+       "network": "sisyphos",
+       "signer": undefined,
+diff --git a/packages/cli/src/__tests__/cliExecuteSwap.test.ts b/packages/cli/src/__tests__/cliExecuteSwap.test.ts
+index b9733a2a7..232d6e086 100644
+--- a/packages/cli/src/__tests__/cliExecuteSwap.test.ts
++++ b/packages/cli/src/__tests__/cliExecuteSwap.test.ts
+@@ -5,7 +5,7 @@ jest.mock('ethers');
+ jest.mock('@/shared/vault', () => ({
+   executeSwap: jest
+     .fn()
+-    .mockResolvedValue({ status: 1, transactionHash: 'example-tx-hash' }),
++    .mockResolvedValue({ status: 1, hash: 'example-tx-hash' }),
+ }));
+ 
+ const localnet = `swap
+diff --git a/packages/cli/src/__tests__/cliFundStateChainAccount.test.ts b/packages/cli/src/__tests__/cliFundStateChainAccount.test.ts
+index 35000c56c..409ae96f5 100644
+--- a/packages/cli/src/__tests__/cliFundStateChainAccount.test.ts
++++ b/packages/cli/src/__tests__/cliFundStateChainAccount.test.ts
+@@ -5,7 +5,7 @@ jest.mock('ethers');
+ jest.mock('@/shared/stateChainGateway', () => ({
+   fundStateChainAccount: jest
+     .fn()
+-    .mockResolvedValue({ status: 1, transactionHash: 'example-tx-hash' }),
++    .mockResolvedValue({ status: 1, hash: 'example-tx-hash' }),
+ }));
+ 
+ const localnet = `fund-state-chain-account
+diff --git a/packages/sdk/src/__tests__/sdk.test.ts b/packages/sdk/src/__tests__/sdk.test.ts
+index cec46c411..8f7da16ad 100644
+--- a/packages/sdk/src/__tests__/sdk.test.ts
++++ b/packages/sdk/src/__tests__/sdk.test.ts
+@@ -184,7 +184,7 @@ describe(SwapSDK, () => {
+       const params = {};
+       jest
+         .mocked(executeSwap)
+-        .mockResolvedValueOnce({ transactionHash: 'hello world' } as any);
++        .mockResolvedValueOnce({ hash: 'hello world' } as any);
+       const result = await sdk.executeSwap(params as any);
+       expect(executeSwap).toHaveBeenCalledWith(
+         params,
+diff --git a/packages/sdk/src/funding/__tests__/index.test.ts b/packages/sdk/src/funding/__tests__/index.test.ts
+index c953b336a..ccd8e7731 100644
+--- a/packages/sdk/src/funding/__tests__/index.test.ts
++++ b/packages/sdk/src/funding/__tests__/index.test.ts
+@@ -1,5 +1,5 @@
+ /* eslint-disable max-classes-per-file */
+-import { VoidSigner, ethers } from 'ethers';
++import { VoidSigner, getDefaultProvider } from 'ethers';
+ import {
+   fundStateChainAccount,
+   executeRedemption,
+@@ -12,7 +12,7 @@ import { FundingSDK } from '../index';
+ jest.mock('@/shared/stateChainGateway');
+ 
+ class MockERC20 {
+-  async balanceOf(): Promise<ethers.BigNumber> {
++  async balanceOf(): Promise<bigint> {
+     throw new Error('unmocked call');
+   }
+ }
+@@ -26,9 +26,7 @@ jest.mock('@/shared/abis/factories/ERC20__factory', () => ({
+ describe(FundingSDK, () => {
+   const sdk = new FundingSDK({
+     network: 'sisyphos',
+-    signer: new VoidSigner('0xcafebabe').connect(
+-      ethers.providers.getDefaultProvider('goerli'),
+-    ),
++    signer: new VoidSigner('0xcafebabe').connect(getDefaultProvider('goerli')),
+   });
+ 
+   it('uses sisyphos as the default network', () => {
+@@ -41,14 +39,14 @@ describe(FundingSDK, () => {
+   describe(FundingSDK.prototype.fundStateChainAccount, () => {
+     it('approves the gateway and funds the account', async () => {
+       jest.mocked(fundStateChainAccount).mockResolvedValueOnce({
+-        transactionHash: '0xabcdef',
++        hash: '0xabcdef',
+       } as any);
+ 
+-      await sdk.fundStateChainAccount('0x1234', '1000');
++      await sdk.fundStateChainAccount('0x1234', 1000n);
+ 
+       expect(fundStateChainAccount).toHaveBeenCalledWith(
+         '0x1234',
+-        '1000',
++        1000n,
+         // @ts-expect-error it's private
+         sdk.options,
+         {},
+@@ -59,7 +57,7 @@ describe(FundingSDK, () => {
+   describe(FundingSDK.prototype.executeRedemption, () => {
+     it('approves the gateway and funds the account', async () => {
+       jest.mocked(executeRedemption).mockResolvedValue({
+-        transactionHash: '0xabcdef',
++        hash: '0xabcdef',
+       } as any);
+ 
+       const txHash = await sdk.executeRedemption('0x1234');
+@@ -76,9 +74,7 @@ describe(FundingSDK, () => {
+ 
+   describe(FundingSDK.prototype.getMinimumFunding, () => {
+     it('approves the gateway and funds the account', async () => {
+-      jest
+-        .mocked(getMinimumFunding)
+-        .mockResolvedValue(ethers.BigNumber.from(1000));
++      jest.mocked(getMinimumFunding).mockResolvedValue(1000n);
+       const funding = await sdk.getMinimumFunding();
+ 
+       expect(getMinimumFunding).toHaveBeenCalledWith(
+@@ -92,7 +88,7 @@ describe(FundingSDK, () => {
+ 
+   describe(FundingSDK.prototype.getRedemptionDelay, () => {
+     it('approves the gateway and funds the account', async () => {
+-      jest.mocked(getRedemptionDelay).mockResolvedValue(1000);
++      jest.mocked(getRedemptionDelay).mockResolvedValue(1000n);
+       const delay = await sdk.getRedemptionDelay();
+ 
+       expect(getRedemptionDelay).toHaveBeenCalledWith(
+@@ -100,7 +96,7 @@ describe(FundingSDK, () => {
+         sdk.options,
+       );
+ 
+-      expect(delay).toEqual(1000);
++      expect(delay).toEqual(1000n);
+     });
+   });
+ 
+@@ -108,7 +104,7 @@ describe(FundingSDK, () => {
+     it('gets the FLIP balance of an address', async () => {
+       const spy = jest
+         .spyOn(MockERC20.prototype, 'balanceOf')
+-        .mockResolvedValueOnce(ethers.BigNumber.from(1000));
++        .mockResolvedValueOnce(1000n);
+       const balance = await sdk.getFlipBalance();
+       expect(balance).toBe(1000n);
+       expect(spy.mock.calls).toMatchInlineSnapshot(`
+@@ -124,9 +120,9 @@ describe(FundingSDK, () => {
+   describe(FundingSDK.prototype.approveStateChainGateway, () => {
+     it('requests approval and returns the tx hash', async () => {
+       jest.mocked(approveStateChainGateway).mockResolvedValueOnce({
+-        transactionHash: '0xabcdef',
++        hash: '0xabcdef',
+       } as any);
+-      const txHash = await sdk.approveStateChainGateway(1, {});
++      const txHash = await sdk.approveStateChainGateway(1n, {});
+       expect(txHash).toBe('0xabcdef');
+     });
+   });
+diff --git a/packages/shared/src/__tests__/__snapshots__/contracts.test.ts.snap b/packages/shared/src/__tests__/__snapshots__/contracts.test.ts.snap
+index 2a4159567..6aed18ffd 100644
+--- a/packages/shared/src/__tests__/__snapshots__/contracts.test.ts.snap
++++ b/packages/shared/src/__tests__/__snapshots__/contracts.test.ts.snap
+@@ -4,10 +4,7 @@ exports[`approve approves the spender for an allowance equal to the spend reques
+ [
+   [
+     "0xdeadbeef",
+-    {
+-      "hex": "0x0384",
+-      "type": "BigNumber",
+-    },
++    900n,
+     {
+       "nonce": 1,
+     },
+@@ -19,10 +16,7 @@ exports[`approve approves the spender for an allowance equal to the spend reques
+ [
+   [
+     "0xdeadbeef",
+-    {
+-      "hex": "0x03e8",
+-      "type": "BigNumber",
+-    },
++    1000n,
+     {
+       "nonce": 1,
+     },
+diff --git a/packages/shared/src/__tests__/contracts.test.ts b/packages/shared/src/__tests__/contracts.test.ts
+index bbb03ff61..9cf1c9297 100644
+--- a/packages/shared/src/__tests__/contracts.test.ts
++++ b/packages/shared/src/__tests__/contracts.test.ts
+@@ -1,17 +1,17 @@
+ /* eslint-disable max-classes-per-file */
+-import { BigNumberish, ContractTransaction, VoidSigner, ethers } from 'ethers';
++import { ContractTransaction, VoidSigner } from 'ethers';
+ import { ERC20__factory } from '../abis';
+ import { GOERLI_USDC_CONTRACT_ADDRESS } from '../consts';
+ import { approve, checkAllowance } from '../contracts';
+ 
+ class MockERC20 {
+-  async allowance(_owner: string, _spender: string): Promise<ethers.BigNumber> {
++  async allowance(_owner: string, _spender: string): Promise<bigint> {
+     throw new Error('unmocked call');
+   }
+ 
+   async approve(
+     _spender: string,
+-    _amount: BigNumberish,
++    _amount: bigint,
+   ): Promise<ContractTransaction> {
+     throw new Error('unmocked call');
+   }
+@@ -26,12 +26,12 @@ const spender = '0xdeadbeef';
+ 
+ describe(checkAllowance, () => {
+   it.each([
+-    { allowance: 1000, spend: 100, expected: true },
+-    { allowance: 1000, spend: 1500, expected: false },
++    { allowance: 1000n, spend: 100n, expected: true },
++    { allowance: 1000n, spend: 1500n, expected: false },
+   ])('returns the allowance', async ({ allowance, spend, expected }) => {
+     const allowanceSpy = jest
+       .spyOn(MockERC20.prototype, 'allowance')
+-      .mockResolvedValueOnce(ethers.BigNumber.from(allowance));
++      .mockResolvedValueOnce(BigInt(allowance));
+     const signer = new VoidSigner('0xcafebabe');
+ 
+     const result = await checkAllowance(
+@@ -42,25 +42,23 @@ describe(checkAllowance, () => {
+     );
+ 
+     expect(result.isAllowable).toBe(expected);
+-    expect(result.allowance).toEqual(ethers.BigNumber.from(allowance));
++    expect(result.allowance).toEqual(BigInt(allowance));
+     expect(allowanceSpy.mock.calls).toMatchSnapshot();
+   });
+ });
+ 
+ describe(approve, () => {
+   it.each([
+-    { allowance: 100, spend: 1000 },
+-    { allowance: 0, spend: 1000 },
++    { allowance: 100n, spend: 1000n },
++    { allowance: 0n, spend: 1000n },
+   ])(
+     'approves the spender for an allowance equal to the spend request',
+     async ({ allowance, spend }) => {
+       const approveSpy = jest
+         .spyOn(MockERC20.prototype, 'approve')
+         .mockResolvedValueOnce({
+-          wait: jest
+-            .fn()
+-            .mockResolvedValue({ status: 1, transactionHash: 'TX_HASH' }),
+-        });
++          wait: jest.fn().mockResolvedValue({ status: 1, hash: 'TX_HASH' }),
++        } as unknown as ContractTransaction);
+ 
+       const receipt = await approve(
+         spend,
+@@ -80,13 +78,13 @@ describe(approve, () => {
+ 
+   it('returns null if the allowance is already sufficient', async () => {
+     const receipt = await approve(
+-      10,
++      10n,
+       spender,
+       ERC20__factory.connect(
+         GOERLI_USDC_CONTRACT_ADDRESS,
+         new VoidSigner('0xcafebabe'),
+       ),
+-      1000,
++      1000n,
+       { nonce: 1 },
+     );
+ 
+diff --git a/packages/shared/src/stateChainGateway/__tests__/index.test.ts b/packages/shared/src/stateChainGateway/__tests__/index.test.ts
+index b2855eb4b..a9369842b 100644
+--- a/packages/shared/src/stateChainGateway/__tests__/index.test.ts
++++ b/packages/shared/src/stateChainGateway/__tests__/index.test.ts
+@@ -1,7 +1,7 @@
+ /* eslint-disable @typescript-eslint/no-empty-function */
+ /* eslint-disable @typescript-eslint/lines-between-class-members */
+ /* eslint-disable max-classes-per-file */
+-import { VoidSigner, ethers } from 'ethers';
++import { VoidSigner } from 'ethers';
+ import { checkAllowance } from '../../contracts';
+ import {
+   executeRedemption,
+@@ -12,6 +12,9 @@ import {
+ 
+ class MockGateway {
+   constructor(readonly address: string) {}
++  async getAddress(): Promise<any> {
++    return this.address;
++  }
+   async fundStateChainAccount(): Promise<any> {}
+   async executeRedemption(): Promise<any> {}
+   async getMinimumFunding(): Promise<any> {}
+@@ -46,11 +49,11 @@ describe(fundStateChainAccount, () => {
+       .spyOn(MockGateway.prototype, 'fundStateChainAccount')
+       .mockResolvedValue({ wait: waitMock });
+ 
+-    await fundStateChainAccount('0x1234', '1000', signerOptions, {});
++    await fundStateChainAccount('0x1234', 1000n, signerOptions, {});
+ 
+     expect(checkSpy).toHaveBeenCalled();
+     expect(waitMock).toHaveBeenCalledWith(undefined);
+-    expect(fundSpy).toHaveBeenCalledWith('0x1234', '1000', {
++    expect(fundSpy).toHaveBeenCalledWith('0x1234', 1000n, {
+       nonce: undefined,
+     });
+   });
+@@ -71,10 +74,8 @@ describe(getMinimumFunding, () => {
+   it('retrieves minimum funding amount', async () => {
+     jest
+       .spyOn(MockGateway.prototype, 'getMinimumFunding')
+-      .mockResolvedValue(ethers.BigNumber.from('1234'));
+-    expect(await getMinimumFunding(signerOptions)).toEqual(
+-      ethers.BigNumber.from('1234'),
+-    );
++      .mockResolvedValue(1234n);
++    expect(await getMinimumFunding(signerOptions)).toEqual(1234n);
+   });
+ });
+ 
+diff --git a/packages/shared/src/stateChainGateway/__tests__/utils.test.ts b/packages/shared/src/stateChainGateway/__tests__/utils.test.ts
+index 0db716935..31345c7d9 100644
+--- a/packages/shared/src/stateChainGateway/__tests__/utils.test.ts
++++ b/packages/shared/src/stateChainGateway/__tests__/utils.test.ts
+@@ -1,4 +1,4 @@
+-import { VoidSigner, ethers } from 'ethers';
++import { VoidSigner, getDefaultProvider } from 'ethers';
+ import { ADDRESSES } from '../../consts';
+ import { getStateChainGateway } from '../utils';
+ 
+@@ -12,7 +12,7 @@ describe(getStateChainGateway, () => {
+           signer: new VoidSigner('0x0'),
+         }),
+       ).toMatchObject({
+-        address: ADDRESSES[network].STATE_CHAIN_GATEWAY_ADDRESS,
++        target: ADDRESSES[network].STATE_CHAIN_GATEWAY_ADDRESS,
+       });
+     },
+   );
+@@ -22,13 +22,12 @@ describe(getStateChainGateway, () => {
+     expect(
+       getStateChainGateway({
+         network: 'localnet',
+-        signer: new VoidSigner('0x0').connect(
+-          ethers.providers.getDefaultProvider('goerli'),
+-        ),
++        signer: new VoidSigner('0x0').connect(getDefaultProvider('goerli')),
+         stateChainGatewayContractAddress: address,
++        flipContractAddress: '0x0000',
+       }),
+     ).toMatchObject({
+-      address,
++      target: address,
+     });
+   });
+ });
+diff --git a/packages/shared/src/vault/__tests__/__snapshots__/executeSwap.test.ts.snap b/packages/shared/src/vault/__tests__/__snapshots__/executeSwap.test.ts.snap
+index 3dc52de07..62cbb443e 100644
+--- a/packages/shared/src/vault/__tests__/__snapshots__/executeSwap.test.ts.snap
++++ b/packages/shared/src/vault/__tests__/__snapshots__/executeSwap.test.ts.snap
+@@ -1,45 +1,15 @@
+ // Jest Snapshot v1, https://goo.gl/fbAQLP
+ 
+-exports[`executeSwap accepts a nonce ('1') 1`] = `
+-[
+-  [
+-    3,
+-    "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+-    5,
+-    [],
+-    {
+-      "nonce": "1",
+-      "value": "1",
+-    },
+-  ],
+-]
+-`;
+-
+ exports[`executeSwap accepts a nonce (1) 1`] = `
+ [
+   [
+     3,
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+-    [],
++    "",
+     {
+       "nonce": 1,
+-      "value": "1",
+-    },
+-  ],
+-]
+-`;
+-
+-exports[`executeSwap accepts a nonce (1n) 1`] = `
+-[
+-  [
+-    3,
+-    "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+-    5,
+-    [],
+-    {
+-      "nonce": 1n,
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -52,8 +22,8 @@ exports[`executeSwap can be invoked with localnet options 1`] = `
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+     "0x456",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -76,9 +46,9 @@ exports[`executeSwap submits a native call ({"ccmMetadata": [Object], "destAddre
+     2,
+     "0xdeadc0de",
+     "101",
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -92,9 +62,9 @@ exports[`executeSwap submits a native call ({"ccmMetadata": [Object], "destAddre
+     3,
+     "0xdeadc0de",
+     "101",
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -106,9 +76,9 @@ exports[`executeSwap submits a native swap ({"destAddress": "0x6Aa69332B63bB5b1d
+     1,
+     "0x6Aa69332B63bB5b1d7Ca5355387EDd5624e181F2",
+     2,
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -120,9 +90,9 @@ exports[`executeSwap submits a native swap ({"destAddress": "0x6Aa69332B63bB5b1d
+     1,
+     "0x6Aa69332B63bB5b1d7Ca5355387EDd5624e181F2",
+     3,
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -134,9 +104,9 @@ exports[`executeSwap submits a native swap ({"destAddress": "5F3sa2TJAWMqDhXG6jh
+     2,
+     "0x841226ea070c9577979ca2e854130fbe3253853c13c05943e09908312950275d",
+     4,
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -148,9 +118,9 @@ exports[`executeSwap submits a native swap ({"destAddress": "tb1qge9vvd2mmjxfhux
+     3,
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -162,9 +132,9 @@ exports[`executeSwap submits a native swap ({"destAddress": "tb1qge9vvd2mmjxfhux
+     3,
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+-    [],
++    "",
+     {
+-      "value": "1",
++      "value": 1n,
+     },
+   ],
+ ]
+@@ -179,8 +149,8 @@ exports[`executeSwap submits a token call ({"ccmMetadata": [Object], "destAddres
+     "0xdeadc0de",
+     "101",
+     "0x2BbB561C6eaB74f358cA9e8a961E3A20CAE3D100",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -204,8 +174,8 @@ exports[`executeSwap submits a token call ({"ccmMetadata": [Object], "destAddres
+     "0xdeadc0de",
+     "101",
+     "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -227,8 +197,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "0x6Aa69332B63bB5b1d7
+     "0x6Aa69332B63bB5b1d7Ca5355387EDd5624e181F2",
+     1,
+     "0x2BbB561C6eaB74f358cA9e8a961E3A20CAE3D100",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -250,8 +220,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "0x6Aa69332B63bB5b1d7
+     "0x6Aa69332B63bB5b1d7Ca5355387EDd5624e181F2",
+     1,
+     "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -273,8 +243,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "5F3sa2TJAWMqDhXG6jhV
+     "0x841226ea070c9577979ca2e854130fbe3253853c13c05943e09908312950275d",
+     4,
+     "0x2BbB561C6eaB74f358cA9e8a961E3A20CAE3D100",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -296,8 +266,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "5F3sa2TJAWMqDhXG6jhV
+     "0x841226ea070c9577979ca2e854130fbe3253853c13c05943e09908312950275d",
+     4,
+     "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -319,8 +289,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "tb1qge9vvd2mmjxfhuxu
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+     "0x2BbB561C6eaB74f358cA9e8a961E3A20CAE3D100",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -342,8 +312,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "tb1qge9vvd2mmjxfhuxu
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+     "0x2BbB561C6eaB74f358cA9e8a961E3A20CAE3D100",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -365,8 +335,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "tb1qge9vvd2mmjxfhuxu
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+     "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -388,8 +358,8 @@ exports[`executeSwap submits a token swap ({"destAddress": "tb1qge9vvd2mmjxfhuxu
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+     "0x07865c6E87B9F70255377e024ace6630C1Eaa37F",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+@@ -411,8 +381,8 @@ exports[`executeSwap submits a token swap with sufficient approval 1`] = `
+     "0x74623171676539767664326d6d6a7866687578757132303468346678787068723076666e736e78323035",
+     5,
+     "0x2BbB561C6eaB74f358cA9e8a961E3A20CAE3D100",
+-    "1",
+-    [],
++    1n,
++    "",
+     {},
+   ],
+ ]
+diff --git a/packages/shared/src/vault/__tests__/executeSwap.test.ts b/packages/shared/src/vault/__tests__/executeSwap.test.ts
+index 66d54079d..f8f79debd 100644
+--- a/packages/shared/src/vault/__tests__/executeSwap.test.ts
++++ b/packages/shared/src/vault/__tests__/executeSwap.test.ts
+@@ -1,7 +1,7 @@
+ /* eslint-disable @typescript-eslint/no-empty-function */
+ /* eslint-disable @typescript-eslint/lines-between-class-members */
+ /* eslint-disable max-classes-per-file */
+-import { BigNumber, VoidSigner } from 'ethers';
++import { VoidSigner } from 'ethers';
+ import { Assets, ChainflipNetworks, Chains } from '../../enums';
+ import executeSwap from '../executeSwap';
+ import { ExecuteSwapParams } from '../schemas';
+@@ -21,7 +21,7 @@ class MockVault {
+ class MockERC20 {
+   async approve(): Promise<any> {}
+   async allowance(): Promise<any> {
+-    return BigNumber.from(Number.MAX_SAFE_INTEGER - 1);
++    return BigInt(Number.MAX_SAFE_INTEGER - 1);
+   }
+ }
+ 
+@@ -97,21 +97,21 @@ describe(executeSwap, () => {
+     async (params) => {
+       const wait = jest
+         .fn()
+-        .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++        .mockResolvedValue({ status: 1, hash: 'hello world' });
+       const swapSpy = jest
+         .spyOn(MockVault.prototype, 'xSwapNative')
+         .mockResolvedValue({ wait });
+ 
+       expect(
+         await executeSwap(
+-          { amount: '1', ...params } as ExecuteSwapParams,
++          { amount: 1n, ...params } as ExecuteSwapParams,
+           {
+             network: ChainflipNetworks.sisyphos,
+             signer: new VoidSigner('MY ADDRESS'),
+           },
+           {},
+         ),
+-      ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++      ).toStrictEqual({ status: 1, hash: 'hello world' });
+       expect(wait).toHaveBeenCalledWith(undefined);
+       expect(swapSpy.mock.calls).toMatchSnapshot();
+     },
+@@ -152,7 +152,7 @@ describe(executeSwap, () => {
+     async (params) => {
+       const wait = jest
+         .fn()
+-        .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++        .mockResolvedValue({ status: 1, hash: 'hello world' });
+       const approveSpy = jest
+         .spyOn(MockERC20.prototype, 'approve')
+         .mockResolvedValue({ wait });
+@@ -163,14 +163,14 @@ describe(executeSwap, () => {
+ 
+       expect(
+         await executeSwap(
+-          { amount: '1', ...params } as ExecuteSwapParams,
++          { amount: 1n, ...params } as ExecuteSwapParams,
+           {
+             network: 'sisyphos',
+             signer: new VoidSigner('MY ADDRESS'),
+           },
+           {},
+         ),
+-      ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++      ).toStrictEqual({ status: 1, hash: 'hello world' });
+       expect(wait).toHaveBeenCalledWith(undefined);
+       expect(swapSpy.mock.calls).toMatchSnapshot();
+       expect(allowanceSpy.mock.calls).toMatchSnapshot();
+@@ -181,7 +181,7 @@ describe(executeSwap, () => {
+   it('submits a token swap with sufficient approval', async () => {
+     const wait = jest
+       .fn()
+-      .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++      .mockResolvedValue({ status: 1, hash: 'hello world' });
+     const approveSpy = jest
+       .spyOn(MockERC20.prototype, 'approve')
+       .mockRejectedValue(Error('unmocked call'));
+@@ -190,7 +190,7 @@ describe(executeSwap, () => {
+       .mockResolvedValue({ wait });
+     const allowanceSpy = jest
+       .spyOn(MockERC20.prototype, 'allowance')
+-      .mockResolvedValueOnce(BigNumber.from(Number.MAX_SAFE_INTEGER - 1));
++      .mockResolvedValueOnce(BigInt(Number.MAX_SAFE_INTEGER - 1));
+ 
+     expect(
+       await executeSwap(
+@@ -200,12 +200,12 @@ describe(executeSwap, () => {
+           destAddress: BTC_ADDRESS,
+           srcAsset: Assets.FLIP,
+           srcChain: Chains.Ethereum,
+-          amount: '1',
++          amount: 1n,
+         },
+         { network: 'sisyphos', signer: new VoidSigner('MY ADDRESS') },
+         {},
+       ),
+-    ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++    ).toStrictEqual({ status: 1, hash: 'hello world' });
+     expect(wait).toHaveBeenCalledWith(undefined);
+     expect(swapSpy.mock.calls).toMatchSnapshot();
+     expect(allowanceSpy.mock.calls).toMatchSnapshot();
+@@ -215,7 +215,7 @@ describe(executeSwap, () => {
+   it('can be invoked with localnet options', async () => {
+     const wait = jest
+       .fn()
+-      .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++      .mockResolvedValue({ status: 1, hash: 'hello world' });
+     const approveSpy = jest
+       .spyOn(MockERC20.prototype, 'approve')
+       .mockResolvedValue({ wait });
+@@ -224,7 +224,7 @@ describe(executeSwap, () => {
+       .mockResolvedValue({ wait });
+     const allowanceSpy = jest
+       .spyOn(MockERC20.prototype, 'allowance')
+-      .mockResolvedValueOnce(BigNumber.from(Number.MAX_SAFE_INTEGER - 1));
++      .mockResolvedValueOnce(BigInt(Number.MAX_SAFE_INTEGER - 1));
+ 
+     expect(
+       await executeSwap(
+@@ -233,7 +233,7 @@ describe(executeSwap, () => {
+           destChain: Chains.Bitcoin,
+           destAddress: BTC_ADDRESS,
+           srcAsset: Assets.FLIP,
+-          amount: '1',
++          amount: 1n,
+           srcChain: Chains.Ethereum,
+         },
+         {
+@@ -244,17 +244,17 @@ describe(executeSwap, () => {
+         },
+         {},
+       ),
+-    ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++    ).toStrictEqual({ status: 1, hash: 'hello world' });
+     expect(wait).toHaveBeenCalledWith(undefined);
+     expect(swapSpy.mock.calls).toMatchSnapshot();
+     expect(allowanceSpy.mock.calls).toMatchSnapshot();
+     expect(approveSpy).not.toHaveBeenCalled();
+   });
+ 
+-  it.each([1, '1', 1n])('accepts a nonce (%o)', async (nonce) => {
++  it.each([1])('accepts a nonce (%o)', async (nonce) => {
+     const wait = jest
+       .fn()
+-      .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++      .mockResolvedValue({ status: 1, hash: 'hello world' });
+     const swapSpy = jest
+       .spyOn(MockVault.prototype, 'xSwapNative')
+       .mockResolvedValue({ wait });
+@@ -262,7 +262,7 @@ describe(executeSwap, () => {
+     expect(
+       await executeSwap(
+         {
+-          amount: '1',
++          amount: 1n,
+           destAsset: Assets.BTC,
+           destChain: Chains.Bitcoin,
+           destAddress: BTC_ADDRESS,
+@@ -275,7 +275,7 @@ describe(executeSwap, () => {
+         },
+         { nonce },
+       ),
+-    ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++    ).toStrictEqual({ status: 1, hash: 'hello world' });
+     expect(wait).toHaveBeenCalledWith(undefined);
+     expect(swapSpy.mock.calls).toMatchSnapshot();
+   });
+@@ -300,7 +300,7 @@ describe(executeSwap, () => {
+   ])('submits a native call (%p)', async (params) => {
+     const wait = jest
+       .fn()
+-      .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++      .mockResolvedValue({ status: 1, hash: 'hello world' });
+     const callSpy = jest
+       .spyOn(MockVault.prototype, 'xCallNative')
+       .mockResolvedValue({ wait });
+@@ -308,7 +308,7 @@ describe(executeSwap, () => {
+     expect(
+       await executeSwap(
+         {
+-          amount: '1',
++          amount: 1n,
+           ...params,
+         } as ExecuteSwapParams,
+         {
+@@ -317,7 +317,7 @@ describe(executeSwap, () => {
+         },
+         {},
+       ),
+-    ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++    ).toStrictEqual({ status: 1, hash: 'hello world' });
+     expect(wait).toHaveBeenCalledWith(undefined);
+     expect(callSpy.mock.calls).toMatchSnapshot();
+   });
+@@ -350,7 +350,7 @@ describe(executeSwap, () => {
+   ])('submits a token call (%p)', async (params) => {
+     const wait = jest
+       .fn()
+-      .mockResolvedValue({ status: 1, transactionHash: 'hello world' });
++      .mockResolvedValue({ status: 1, hash: 'hello world' });
+     const approveSpy = jest
+       .spyOn(MockERC20.prototype, 'approve')
+       .mockResolvedValue({ wait });
+@@ -362,7 +362,7 @@ describe(executeSwap, () => {
+     expect(
+       await executeSwap(
+         {
+-          amount: '1',
++          amount: 1n,
+           ...params,
+         },
+         {
+@@ -371,7 +371,7 @@ describe(executeSwap, () => {
+         },
+         {},
+       ),
+-    ).toStrictEqual({ status: 1, transactionHash: 'hello world' });
++    ).toStrictEqual({ status: 1, hash: 'hello world' });
+     expect(wait).toHaveBeenCalledWith(undefined);
+     expect(callSpy).toHaveBeenCalled();
+     expect(callSpy.mock.calls).toMatchSnapshot();
+diff --git a/packages/shared/src/vault/__tests__/schemas.test.ts b/packages/shared/src/vault/__tests__/schemas.test.ts
+index 8cf8e617d..15efc5d61 100644
+--- a/packages/shared/src/vault/__tests__/schemas.test.ts
++++ b/packages/shared/src/vault/__tests__/schemas.test.ts
+@@ -38,7 +38,7 @@ describe('executeSwapParamsSchema', () => {
+   ] as Omit<NativeSwapParams, 'amount'>[])(
+     'accepts valid native swaps (%p)',
+     (params) => {
+-      expect(parse({ amount: '1', ...params })).toBe(true);
++      expect(parse({ amount: 1n, ...params })).toBe(true);
+     },
+   );
+ 
+@@ -90,7 +90,7 @@ describe('executeSwapParamsSchema', () => {
+   ] as Omit<NativeSwapParams, 'amount'>[])(
+     'rejects native swaps with mismatching chains and assets (%p)',
+     (params) => {
+-      expect(parse({ amount: '1', ...params })).toBe(false);
++      expect(parse({ amount: 1n, ...params })).toBe(false);
+     },
+   );
+ 
+@@ -143,7 +143,7 @@ describe('executeSwapParamsSchema', () => {
+   ] as Omit<TokenSwapParams, 'amount'>[])(
+     'accepts valid token swaps (%p)',
+     (params) => {
+-      expect(parse({ amount: '1', ...params })).toBe(true);
++      expect(parse({ amount: 1n, ...params })).toBe(true);
+     },
+   );
+ 
+@@ -171,7 +171,7 @@ describe('executeSwapParamsSchema', () => {
+   ] as Omit<NativeSwapParams, 'amount'>[])(
+     'rejects tokens swaps with invalid srcAssets (%p)',
+     (params) => {
+-      expect(parse({ amount: '1', ...params })).toBe(false);
++      expect(parse({ amount: 1n, ...params })).toBe(false);
+     },
+   );
+ });

@@ -1,0 +1,568 @@
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/config/CHANGELOG.md b/vendor/github.com/aws/aws-sdk-go-v2/config/CHANGELOG.md
+--- a/vendor/github.com/aws/aws-sdk-go-v2/config/CHANGELOG.md
++++ b/vendor/github.com/aws/aws-sdk-go-v2/config/CHANGELOG.md
+@@ -1,3 +1,23 @@
++# v1.25.10 (2023-11-30)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.25.9 (2023-11-29)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.25.8 (2023-11-28.3)
++
++* **Bug Fix**: Correct resolution of S3Express auth disable toggle.
++
++# v1.25.7 (2023-11-28.2)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.25.6 (2023-11-28)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
+ # v1.25.5 (2023-11-21)
+ 
+ * **Dependency Update**: Updated to the latest SDK module versions
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/config/env_config.go b/vendor/github.com/aws/aws-sdk-go-v2/config/env_config.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/config/env_config.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/config/env_config.go
+@@ -74,6 +74,8 @@ const (
+ 
+ 	awsIgnoreConfiguredEndpoints = "AWS_IGNORE_CONFIGURED_ENDPOINT_URLS"
+ 	awsEndpointURL               = "AWS_ENDPOINT_URL"
++
++	awsS3DisableExpressSessionAuthEnv = "AWS_S3_DISABLE_EXPRESS_SESSION_AUTH"
+ )
+ 
+ var (
+@@ -268,6 +270,13 @@ type EnvConfig struct {
+ 	// Value to contain configured endpoints to be propagated to
+ 	// corresponding endpoint resolution field.
+ 	BaseEndpoint string
++
++	// Whether S3Express auth is disabled.
++	//
++	// This will NOT prevent requests from being made to S3Express buckets, it
++	// will only bypass the modified endpoint routing and signing behaviors
++	// associated with the feature.
++	S3DisableExpressAuth *bool
+ }
+ 
+ // loadEnvConfig reads configuration values from the OS's environment variables.
+@@ -356,6 +365,10 @@ func NewEnvConfig() (EnvConfig, error) {
+ 		return cfg, err
+ 	}
+ 
++	if err := setBoolPtrFromEnvVal(&cfg.S3DisableExpressAuth, []string{awsS3DisableExpressSessionAuthEnv}); err != nil {
++		return cfg, err
++	}
++
+ 	return cfg, nil
+ }
+ 
+@@ -736,3 +749,13 @@ func (c EnvConfig) GetEC2IMDSV1FallbackDisabled() (bool, bool) {
+ 
+ 	return *c.EC2IMDSv1Disabled, true
+ }
++
++// GetS3DisableExpressAuth returns the configured value for
++// [EnvConfig.S3DisableExpressAuth].
++func (c EnvConfig) GetS3DisableExpressAuth() (value, ok bool) {
++	if c.S3DisableExpressAuth == nil {
++		return false, false
++	}
++
++	return *c.S3DisableExpressAuth, true
++}
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/config/go_module_metadata.go b/vendor/github.com/aws/aws-sdk-go-v2/config/go_module_metadata.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/config/go_module_metadata.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/config/go_module_metadata.go
+@@ -3,4 +3,4 @@
+ package config
+ 
+ // goModuleVersion is the tagged release for this module
+-const goModuleVersion = "1.25.5"
++const goModuleVersion = "1.25.10"
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/config/load_options.go b/vendor/github.com/aws/aws-sdk-go-v2/config/load_options.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/config/load_options.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/config/load_options.go
+@@ -206,6 +206,9 @@ type LoadOptions struct {
+ 
+ 	// The sdk app ID retrieved from env var or shared config to be added to request user agent header
+ 	AppID string
++
++	// Whether S3 Express auth is disabled.
++	S3DisableExpressAuth *bool
+ }
+ 
+ func (o LoadOptions) getDefaultsMode(ctx context.Context) (aws.DefaultsMode, bool, error) {
+@@ -1044,3 +1047,22 @@ func WithDefaultsMode(mode aws.DefaultsMode, optFns ...func(options *DefaultsMod
+ 		return nil
+ 	}
+ }
++
++// GetS3DisableExpressAuth returns the configured value for
++// [EnvConfig.S3DisableExpressAuth].
++func (o LoadOptions) GetS3DisableExpressAuth() (value, ok bool) {
++	if o.S3DisableExpressAuth == nil {
++		return false, false
++	}
++
++	return *o.S3DisableExpressAuth, true
++}
++
++// WithS3DisableExpressAuth sets [LoadOptions.S3DisableExpressAuth]
++// to the value provided.
++func WithS3DisableExpressAuth(v bool) LoadOptionsFunc {
++	return func(o *LoadOptions) error {
++		o.S3DisableExpressAuth = &v
++		return nil
++	}
++}
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/config/shared_config.go b/vendor/github.com/aws/aws-sdk-go-v2/config/shared_config.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/config/shared_config.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/config/shared_config.go
+@@ -107,6 +107,8 @@ const (
+ 	ignoreConfiguredEndpoints = "ignore_configured_endpoint_urls"
+ 
+ 	endpointURL = "endpoint_url"
++
++	s3DisableExpressSessionAuthKey = "s3_disable_express_session_auth"
+ )
+ 
+ // defaultSharedConfigProfile allows for swapping the default profile for testing
+@@ -316,6 +318,13 @@ type SharedConfig struct {
+ 
+ 	// Value to contain services section content.
+ 	Services Services
++
++	// Whether S3Express auth is disabled.
++	//
++	// This will NOT prevent requests from being made to S3Express buckets, it
++	// will only bypass the modified endpoint routing and signing behaviors
++	// associated with the feature.
++	S3DisableExpressAuth *bool
+ }
+ 
+ func (c SharedConfig) getDefaultsMode(ctx context.Context) (value aws.DefaultsMode, ok bool, err error) {
+@@ -435,6 +444,16 @@ func (c SharedConfig) GetUseFIPSEndpoint(ctx context.Context) (value aws.FIPSEnd
+ 	return c.UseFIPSEndpoint, true, nil
+ }
+ 
++// GetS3DisableExpressAuth returns the configured value for
++// [SharedConfig.S3DisableExpressAuth].
++func (c SharedConfig) GetS3DisableExpressAuth() (value, ok bool) {
++	if c.S3DisableExpressAuth == nil {
++		return false, false
++	}
++
++	return *c.S3DisableExpressAuth, true
++}
++
+ // GetCustomCABundle returns the custom CA bundle's PEM bytes if the file was
+ func (c SharedConfig) getCustomCABundle(context.Context) (io.Reader, bool, error) {
+ 	if len(c.CustomCABundle) == 0 {
+@@ -1054,6 +1073,7 @@ func (c *SharedConfig) setFromIniSection(profile string, section ini.Section) er
+ 	updateEndpointDiscoveryType(&c.EnableEndpointDiscovery, section, enableEndpointDiscoveryKey)
+ 	updateBoolPtr(&c.S3UseARNRegion, section, s3UseARNRegionKey)
+ 	updateBoolPtr(&c.S3DisableMultiRegionAccessPoints, section, s3DisableMultiRegionAccessPointsKey)
++	updateBoolPtr(&c.S3DisableExpressAuth, section, s3DisableExpressSessionAuthKey)
+ 
+ 	if err := updateEC2MetadataServiceEndpointMode(&c.EC2IMDSEndpointMode, section, ec2MetadataServiceEndpointModeKey); err != nil {
+ 		return fmt.Errorf("failed to load %s from shared config, %v", ec2MetadataServiceEndpointModeKey, err)
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/credentials/CHANGELOG.md b/vendor/github.com/aws/aws-sdk-go-v2/credentials/CHANGELOG.md
+--- a/vendor/github.com/aws/aws-sdk-go-v2/credentials/CHANGELOG.md
++++ b/vendor/github.com/aws/aws-sdk-go-v2/credentials/CHANGELOG.md
+@@ -1,3 +1,19 @@
++# v1.16.8 (2023-11-30)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.16.7 (2023-11-29)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.16.6 (2023-11-28.2)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.16.5 (2023-11-28)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
+ # v1.16.4 (2023-11-21)
+ 
+ * **Bug Fix**: Don't expect error responses to have a JSON payload in the endpointcreds provider.
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/credentials/go_module_metadata.go b/vendor/github.com/aws/aws-sdk-go-v2/credentials/go_module_metadata.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/credentials/go_module_metadata.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/credentials/go_module_metadata.go
+@@ -3,4 +3,4 @@
+ package credentials
+ 
+ // goModuleVersion is the tagged release for this module
+-const goModuleVersion = "1.16.4"
++const goModuleVersion = "1.16.8"
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/CHANGELOG.md b/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/CHANGELOG.md
+--- a/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/CHANGELOG.md
++++ b/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/CHANGELOG.md
+@@ -1,3 +1,15 @@
++# v1.14.8 (2023-11-30)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.14.7 (2023-11-29)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.14.6 (2023-11-28.2)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
+ # v1.14.5 (2023-11-20)
+ 
+ * **Dependency Update**: Updated to the latest SDK module versions
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/go_module_metadata.go b/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/go_module_metadata.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/go_module_metadata.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/feature/ec2/imds/go_module_metadata.go
+@@ -3,4 +3,4 @@
+ package imds
+ 
+ // goModuleVersion is the tagged release for this module
+-const goModuleVersion = "1.14.5"
++const goModuleVersion = "1.14.8"
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sso/CHANGELOG.md b/vendor/github.com/aws/aws-sdk-go-v2/service/sso/CHANGELOG.md
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sso/CHANGELOG.md
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sso/CHANGELOG.md
+@@ -1,3 +1,20 @@
++# v1.18.1 (2023-11-30)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.18.0 (2023-11-29)
++
++* **Feature**: Expose Options() accessor on service clients.
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.17.5 (2023-11-28.2)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.17.4 (2023-11-28)
++
++* **Bug Fix**: Respect setting RetryMaxAttempts in functional options at client construction.
++
+ # v1.17.3 (2023-11-20)
+ 
+ * **Dependency Update**: Updated to the latest SDK module versions
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sso/api_client.go b/vendor/github.com/aws/aws-sdk-go-v2/service/sso/api_client.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sso/api_client.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sso/api_client.go
+@@ -42,8 +42,6 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 
+ 	setResolvedDefaultsMode(&options)
+ 
+-	resolveRetryer(&options)
+-
+ 	resolveHTTPClient(&options)
+ 
+ 	resolveHTTPSignerV4(&options)
+@@ -56,6 +54,8 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 		fn(&options)
+ 	}
+ 
++	resolveRetryer(&options)
++
+ 	ignoreAnonymousAuth(&options)
+ 
+ 	resolveAuthSchemes(&options)
+@@ -67,6 +67,15 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 	return client
+ }
+ 
++// Options returns a copy of the client configuration.
++//
++// Callers SHOULD NOT perform mutations on any inner structures within client
++// config. Config overrides should instead be made on a per-operation basis through
++// functional options.
++func (c *Client) Options() Options {
++	return c.options.Copy()
++}
++
+ func (c *Client) invokeOperation(ctx context.Context, opID string, params interface{}, optFns []func(*Options), stackFns ...func(*middleware.Stack, Options) error) (result interface{}, metadata middleware.Metadata, err error) {
+ 	ctx = middleware.ClearStackValues(ctx)
+ 	stack := middleware.NewStack(opID, smithyhttp.NewStackRequest)
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sso/go_module_metadata.go b/vendor/github.com/aws/aws-sdk-go-v2/service/sso/go_module_metadata.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sso/go_module_metadata.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sso/go_module_metadata.go
+@@ -3,4 +3,4 @@
+ package sso
+ 
+ // goModuleVersion is the tagged release for this module
+-const goModuleVersion = "1.17.3"
++const goModuleVersion = "1.18.1"
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/CHANGELOG.md b/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/CHANGELOG.md
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/CHANGELOG.md
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/CHANGELOG.md
+@@ -1,3 +1,20 @@
++# v1.21.1 (2023-11-30)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.21.0 (2023-11-29)
++
++* **Feature**: Expose Options() accessor on service clients.
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.20.3 (2023-11-28.2)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.20.2 (2023-11-28)
++
++* **Bug Fix**: Respect setting RetryMaxAttempts in functional options at client construction.
++
+ # v1.20.1 (2023-11-20)
+ 
+ * **Dependency Update**: Updated to the latest SDK module versions
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/api_client.go b/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/api_client.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/api_client.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/api_client.go
+@@ -42,8 +42,6 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 
+ 	setResolvedDefaultsMode(&options)
+ 
+-	resolveRetryer(&options)
+-
+ 	resolveHTTPClient(&options)
+ 
+ 	resolveHTTPSignerV4(&options)
+@@ -56,6 +54,8 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 		fn(&options)
+ 	}
+ 
++	resolveRetryer(&options)
++
+ 	ignoreAnonymousAuth(&options)
+ 
+ 	resolveAuthSchemes(&options)
+@@ -67,6 +67,15 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 	return client
+ }
+ 
++// Options returns a copy of the client configuration.
++//
++// Callers SHOULD NOT perform mutations on any inner structures within client
++// config. Config overrides should instead be made on a per-operation basis through
++// functional options.
++func (c *Client) Options() Options {
++	return c.options.Copy()
++}
++
+ func (c *Client) invokeOperation(ctx context.Context, opID string, params interface{}, optFns []func(*Options), stackFns ...func(*middleware.Stack, Options) error) (result interface{}, metadata middleware.Metadata, err error) {
+ 	ctx = middleware.ClearStackValues(ctx)
+ 	stack := middleware.NewStack(opID, smithyhttp.NewStackRequest)
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/go_module_metadata.go b/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/go_module_metadata.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/go_module_metadata.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/ssooidc/go_module_metadata.go
+@@ -3,4 +3,4 @@
+ package ssooidc
+ 
+ // goModuleVersion is the tagged release for this module
+-const goModuleVersion = "1.20.1"
++const goModuleVersion = "1.21.1"
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/CHANGELOG.md b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/CHANGELOG.md
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/CHANGELOG.md
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/CHANGELOG.md
+@@ -1,3 +1,21 @@
++# v1.26.1 (2023-11-30)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.26.0 (2023-11-29)
++
++* **Feature**: Expose Options() accessor on service clients.
++* **Documentation**: Documentation updates for AWS Security Token Service.
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.25.6 (2023-11-28.2)
++
++* **Dependency Update**: Updated to the latest SDK module versions
++
++# v1.25.5 (2023-11-28)
++
++* **Bug Fix**: Respect setting RetryMaxAttempts in functional options at client construction.
++
+ # v1.25.4 (2023-11-20)
+ 
+ * **Dependency Update**: Updated to the latest SDK module versions
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_client.go b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_client.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_client.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_client.go
+@@ -46,8 +46,6 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 
+ 	setResolvedDefaultsMode(&options)
+ 
+-	resolveRetryer(&options)
+-
+ 	resolveHTTPClient(&options)
+ 
+ 	resolveHTTPSignerV4(&options)
+@@ -60,6 +58,8 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 		fn(&options)
+ 	}
+ 
++	resolveRetryer(&options)
++
+ 	ignoreAnonymousAuth(&options)
+ 
+ 	resolveAuthSchemes(&options)
+@@ -71,6 +71,15 @@ func New(options Options, optFns ...func(*Options)) *Client {
+ 	return client
+ }
+ 
++// Options returns a copy of the client configuration.
++//
++// Callers SHOULD NOT perform mutations on any inner structures within client
++// config. Config overrides should instead be made on a per-operation basis through
++// functional options.
++func (c *Client) Options() Options {
++	return c.options.Copy()
++}
++
+ func (c *Client) invokeOperation(ctx context.Context, opID string, params interface{}, optFns []func(*Options), stackFns ...func(*middleware.Stack, Options) error) (result interface{}, metadata middleware.Metadata, err error) {
+ 	ctx = middleware.ClearStackValues(ctx)
+ 	stack := middleware.NewStack(opID, smithyhttp.NewStackRequest)
+@@ -506,7 +515,7 @@ func (m *presignContextPolyfillMiddleware) HandleFinalize(ctx context.Context, i
+ 
+ 	schemeID := rscheme.Scheme.SchemeID()
+ 
+-	if schemeID == "aws.auth#sigv4" {
++	if schemeID == "aws.auth#sigv4" || schemeID == "com.amazonaws.s3#sigv4express" {
+ 		if sn, ok := smithyhttp.GetSigV4SigningName(&rscheme.SignerProperties); ok {
+ 			ctx = awsmiddleware.SetSigningName(ctx, sn)
+ 		}
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_op_AssumeRole.go b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_op_AssumeRole.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_op_AssumeRole.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/api_op_AssumeRole.go
+@@ -205,7 +205,7 @@ type AssumeRoleInput struct {
+ 	// Services STS. The following is an example of a ProvidedContext value that
+ 	// includes a single trusted context assertion and the ARN of the context provider
+ 	// from which the trusted context assertion was generated.
+-	// [{"ProviderArn":"arn:aws:iam::aws:contextProvider/identitycenter","ContextAssertion":"trusted-context-assertion"}]
++	// [{"ProviderArn":"arn:aws:iam::aws:contextProvider/IdentityCenter","ContextAssertion":"trusted-context-assertion"}]
+ 	ProvidedContexts []types.ProvidedContext
+ 
+ 	// The identification number of the MFA device that is associated with the user
+diff --git a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/go_module_metadata.go b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/go_module_metadata.go
+--- a/vendor/github.com/aws/aws-sdk-go-v2/service/sts/go_module_metadata.go
++++ b/vendor/github.com/aws/aws-sdk-go-v2/service/sts/go_module_metadata.go
+@@ -3,4 +3,4 @@
+ package sts
+ 
+ // goModuleVersion is the tagged release for this module
+-const goModuleVersion = "1.25.4"
++const goModuleVersion = "1.26.1"
+diff --git a/vendor/github.com/go-openapi/validate/values.go b/vendor/github.com/go-openapi/validate/values.go
+--- a/vendor/github.com/go-openapi/validate/values.go
++++ b/vendor/github.com/go-openapi/validate/values.go
+@@ -161,22 +161,10 @@ func ReadOnly(ctx context.Context, path, in string, data interface{}) *errors.Va
+ func Required(path, in string, data interface{}) *errors.Validation {
+ 	val := reflect.ValueOf(data)
+ 	if val.IsValid() {
+-		typ := reflect.TypeOf(data)
+-		switch typ.Kind() {
+-		case reflect.Pointer:
+-			if val.IsNil() {
+-				return errors.Required(path, in, data)
+-			}
+-			if reflect.DeepEqual(reflect.Zero(val.Elem().Type()).Interface(), val.Elem().Interface()) {
+-				return errors.Required(path, in, data)
+-			}
+-			return nil
+-		default:
+-			if reflect.DeepEqual(reflect.Zero(val.Type()).Interface(), val.Interface()) {
+-				return errors.Required(path, in, data)
+-			}
+-			return nil
++		if reflect.DeepEqual(reflect.Zero(val.Type()).Interface(), val.Interface()) {
++			return errors.Required(path, in, data)
+ 		}
++		return nil
+ 	}
+ 	return errors.Required(path, in, data)
+ }
+diff --git a/vendor/modules.txt b/vendor/modules.txt
+--- a/vendor/modules.txt
++++ b/vendor/modules.txt
+@@ -45,7 +45,7 @@ github.com/Microsoft/go-winio/pkg/guid
+ # github.com/alecthomas/participle/v2 v2.0.0-beta.4
+ ## explicit; go 1.18
+ github.com/alecthomas/participle/v2/lexer
+-# github.com/aliyun/alibaba-cloud-sdk-go v1.62.617
++# github.com/aliyun/alibaba-cloud-sdk-go v1.62.619
+ ## explicit; go 1.13
+ github.com/aliyun/alibaba-cloud-sdk-go/sdk
+ github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
+@@ -94,10 +94,10 @@ github.com/aws/aws-sdk-go-v2/internal/shareddefaults
+ github.com/aws/aws-sdk-go-v2/internal/strings
+ github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
+ github.com/aws/aws-sdk-go-v2/internal/timeconv
+-# github.com/aws/aws-sdk-go-v2/config v1.25.5
++# github.com/aws/aws-sdk-go-v2/config v1.25.10
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/config
+-# github.com/aws/aws-sdk-go-v2/credentials v1.16.4
++# github.com/aws/aws-sdk-go-v2/credentials v1.16.8
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/credentials
+ github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
+@@ -106,7 +106,7 @@ github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
+ github.com/aws/aws-sdk-go-v2/credentials/processcreds
+ github.com/aws/aws-sdk-go-v2/credentials/ssocreds
+ github.com/aws/aws-sdk-go-v2/credentials/stscreds
+-# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.5
++# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.8
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/feature/ec2/imds
+ github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
+@@ -130,17 +130,17 @@ github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
+ # github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.7
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
+-# github.com/aws/aws-sdk-go-v2/service/sso v1.17.3
++# github.com/aws/aws-sdk-go-v2/service/sso v1.18.1
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/service/sso
+ github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
+ github.com/aws/aws-sdk-go-v2/service/sso/types
+-# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.20.1
++# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.21.1
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/service/ssooidc
+ github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
+ github.com/aws/aws-sdk-go-v2/service/ssooidc/types
+-# github.com/aws/aws-sdk-go-v2/service/sts v1.25.4
++# github.com/aws/aws-sdk-go-v2/service/sts v1.26.1
+ ## explicit; go 1.19
+ github.com/aws/aws-sdk-go-v2/service/sts
+ github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
+@@ -650,7 +650,7 @@ github.com/go-openapi/runtime/middleware/header
+ github.com/go-openapi/runtime/middleware/untyped
+ github.com/go-openapi/runtime/security
+ github.com/go-openapi/runtime/yamlpc
+-# github.com/go-openapi/spec v0.20.9
++# github.com/go-openapi/spec v0.20.11
+ ## explicit; go 1.13
+ github.com/go-openapi/spec
+ # github.com/go-openapi/strfmt v0.21.7
+@@ -659,7 +659,7 @@ github.com/go-openapi/strfmt
+ # github.com/go-openapi/swag v0.22.4
+ ## explicit; go 1.18
+ github.com/go-openapi/swag
+-# github.com/go-openapi/validate v0.22.2
++# github.com/go-openapi/validate v0.22.3
+ ## explicit; go 1.18
+ github.com/go-openapi/validate
+ # github.com/gobuffalo/flect v1.0.2

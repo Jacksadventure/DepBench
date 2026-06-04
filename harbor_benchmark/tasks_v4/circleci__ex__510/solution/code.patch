@@ -1,0 +1,184 @@
+diff --git a/closer/closer.go b/closer/closer.go
+new file mode 100644
+index 000000000..26330923f
+--- /dev/null
++++ b/closer/closer.go
+@@ -0,0 +1,13 @@
++/*
++Package closer contains a helper function for not losing deferred errors
++*/
++package closer
++
++import "io"
++
++func ErrorHandler(c io.Closer, in *error) {
++	cerr := c.Close()
++	if *in == nil {
++		*in = cerr
++	}
++}
+diff --git a/datadog/client.go b/datadog/client.go
+index 19bee3e47..ec9451e12 100644
+--- a/datadog/client.go
++++ b/datadog/client.go
+@@ -9,6 +9,8 @@ import (
+ 	"net/url"
+ 	"strconv"
+ 	"time"
++
++	"github.com/circleci/ex/closer"
+ )
+ 
+ type Client struct {
+@@ -201,11 +203,12 @@ func (c *Client) doRequest(req *http.Request, value interface{}, meta *ResponseM
+ 		req.Header.Set("DD-APPLICATION-KEY", c.AppKey)
+ 	}
+ 
++	//nolint:bodyclose // handled by closer
+ 	resp, err := c.httpClient().Do(req)
+ 	if err != nil {
+ 		return fmt.Errorf("failed to execute HTTP request: %w", err)
+ 	}
+-	defer resp.Body.Close()
++	defer closer.ErrorHandler(resp.Body, &err)
+ 
+ 	if meta != nil {
+ 		err = meta.RateLimit.LoadFromHeader(&resp.Header)
+diff --git a/releases/download/downloader.go b/releases/download/downloader.go
+index 145ea649f..51d7845d6 100644
+--- a/releases/download/downloader.go
++++ b/releases/download/downloader.go
+@@ -13,6 +13,8 @@ import (
+ 	"os"
+ 	"path/filepath"
+ 	"time"
++
++	"github.com/circleci/ex/closer"
+ )
+ 
+ type Downloader struct {
+@@ -108,31 +110,31 @@ func isCached(target string) bool {
+ 	return !info.IsDir()
+ }
+ 
+-func (d *Downloader) downloadFile(ctx context.Context, url, target string, perm os.FileMode) error {
+-	err := os.MkdirAll(filepath.Dir(target), 0755) // #nosec - the downloads are intentionally world-readable
++func (d *Downloader) downloadFile(ctx context.Context, url, target string, perm os.FileMode) (err error) {
++	err = os.MkdirAll(filepath.Dir(target), 0755) // #nosec - the downloads are intentionally world-readable
+ 	if err != nil {
+ 		return fmt.Errorf("could not create directory: %w", err)
+ 	}
+ 
+-	// #nosec - this is an executable binary, these permissions are needed.
++	//#nosec:G304 // this is an executable binary, these permissions are needed.
++	//nolint:bodyclose // handled by closer
+ 	out, err := os.OpenFile(target, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+ 	if err != nil {
+ 		return fmt.Errorf("could not create file: %w", err)
+ 	}
+-	defer func() {
+-		err = out.Close()
+-	}()
++	defer closer.ErrorHandler(out, &err)
+ 
+ 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+ 	if err != nil {
+ 		return fmt.Errorf("cannot create HTTP request: %w", err)
+ 	}
+ 
++	//nolint:bodyclose // handled by closer
+ 	res, err := d.client.Do(req)
+ 	if err != nil {
+ 		return fmt.Errorf("could not get URL %q: %w", url, err)
+ 	}
+-	defer res.Body.Close()
++	defer closer.ErrorHandler(res.Body, &err)
+ 
+ 	if res.StatusCode >= 300 {
+ 		return fmt.Errorf("unexpected status: %s", res.Status)
+@@ -142,5 +144,6 @@ func (d *Downloader) downloadFile(ctx context.Context, url, target string, perm
+ 	if err != nil {
+ 		return fmt.Errorf("could not write file %q: %w", target, err)
+ 	}
++
+ 	return nil
+ }
+diff --git a/releases/releaser/releaser.go b/releases/releaser/releaser.go
+index 8bcc71cdd..be58fef1a 100644
+--- a/releases/releaser/releaser.go
++++ b/releases/releaser/releaser.go
+@@ -19,6 +19,8 @@ import (
+ 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+ 	"github.com/aws/aws-sdk-go-v2/service/s3"
+ 	"golang.org/x/sync/errgroup"
++
++	"github.com/circleci/ex/closer"
+ )
+ 
+ var (
+@@ -114,7 +116,7 @@ func (r *Releaser) uploadBinaries(ctx context.Context, params PublishParameters)
+ 		if err != nil {
+ 			return err
+ 		}
+-		defer closer(in, &err)
++		defer closer.ErrorHandler(in, &err)
+ 
+ 		g, _ := errgroup.WithContext(ctx)
+ 		defer func() {
+@@ -125,7 +127,7 @@ func (r *Releaser) uploadBinaries(ctx context.Context, params PublishParameters)
+ 		}()
+ 
+ 		pr, pw := io.Pipe()
+-		defer closer(pw, &err)
++		defer closer.ErrorHandler(pw, &err)
+ 
+ 		g.Go(func() error {
+ 			_, err := r.uploader.Upload(ctx, &s3.PutObjectInput{
+@@ -145,7 +147,7 @@ func (r *Releaser) uploadBinaries(ctx context.Context, params PublishParameters)
+ 		})
+ 
+ 		gz := gzip.NewWriter(pw)
+-		defer closer(gz, &err)
++		defer closer.ErrorHandler(gz, &err)
+ 
+ 		_, err = io.Copy(gz, in)
+ 		return err
+@@ -231,10 +233,3 @@ func encodeTags(tags map[string]string) *string {
+ 	encoded := params.Encode()
+ 	return &encoded
+ }
+-
+-func closer(r io.Closer, in *error) {
+-	ferr := r.Close()
+-	if *in == nil {
+-		*in = ferr
+-	}
+-}
+diff --git a/testing/runner/runner.go b/testing/runner/runner.go
+index 4a4dc9a33..953bf8428 100644
+--- a/testing/runner/runner.go
++++ b/testing/runner/runner.go
+@@ -17,6 +17,7 @@ import (
+ 
+ 	"golang.org/x/sync/errgroup"
+ 
++	"github.com/circleci/ex/closer"
+ 	"github.com/circleci/ex/internal/syncbuffer"
+ )
+ 
+@@ -270,12 +271,13 @@ func getPort(lines []string, serverName, ignore string) string {
+ 	return ""
+ }
+ 
+-func getReady(port int) error {
++func getReady(port int) (err error) {
++	//nolint:bodyclose // handled by closer
+ 	r, err := http.Get(fmt.Sprintf("http://localhost:%d/ready", port))
+ 	if err != nil {
+ 		return err
+ 	}
+-	defer r.Body.Close() // not concerned about an error here
++	defer closer.ErrorHandler(r.Body, &err)
+ 	if r.StatusCode != 200 {
+ 		b, _ := io.ReadAll(r.Body)
+ 		return fmt.Errorf("got non 200 response: %d: %s", r.StatusCode, b)

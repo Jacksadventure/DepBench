@@ -1,0 +1,71 @@
+diff --git a/packages/adapter-auto/test/adapters.spec.js b/packages/adapter-auto/test/adapters.spec.js
+--- a/packages/adapter-auto/test/adapters.spec.js
++++ b/packages/adapter-auto/test/adapters.spec.js
+@@ -1,5 +1,5 @@
+ import { assert, test } from 'vitest';
+-import { adapters } from 'adapters.js';
++import { adapters } from '../adapters.js';
+ import { existsSync, readFileSync } from 'node:fs';
+ 
+ test('adapter versions are up to date', () => {
+diff --git a/packages/adapter-vercel/test/utils.spec.js b/packages/adapter-vercel/test/utils.spec.js
+--- a/packages/adapter-vercel/test/utils.spec.js
++++ b/packages/adapter-vercel/test/utils.spec.js
+@@ -2,7 +2,9 @@ import { assert, test, describe } from 'vitest';
+ import { get_pathname, parse_isr_expiration, pattern_to_src, resolve_runtime } from '../utils.js';
+ 
+ // workaround so that TypeScript doesn't follow that import which makes it pick up that file and then error on missing import aliases
+-const { parse_route_id } = await import('../../kit/src/' + 'utils/routing.js');
++const { parse_route_id } = await import(
++	new URL('../../kit/src/' + 'utils/routing.js', import.meta.url).href
++);
+ 
+ /**
+  * @param {import('@sveltejs/kit').RouteDefinition<any>['segments']} segments
+diff --git a/packages/kit/test/apps/basics/vite.config.js b/packages/kit/test/apps/basics/vite.config.js
+--- a/packages/kit/test/apps/basics/vite.config.js
++++ b/packages/kit/test/apps/basics/vite.config.js
+@@ -1,5 +1,6 @@
+ import * as path from 'node:path';
+ import { sveltekit } from '@sveltejs/kit/vite';
++import { playwright } from '@vitest/browser-playwright';
+ import { defineConfig } from 'vitest/config';
+ 
+ export default defineConfig({
+@@ -25,15 +26,13 @@ export default defineConfig({
+ 				extends: './vite.config.js',
+ 				test: {
+ 					name: 'client',
+-					environment: 'browser',
+ 					browser: {
+ 						enabled: true,
+-						provider: 'playwright',
++						provider: playwright(),
+ 						instances: [{ browser: 'chromium' }],
+ 						headless: true
+ 					},
+-					include: ['unit-test/**/*.spec.js'],
+-					setupFiles: ['./vitest-setup-client.ts']
++					include: ['unit-test/**/*.spec.js']
+ 				}
+ 			}
+ 		]
+diff --git a/packages/kit/test/apps/basics/vitest-setup-client.ts b/packages/kit/test/apps/basics/vitest-setup-client.ts
+deleted file mode 100644
+--- a/packages/kit/test/apps/basics/vitest-setup-client.ts
++++ /dev/null
+@@ -1,2 +0,0 @@
+-/// <reference types="@vitest/browser/matchers" />
+-/// <reference types="@vitest/browser/providers/playwright" />
+diff --git a/packages/kit/test/prerendering/basics/vite.config.js b/packages/kit/test/prerendering/basics/vite.config.js
+--- a/packages/kit/test/prerendering/basics/vite.config.js
++++ b/packages/kit/test/prerendering/basics/vite.config.js
+@@ -1,7 +1,7 @@
+ import * as path from 'node:path';
+ import { sveltekit } from '@sveltejs/kit/vite';
+ 
+-/** @type {import('vitest/config').UserConfig} */
++/** @type {import('vitest/config').ViteUserConfig} */
+ const config = {
+ 	build: {
+ 		minify: false

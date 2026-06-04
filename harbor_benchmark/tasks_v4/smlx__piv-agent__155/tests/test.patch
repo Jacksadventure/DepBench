@@ -1,0 +1,115 @@
+diff --git a/internal/assuan/assuan_test.go b/internal/assuan/assuan_test.go
+index 1b55e15..e46ebce 100644
+--- a/internal/assuan/assuan_test.go
++++ b/internal/assuan/assuan_test.go
+@@ -4,7 +4,6 @@ import (
+ 	"bytes"
+ 	"context"
+ 	"crypto"
+-	"crypto/ecdsa"
+ 	"encoding/hex"
+ 	"fmt"
+ 	"io"
+@@ -13,6 +12,10 @@ import (
+ 	"testing"
+ 	"time"
+ 
++	"github.com/ProtonMail/go-crypto/openpgp"
++	"github.com/ProtonMail/go-crypto/openpgp/armor"
++	"github.com/ProtonMail/go-crypto/openpgp/ecdsa"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ 	"github.com/davecgh/go-spew/spew"
+ 	"github.com/golang/mock/gomock"
+ 	"github.com/smlx/piv-agent/internal/assuan"
+@@ -23,14 +26,11 @@ import (
+ 	"go.uber.org/zap"
+ 	"golang.org/x/crypto/cryptobyte"
+ 	"golang.org/x/crypto/cryptobyte/asn1"
+-	"golang.org/x/crypto/openpgp"
+-	"golang.org/x/crypto/openpgp/armor"
+-	"golang.org/x/crypto/openpgp/packet"
+ )
+ 
+ // MockCryptoSigner is a mock type which implements crypto.Signer
+ type MockCryptoSigner struct {
+-	PubKey    crypto.PublicKey
++	PubKey    *ecdsa.PublicKey
+ 	Signature []byte
+ }
+ 
+@@ -536,18 +536,15 @@ func TestReadKey(t *testing.T) {
+ 			}
+ 			// check the responses
+ 			for _, expected := range tc.expect {
+-				//spew.Dump(mockConn.WriteBuf.String())
+ 				line, err := mockConn.WriteBuf.ReadString(byte('\n'))
++				if line != expected {
++					tt.Log("got", spew.Sdump(line))
++					tt.Log("expected", spew.Sdump(expected))
++					tt.Fail()
++				}
+ 				if err != nil && err != io.EOF {
+ 					tt.Fatal(err)
+ 				}
+-				if line != expected {
+-					fmt.Println("got")
+-					spew.Dump(line)
+-					fmt.Println("expected")
+-					spew.Dump(expected)
+-					tt.Fatalf("error")
+-				}
+ 			}
+ 		})
+ 	}
+diff --git a/internal/keyservice/gpg/helper_test.go b/internal/keyservice/gpg/helper_test.go
+new file mode 100644
+index 0000000..2da57ae
+--- /dev/null
++++ b/internal/keyservice/gpg/helper_test.go
+@@ -0,0 +1,4 @@
++package gpg
++
++// export functions for test suite
++var ECDSAPublicKey = ecdsaPublicKey
+diff --git a/internal/keyservice/gpg/keygrip_test.go b/internal/keyservice/gpg/keygrip_test.go
+index 4837fe7..5962058 100644
+--- a/internal/keyservice/gpg/keygrip_test.go
++++ b/internal/keyservice/gpg/keygrip_test.go
+@@ -9,10 +9,11 @@ import (
+ 	"strings"
+ 	"testing"
+ 
++	"github.com/ProtonMail/go-crypto/openpgp"
++	"github.com/ProtonMail/go-crypto/openpgp/armor"
++	openpgpecdsa "github.com/ProtonMail/go-crypto/openpgp/ecdsa"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ 	"github.com/smlx/piv-agent/internal/keyservice/gpg"
+-	"golang.org/x/crypto/openpgp"
+-	"golang.org/x/crypto/openpgp/armor"
+-	"golang.org/x/crypto/openpgp/packet"
+ )
+ 
+ func TestTrezorCompat(t *testing.T) {
+@@ -82,15 +83,19 @@ func TestKeyGrip(t *testing.T) {
+ 			if !ok {
+ 				tt.Fatal("not an openpgp public key")
+ 			}
+-			eccKey, ok := key.PublicKey.(*ecdsa.PublicKey)
++			eccKey, ok := key.PublicKey.(*openpgpecdsa.PublicKey)
+ 			if !ok {
+ 				tt.Fatal("not an ecdsa public key")
+ 			}
+-			if eccKey.Curve != elliptic.P256() {
++			pubKey, err := gpg.ECDSAPublicKey(eccKey)
++			if err != nil {
++				tt.Fatal(err)
++			}
++			if pubKey.Curve != elliptic.P256() {
+ 				tt.Fatal("wrong curve")
+ 			}
+ 
+-			keygrip, err := gpg.KeygripECDSA(eccKey)
++			keygrip, err := gpg.KeygripECDSA(pubKey)
+ 			if err != nil {
+ 				tt.Fatal(err)
+ 			}

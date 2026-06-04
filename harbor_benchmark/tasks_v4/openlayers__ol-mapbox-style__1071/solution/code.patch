@@ -1,0 +1,1619 @@
+diff --git a/.eslintrc b/.eslintrc
+index 88533bb8..a6da08f8 100644
+--- a/.eslintrc
++++ b/.eslintrc
+@@ -1,10 +1,13 @@
+ {
+   "extends": "openlayers",
++  "plugins": [
++    "@openlayers"
++  ],
+   "globals": {
+     "Promise": false
+   },
+   "parserOptions": {
+-    "ecmaVersion": 6,
++    "ecmaVersion": 2017,
+     "sourceType": "module"
+   },
+   "settings": {
+diff --git a/README.md b/README.md
+index 9a7f41cc..bc326c63 100644
+--- a/README.md
++++ b/README.md
+@@ -848,7 +848,7 @@ parameter of the style url.
+ 
+ #### background
+ 
+-• **background**: `false` \| `BackgroundColor`
++• **background**: `string` \| `false` \| (`arg0`: `number`) => `string`
+ 
+ Background color for the layer.
+ If not specified, the background from the Mapbox style object will be used. Set to `false` to prevent
+@@ -1117,6 +1117,10 @@ Access token param. For internal use.
+ 
+ • **getImage**: (`arg0`: `VectorLayer`\\&lt;`any`> \| `VectorTileLayer`, `arg1`: `string`) => `string` \| `HTMLCanvasElement` \| `HTMLImageElement`
+ 
++Function that returns an image for an icon name. If the result is an HTMLImageElement, it must already be
++loaded. The layer can be used to call layer.changed() when the loading and processing of the image has finished.
++This function be used for icons not in the sprite or to override sprite icons.
++
+ ##### Type declaration
+ 
+ ▸ (`arg0`, `arg1`): `string` \| `HTMLCanvasElement` \| `HTMLImageElement`
+@@ -1173,6 +1177,11 @@ as object, when they contain a relative sprite url, or sources referencing data
+ 
+ • **transformRequest**: (`arg0`: `string`, `arg1`: [`ResourceType`](#ResourceType)) => `string` \| `void` \| `Request` \| `Promise`\\&lt;`string` \| `Request`>
+ 
++Function for controlling how `ol-mapbox-style` fetches resources. Can be used for modifying
++the url, adding headers or setting credentials options. Called with the url and the resource
++type as arguments, this function is supposed to return a `Request` or a url `string`, or a promise tehereof.
++Without a return value the original request will not be modified.
++
+ ##### Type declaration
+ 
+ ▸ (`arg0`, `arg1`): `string` \| `void` \| `Request` \| `Promise`\\&lt;`string` \| `Request`>
+diff --git a/examples/data/circles-style.json b/examples/data/circles-style.json
+new file mode 100644
+index 00000000..5dbc4f9e
+--- /dev/null
++++ b/examples/data/circles-style.json
+@@ -0,0 +1,111 @@
++{
++  "version": 8,
++  "zoom": 7,
++  "sources": {
++    "fwp_land": {
++      "type": "geojson",
++      "data": "https://sos-at-vie-1.exo.io/w3geo/waldgis/data/fwp_land.geojson"
++    }
++  },
++  "layers": [
++    {
++      "id": "Mehr als 2 FWP des Landes",
++      "type": "circle",
++      "source": "fwp_land",
++      "filter": [
++        "all",
++        [
++          ">",
++          [
++            "get",
++            "#FWPLand"
++          ],
++          2
++        ],
++        [
++          "<=",
++          [
++            "get",
++            "#FWPLand"
++          ],
++          4
++        ]
++      ],
++      "paint": {
++        "circle-radius": [
++          "/",
++          17.857142857142854,
++          2
++        ],
++        "circle-color": "#df4f06",
++        "circle-stroke-width": 1
++      }
++    },
++    {
++      "id": "Zwei FWP des Landes",
++      "type": "circle",
++      "source": "fwp_land",
++      "filter": [
++        "all",
++        [
++          ">",
++          [
++            "get",
++            "#FWPLand"
++          ],
++          1
++        ],
++        [
++          "<=",
++          [
++            "get",
++            "#FWPLand"
++          ],
++          2
++        ]
++      ],
++      "paint": {
++        "circle-radius": [
++          "/",
++          14.285714285714285,
++          2
++        ],
++        "circle-color": "#fd9242",
++        "circle-stroke-width": 1
++      }
++    },
++    {
++      "id": "Ein FWP des Landes",
++      "type": "circle",
++      "source": "fwp_land",
++      "filter": [
++        "all",
++        [
++          ">=",
++          [
++            "get",
++            "#FWPLand"
++          ],
++          0
++        ],
++        [
++          "<=",
++          [
++            "get",
++            "#FWPLand"
++          ],
++          1
++        ]
++      ],
++      "paint": {
++        "circle-radius": [
++          "/",
++          10.714285714285714,
++          2
++        ],
++        "circle-color": "#fed1a7",
++        "circle-stroke-width": 1
++      }
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/examples/data/polygons-style.json b/examples/data/polygons-style.json
+new file mode 100644
+index 00000000..200e0af7
+--- /dev/null
++++ b/examples/data/polygons-style.json
+@@ -0,0 +1,20 @@
++{
++  "version": 8,
++  "sources": {
++    "Wasserschongebiete": {
++      "type": "geojson",
++      "data": "https://sos-at-vie-1.exo.io/w3geo/waldgis/data/Wasserschongebiete.geojson"
++    }
++  },
++  "layers": [
++    {
++      "id": "Wasserschongebiete",
++      "type": "fill",
++      "source": "Wasserschongebiete",
++      "paint": {
++        "fill-color": "#37c0eb",
++        "fill-outline-color": "#4444ce"
++      }
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/examples/esri-4326.js b/examples/esri-4326.js
+index 6d95dc13..655d6441 100644
+--- a/examples/esri-4326.js
++++ b/examples/esri-4326.js
+@@ -6,5 +6,5 @@ apply(
+   'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_GCS_v2/VectorTileServer/resources/styles/',
+   {
+     projection: 'EPSG:4326',
+-  }
++  },
+ );
+diff --git a/examples/esri-transformrequest.js b/examples/esri-transformrequest.js
+index ee541cad..6eabe774 100644
+--- a/examples/esri-transformrequest.js
++++ b/examples/esri-transformrequest.js
+@@ -8,9 +8,9 @@ olms(
+     transformRequest(url, type) {
+       if (type === 'Source') {
+         return new Request(
+-          url.replace('/VectorTileServer', '/VectorTileServer/')
++          url.replace('/VectorTileServer', '/VectorTileServer/'),
+         );
+       }
+     },
+-  }
++  },
+ );
+diff --git a/examples/geojson-featurestate.js b/examples/geojson-featurestate.js
+index 95e4aad2..1df1fff5 100644
+--- a/examples/geojson-featurestate.js
++++ b/examples/geojson-featurestate.js
+@@ -34,7 +34,7 @@ fetch(styleUrl)
+         setFeatureState(
+           map,
+           {source: 'states', id: hoveredStateId},
+-          {hover: true}
++          {hover: true},
+         );
+       } else if (hoveredStateId !== null) {
+         setFeatureState(map, {source: 'states', id: hoveredStateId}, null);
+diff --git a/examples/mapbox.js b/examples/mapbox.js
+index ff590fe9..7f733dda 100644
+--- a/examples/mapbox.js
++++ b/examples/mapbox.js
+@@ -3,7 +3,7 @@ import olms from 'ol-mapbox-style';
+ 
+ let key = document.cookie.replace(
+   /(?:(?:^|.*;\s*)mapbox_access_token\s*\=\s*([^;]*).*$)|^.*$/,
+-  '$1'
++  '$1',
+ );
+ if (!key) {
+   key = window.prompt('Enter your Mapbox API access token:');
+diff --git a/examples/maptiler-hillshading.js b/examples/maptiler-hillshading.js
+index cd250747..66194a49 100644
+--- a/examples/maptiler-hillshading.js
++++ b/examples/maptiler-hillshading.js
+@@ -3,7 +3,7 @@ import olms from 'ol-mapbox-style';
+ 
+ let key = document.cookie.replace(
+   /(?:(?:^|.*;\s*)maptiler_access_token\s*\=\s*([^;]*).*$)|^.*$/,
+-  '$1'
++  '$1',
+ );
+ if (!key) {
+   key = window.prompt('Enter your MapTiler API access token:');
+@@ -23,6 +23,6 @@ fetch(`https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`)
+           'ol:webfonts':
+             'https://fonts.googleapis.com/css?family={Font+Family}:{fontweight}{fontstyle}',
+         }),
+-      })
++      }),
+     );
+   });
+diff --git a/examples/openmaptiles-layer.js b/examples/openmaptiles-layer.js
+index d4d9381b..04c4170e 100644
+--- a/examples/openmaptiles-layer.js
++++ b/examples/openmaptiles-layer.js
+@@ -7,7 +7,7 @@ const baseUrl = 'https://api.maptiler.com/maps/basic/style.json';
+ 
+ let key = document.cookie.replace(
+   /(?:(?:^|.*;\s*)maptiler_access_token\s*\=\s*([^;]*).*$)|^.*$/,
+-  '$1'
++  '$1',
+ );
+ if (!key) {
+   key = window.prompt('Enter your MapTiler API access token:');
+diff --git a/examples/openmaptiles.js b/examples/openmaptiles.js
+index 06a0dc37..52850503 100644
+--- a/examples/openmaptiles.js
++++ b/examples/openmaptiles.js
+@@ -5,7 +5,7 @@ const baseUrl = 'https://api.maptiler.com/maps/basic/style.json';
+ 
+ let key = document.cookie.replace(
+   /(?:(?:^|.*;\s*)maptiler_access_token\s*\=\s*([^;]*).*$)|^.*$/,
+-  '$1'
++  '$1',
+ );
+ if (!key) {
+   key = window.prompt('Enter your MapTiler API access token:');
+diff --git a/examples/sdf-sprites.js b/examples/sdf-sprites.js
+index d1e6121e..1e3f0695 100644
+--- a/examples/sdf-sprites.js
++++ b/examples/sdf-sprites.js
+@@ -5,7 +5,7 @@ const baseUrl = 'https://api.maptiler.com/maps/test-bright/style.json';
+ 
+ let key = document.cookie.replace(
+   /(?:(?:^|.*;\s*)maptiler_access_token\s*\=\s*([^;]*).*$)|^.*$/,
+-  '$1'
++  '$1',
+ );
+ if (!key) {
+   key = window.prompt('Enter your MapTiler API access token:');
+diff --git a/src/MapboxVectorLayer.js b/src/MapboxVectorLayer.js
+index 1920508d..b9d19860 100644
+--- a/src/MapboxVectorLayer.js
++++ b/src/MapboxVectorLayer.js
+@@ -188,7 +188,7 @@ export default class MapboxVectorLayer extends VectorTileLayer {
+       promises.push(
+         applyBackground(this, options.styleUrl, {
+           accessToken: this.accessToken,
+-        })
++        }),
+       );
+     }
+     Promise.all(promises)
+diff --git a/src/apply.js b/src/apply.js
+index 78e2144e..ca3b3ead 100644
+--- a/src/apply.js
++++ b/src/apply.js
+@@ -184,7 +184,7 @@ export function applyStyle(
+   glStyle,
+   sourceOrLayersOrOptions = '',
+   optionsOrPath = {},
+-  resolutions = undefined
++  resolutions = undefined,
+ ) {
+   let styleUrl, sourceId;
+   /** @type {Options&ApplyStyleOptions} */
+@@ -241,7 +241,7 @@ export function applyStyle(
+           !(layer instanceof VectorLayer || layer instanceof VectorTileLayer)
+         ) {
+           return reject(
+-            new Error('Can only apply to VectorLayer or VectorTileLayer')
++            new Error('Can only apply to VectorLayer or VectorTileLayer'),
+           );
+         }
+ 
+@@ -270,7 +270,7 @@ export function applyStyle(
+             return setupVectorSource(
+               glStyle.sources[sourceId],
+               styleUrl,
+-              options
++              options,
+             ).then(function (source) {
+               const targetSource = layer.getSource();
+               if (!targetSource) {
+@@ -296,13 +296,13 @@ export function applyStyle(
+                   targetSource.getTileLoadFunction() === defaultLoadFunction
+                 ) {
+                   targetSource.setTileLoadFunction(
+-                    source.getTileLoadFunction()
++                    source.getTileLoadFunction(),
+                   );
+                 }
+                 if (
+                   equivalent(
+                     targetSource.getProjection(),
+-                    source.getProjection()
++                    source.getProjection(),
+                   )
+                 ) {
+                   targetSource.tileGrid = source.getTileGrid();
+@@ -314,7 +314,7 @@ export function applyStyle(
+               ) {
+                 const tileGrid = layer.getSource().getTileGrid();
+                 layer.setMaxResolution(
+-                  tileGrid.getResolution(tileGrid.getMinZoom())
++                  tileGrid.getResolution(tileGrid.getMinZoom()),
+                 );
+               }
+             });
+@@ -350,7 +350,7 @@ export function applyStyle(
+               const units = projection.getUnits();
+               if (units !== 'm') {
+                 resolutions = defaultResolutions.map(
+-                  (resolution) => resolution / METERS_PER_UNIT[units]
++                  (resolution) => resolution / METERS_PER_UNIT[units],
+                 );
+               }
+             }
+@@ -362,7 +362,7 @@ export function applyStyle(
+               spriteData,
+               spriteImageUrl,
+               getFonts,
+-              options.getImage
++              options.getImage,
+             );
+             if (!layer.getStyle()) {
+               reject(new Error(`Nothing to show for source [${sourceId}]`));
+@@ -382,8 +382,8 @@ export function applyStyle(
+             normalizeSpriteUrl(
+               glStyle.sprite,
+               options.accessToken,
+-              styleUrl || location.href
+-            )
++              styleUrl || location.href,
++            ),
+           );
+           spriteScale = window.devicePixelRatio >= 1.5 ? 0.5 : 1;
+           const sizeFactor = spriteScale == 0.5 ? '@2x' : '';
+@@ -432,8 +432,8 @@ export function applyStyle(
+             .catch(function (err) {
+               reject(
+                 new Error(
+-                  `Sprites cannot be loaded: ${spriteUrl}: ${err.message}`
+-                )
++                  `Sprites cannot be loaded: ${spriteUrl}: ${err.message}`,
++                ),
+               );
+             });
+         } else {
+@@ -533,7 +533,7 @@ function sourceOptionsFromTileJSON(glSource, tileJSON, options) {
+       minZoom: minZoom,
+       resolutions: getTileResolutions(projection, tileJSON.tileSize).slice(
+         0,
+-        maxZoom + 1
++        maxZoom + 1,
+       ),
+       tileSize: tileGrid.getTileSize(0),
+     }),
+@@ -556,7 +556,7 @@ function getBackgroundColor(glLayer, resolution, options, functionCache) {
+   background['paint'] = paint;
+   const zoom = getZoomForResolution(
+     resolution,
+-    options.resolutions || defaultResolutions
++    options.resolutions || defaultResolutions,
+   );
+   let opacity;
+   const bg = getValue(
+@@ -565,7 +565,7 @@ function getBackgroundColor(glLayer, resolution, options, functionCache) {
+     'background-color',
+     zoom,
+     emptyObj,
+-    functionCache
++    functionCache,
+   );
+   if (paint['background-opacity'] !== undefined) {
+     opacity = getValue(
+@@ -574,7 +574,7 @@ function getBackgroundColor(glLayer, resolution, options, functionCache) {
+       'background-opacity',
+       zoom,
+       emptyObj,
+-      functionCache
++      functionCache,
+     );
+   }
+   return layout.visibility == 'none'
+@@ -601,7 +601,7 @@ function setupBackgroundLayer(glLayer, options, functionCache) {
+         glLayer,
+         frameState.viewState.resolution,
+         options,
+-        functionCache
++        functionCache,
+       );
+       div.style.backgroundColor = color;
+       return div;
+@@ -625,7 +625,7 @@ export function setupVectorSource(glSource, styleUrl, options) {
+         const sourceOptions = sourceOptionsFromTileJSON(
+           glSource,
+           tileJson,
+-          options
++          options,
+         );
+         sourceOptions.tileLoadFunction = tileLoadFunction;
+         sourceOptions.format = new MVT();
+@@ -670,7 +670,7 @@ function setupRasterSource(glSource, styleUrl, options) {
+         source.tileGrid = sourceOptionsFromTileJSON(
+           glSource,
+           tileJson,
+-          options
++          options,
+         ).tileGrid;
+         if (options.projection) {
+           //@ts-ignore
+@@ -747,7 +747,7 @@ function setupGeoJSONSource(glSource, styleUrl, options) {
+       data,
+       options.accessToken,
+       options.accessTokenParam || 'access_token',
+-      styleUrl || location.href
++      styleUrl || location.href,
+     );
+     if (/\{bbox-[0-9a-z-]+\}/.test(geoJsonUrl)) {
+       const extentUrl = (extent, resolution, projection) => {
+@@ -815,8 +815,8 @@ function setupGeoJSONSource(glSource, styleUrl, options) {
+         attributions: glSource.attribution,
+         format: geoJsonFormat,
+       },
+-      sourceOptions
+-    )
++      sourceOptions,
++    ),
+   );
+   source.set('mapbox-source', glSource);
+   return /** @type {VectorSource} */ (source);
+@@ -852,7 +852,7 @@ function updateRasterLayerProperties(glLayer, layer, zoom, functionCache) {
+     'raster-opacity',
+     zoom,
+     emptyObj,
+-    functionCache
++    functionCache,
+   );
+   layer.setOpacity(opacity);
+ }
+@@ -899,7 +899,7 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+   } else if (glSource.type == 'raster') {
+     layer = setupRasterLayer(glSource, styleUrl, options);
+     layer.setVisible(
+-      glLayer.layout ? glLayer.layout.visibility !== 'none' : true
++      glLayer.layout ? glLayer.layout.visibility !== 'none' : true,
+     );
+     layer.on('prerender', prerenderRasterLayer(glLayer, layer, functionCache));
+   } else if (glSource.type == 'geojson') {
+@@ -912,7 +912,7 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+       data.resolution = event.resolution;
+       const zoom = getZoomForResolution(
+         event.resolution,
+-        options.resolutions || defaultResolutions
++        options.resolutions || defaultResolutions,
+       );
+       data.encoding = glSource.encoding;
+       data.vert =
+@@ -923,7 +923,7 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+           'hillshade-exaggeration',
+           zoom,
+           emptyObj,
+-          functionCache
++          functionCache,
+         );
+       data.sunAz = getValue(
+         glLayer,
+@@ -931,7 +931,7 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+         'hillshade-illumination-direction',
+         zoom,
+         emptyObj,
+-        functionCache
++        functionCache,
+       );
+       data.sunEl = 35;
+       data.opacity = 0.3;
+@@ -941,7 +941,7 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+         'hillshade-highlight-color',
+         zoom,
+         emptyObj,
+-        functionCache
++        functionCache,
+       );
+       data.shadowColor = getValue(
+         glLayer,
+@@ -949,7 +949,7 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+         'hillshade-shadow-color',
+         zoom,
+         emptyObj,
+-        functionCache
++        functionCache,
+       );
+       data.accentColor = getValue(
+         glLayer,
+@@ -957,11 +957,11 @@ export function setupLayer(glStyle, styleUrl, glLayer, options) {
+         'hillshade-accent-color',
+         zoom,
+         emptyObj,
+-        functionCache
++        functionCache,
+       );
+     });
+     layer.setVisible(
+-      glLayer.layout ? glLayer.layout.visibility !== 'none' : true
++      glLayer.layout ? glLayer.layout.visibility !== 'none' : true,
+     );
+   }
+   const glSourceId = id;
+@@ -993,7 +993,7 @@ function processStyle(glStyle, mapOrGroup, styleUrl, options) {
+           maxResolution:
+             defaultResolutions[0] / METERS_PER_UNIT[projection.getUnits()],
+           projection: options.projection || view.getProjection(),
+-        })
++        }),
+       );
+       mapOrGroup.setView(view);
+     }
+@@ -1005,7 +1005,7 @@ function processStyle(glStyle, mapOrGroup, styleUrl, options) {
+       view.setResolution(
+         defaultResolutions[0] /
+           METERS_PER_UNIT[view.getProjection().getUnits()] /
+-          Math.pow(2, glStyle.zoom)
++          Math.pow(2, glStyle.zoom),
+       );
+     }
+     if (!view.getCenter() || view.getZoom() === undefined) {
+@@ -1042,8 +1042,8 @@ function processStyle(glStyle, mapOrGroup, styleUrl, options) {
+               glStyle,
+               styleUrl,
+               mapOrGroup,
+-              options
+-            )
++              options,
++            ),
+           );
+           layerIds = [];
+         }
+@@ -1060,7 +1060,7 @@ function processStyle(glStyle, mapOrGroup, styleUrl, options) {
+     }
+   }
+   promises.push(
+-    finalizeLayer(layer, layerIds, glStyle, styleUrl, mapOrGroup, options)
++    finalizeLayer(layer, layerIds, glStyle, styleUrl, mapOrGroup, options),
+   );
+   return Promise.all(promises);
+ }
+@@ -1156,7 +1156,7 @@ export function apply(mapOrGroupOrElement, style, options = {}) {
+         !options.styleUrl || options.styleUrl.startsWith('data:')
+           ? location.href
+           : normalizeStyleUrl(options.styleUrl, options.accessToken),
+-        options
++        options,
+       )
+         .then(function () {
+           resolve(mapOrGroup);
+@@ -1191,7 +1191,7 @@ export function finalizeLayer(
+   glStyle,
+   styleUrl,
+   mapOrGroup,
+-  options = {}
++  options = {},
+ ) {
+   let minZoom = 24;
+   let maxZoom = 0;
+@@ -1209,8 +1209,8 @@ export function finalizeLayer(
+       if (!source || source.getState() === 'error') {
+         reject(
+           new Error(
+-            'Error accessing data for source ' + layer.get('mapbox-source')
+-          )
++            'Error accessing data for source ' + layer.get('mapbox-source'),
++          ),
+         );
+         return;
+       }
+@@ -1225,13 +1225,13 @@ export function finalizeLayer(
+             layer.setMaxResolution(
+               Math.min(
+                 defaultTileGrid.getResolution(minZoom),
+-                tileGrid.getResolution(sourceMinZoom)
+-              ) + 1e-9
++                tileGrid.getResolution(sourceMinZoom),
++              ) + 1e-9,
+             );
+           }
+           if (maxZoom < 24) {
+             layer.setMinResolution(
+-              defaultTileGrid.getResolution(maxZoom) + 1e-9
++              defaultTileGrid.getResolution(maxZoom) + 1e-9,
+             );
+           }
+         }
+@@ -1250,7 +1250,7 @@ export function finalizeLayer(
+           ),
+           glStyle,
+           layerIds,
+-          Object.assign({styleUrl: styleUrl}, options)
++          Object.assign({styleUrl: styleUrl}, options),
+         )
+           .then(function () {
+             manageVisibility(layer, mapOrGroup);
+@@ -1343,7 +1343,7 @@ export function addMapboxLayer(mapOrGroup, mapboxLayer, beforeLayerId) {
+       glStyle,
+       styleUrl,
+       mapOrGroup,
+-      options
++      options,
+     );
+   }
+ 
+@@ -1355,7 +1355,7 @@ export function addMapboxLayer(mapOrGroup, mapboxLayer, beforeLayerId) {
+     styleFunctionArgs[
+       getStyleFunctionKey(
+         mapOrGroup.get('mapbox-style'),
+-        getLayer(mapOrGroup, sourceLayerId)
++        getLayer(mapOrGroup, sourceLayerId),
+       )
+     ];
+   mapboxLayers.splice(spliceIndex, 0, mapboxLayer);
+@@ -1382,7 +1382,7 @@ export function addMapboxLayer(mapOrGroup, mapboxLayer, beforeLayerId) {
+       spriteData,
+       spriteImageUrl,
+       getFonts,
+-      getImage
++      getImage,
+     );
+   } else {
+     getLayer(mapOrGroup, mapboxLayers[sourceIndex].id).changed();
+@@ -1407,7 +1407,7 @@ export function updateMapboxLayer(mapOrGroup, mapboxLayer) {
+   const oldLayer = mapboxLayers[index];
+   if (oldLayer.source !== mapboxLayer.source) {
+     throw new Error(
+-      'Updated layer and previous version must use the same source.'
++      'Updated layer and previous version must use the same source.',
+     );
+   }
+   delete getFunctionCache(glStyle)[mapboxLayer.id];
+@@ -1417,7 +1417,7 @@ export function updateMapboxLayer(mapOrGroup, mapboxLayer) {
+     styleFunctionArgs[
+       getStyleFunctionKey(
+         mapOrGroup.get('mapbox-style'),
+-        getLayer(mapOrGroup, mapboxLayer.id)
++        getLayer(mapOrGroup, mapboxLayer.id),
+       )
+     ];
+   if (args) {
+@@ -1457,12 +1457,12 @@ export function updateMapboxSource(mapOrGroup, id, mapboxSource) {
+       newSourcePromise = setupVectorSource(
+         mapboxSource,
+         metadata.styleUrl,
+-        metadata.options
++        metadata.options,
+       );
+       break;
+     case 'geojson':
+       newSourcePromise = Promise.resolve(
+-        setupGeoJSONSource(mapboxSource, metadata.styleUrl, metadata.options)
++        setupGeoJSONSource(mapboxSource, metadata.styleUrl, metadata.options),
+       );
+       break;
+     case 'raster':
+@@ -1470,12 +1470,12 @@ export function updateMapboxSource(mapOrGroup, id, mapboxSource) {
+       newSourcePromise = setupRasterSource(
+         mapboxSource,
+         metadata.styleUrl,
+-        metadata.options
++        metadata.options,
+       );
+       break;
+     default:
+       return Promise.reject(
+-        new Error('Unsupported source type ' + mapboxSource.type)
++        new Error('Unsupported source type ' + mapboxSource.type),
+       );
+   }
+   newSourcePromise.then(function (newSource) {
+@@ -1501,7 +1501,7 @@ export function removeMapboxLayer(mapOrGroup, mapboxLayerIdOrLayer) {
+   const layerMapboxLayers = layer.get('mapbox-layers');
+   if (layerMapboxLayers.length === 1) {
+     throw new Error(
+-      'Cannot remove last Mapbox layer from an OpenLayers layer.'
++      'Cannot remove last Mapbox layer from an OpenLayers layer.',
+     );
+   }
+   layerMapboxLayers.splice(layerMapboxLayers.indexOf(mapboxLayerId), 1);
+@@ -1509,7 +1509,7 @@ export function removeMapboxLayer(mapOrGroup, mapboxLayerIdOrLayer) {
+   const layers = glStyle.layers;
+   layers.splice(
+     layers.findIndex((layer) => layer.id === mapboxLayerId),
+-    1
++    1,
+   );
+   const args = styleFunctionArgs[getStyleFunctionKey(glStyle, layer)];
+   if (args) {
+@@ -1526,7 +1526,7 @@ export function removeMapboxLayer(mapOrGroup, mapboxLayerIdOrLayer) {
+     if (Array.isArray(sourceOrLayers)) {
+       sourceOrLayers.splice(
+         sourceOrLayers.findIndex((layer) => layer === mapboxLayerId),
+-        1
++        1,
+       );
+     }
+     applyStylefunction(
+@@ -1537,7 +1537,7 @@ export function removeMapboxLayer(mapOrGroup, mapboxLayerIdOrLayer) {
+       spriteData,
+       spriteImageUrl,
+       getFonts,
+-      getImage
++      getImage,
+     );
+   } else {
+     getLayer(mapOrGroup, mapboxLayerId).changed();
+diff --git a/src/stylefunction.js b/src/stylefunction.js
+index 7e33669f..3a92b78e 100644
+--- a/src/stylefunction.js
++++ b/src/stylefunction.js
+@@ -68,13 +68,13 @@ const anchor = {
+ const expressionData = function (rawExpression, propertySpec) {
+   const compiledExpression = createPropertyExpression(
+     rawExpression,
+-    propertySpec
++    propertySpec,
+   );
+   if (compiledExpression.result === 'error') {
+     throw new Error(
+       compiledExpression.value
+         .map((err) => `${err.key}: ${err.message}`)
+-        .join(', ')
++        .join(', '),
+     );
+   }
+   return compiledExpression.value;
+@@ -102,7 +102,7 @@ export function getValue(
+   zoom,
+   feature,
+   functionCache,
+-  featureState
++  featureState,
+ ) {
+   const layerId = layer.id;
+   if (!functionCache) {
+@@ -156,7 +156,7 @@ function getIconDeclutterMode(layer, zoom, feature, functionCache) {
+     'icon-allow-overlap',
+     zoom,
+     feature,
+-    functionCache
++    functionCache,
+   );
+   if (!allowOverlap) {
+     return 'declutter';
+@@ -167,7 +167,7 @@ function getIconDeclutterMode(layer, zoom, feature, functionCache) {
+     'icon-ignore-placement',
+     zoom,
+     feature,
+-    functionCache
++    functionCache,
+   );
+   if (!ignorePlacement) {
+     return 'obstacle';
+@@ -344,7 +344,7 @@ export function stylefunction(
+   spriteData = undefined,
+   spriteImageUrl = undefined,
+   getFonts = undefined,
+-  getImage = undefined
++  getImage = undefined,
+ ) {
+   if (typeof glStyle == 'string') {
+     glStyle = JSON.parse(glStyle);
+@@ -432,12 +432,12 @@ export function stylefunction(
+         const type = source.type;
+         if (type !== 'vector' && type !== 'geojson') {
+           throw new Error(
+-            `Source "${mapboxSource}" is not of type "vector" or "geojson", but "${type}"`
++            `Source "${mapboxSource}" is not of type "vector" or "geojson", but "${type}"`,
+           );
+         }
+       } else if (layer.source !== mapboxSource) {
+         throw new Error(
+-          `Layer "${layerId}" does not use source "${mapboxSource}`
++          `Layer "${layerId}" does not use source "${mapboxSource}`,
+         );
+       }
+       let layers = layersBySourceLayer[sourceLayer];
+@@ -516,7 +516,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           if (layer.type + '-pattern' in paint) {
+             const fillIcon = getValue(
+@@ -526,7 +526,7 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
++              featureState,
+             );
+             if (fillIcon) {
+               const icon =
+@@ -555,7 +555,7 @@ export function stylefunction(
+                   const spriteImageData = spriteData[icon];
+                   const canvas = createCanvas(
+                     spriteImageData.width,
+-                    spriteImageData.height
++                    spriteImageData.height,
+                   );
+                   const ctx = /** @type {CanvasRenderingContext2D} */ (
+                     canvas.getContext('2d')
+@@ -570,7 +570,7 @@ export function stylefunction(
+                     0,
+                     0,
+                     spriteImageData.width,
+-                    spriteImageData.height
++                    spriteImageData.height,
+                   );
+                   pattern = ctx.createPattern(canvas, 'repeat');
+                   patternCache[icon_cache_key] = pattern;
+@@ -587,9 +587,9 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
++                featureState,
+               ),
+-              opacity
++              opacity,
+             );
+             if (layer.type + '-outline-color' in paint) {
+               strokeColor = colorWithOpacity(
+@@ -600,9 +600,9 @@ export function stylefunction(
+                   zoom,
+                   f,
+                   functionCache,
+-                  featureState
++                  featureState,
+                 ),
+-                opacity
++                opacity,
+               );
+             }
+             if (!strokeColor) {
+@@ -648,7 +648,7 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
++                featureState,
+               ),
+               getValue(
+                 layer,
+@@ -657,8 +657,8 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
+-              )
++                featureState,
++              ),
+             );
+           } else {
+             color = undefined;
+@@ -670,7 +670,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           if (color && width > 0) {
+             ++stylesLength;
+@@ -695,8 +695,8 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
+-              )
++                featureState,
++              ),
+             );
+             stroke.setLineJoin(
+               getValue(
+@@ -706,8 +706,8 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
+-              )
++                featureState,
++              ),
+             );
+             stroke.setMiterLimit(
+               getValue(
+@@ -717,8 +717,8 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
+-              )
++                featureState,
++              ),
+             );
+             stroke.setColor(color);
+             stroke.setWidth(width);
+@@ -731,11 +731,11 @@ export function stylefunction(
+                     zoom,
+                     f,
+                     functionCache,
+-                    featureState
++                    featureState,
+                   ).map(function (x) {
+                     return x * width;
+                   })
+-                : null
++                : null,
+             );
+             style.setZIndex(index);
+           }
+@@ -753,7 +753,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           if (iconImage) {
+             icon =
+@@ -773,7 +773,7 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
++                featureState,
+               );
+               if (type == 2) {
+                 const geom = /** @type {*} */ (feature.getGeometry());
+@@ -783,8 +783,8 @@ export function stylefunction(
+                   const size = Math.sqrt(
+                     Math.max(
+                       Math.pow((extent[2] - extent[0]) / resolution, 2),
+-                      Math.pow((extent[3] - extent[1]) / resolution, 2)
+-                    )
++                      Math.pow((extent[3] - extent[1]) / resolution, 2),
++                    ),
+                   );
+                   if (size > 150) {
+                     //FIXME Do not hard-code a size of 150
+@@ -800,7 +800,7 @@ export function stylefunction(
+                         [],
+                         2,
+                         {},
+-                        undefined
++                        undefined,
+                       );
+                     }
+                     styleGeom = renderFeature;
+@@ -813,7 +813,7 @@ export function stylefunction(
+                       zoom,
+                       f,
+                       functionCache,
+-                      featureState
++                      featureState,
+                     );
+                     if (
+                       placement === 'line' &&
+@@ -856,7 +856,7 @@ export function stylefunction(
+                   zoom,
+                   f,
+                   functionCache,
+-                  featureState
++                  featureState,
+                 );
+                 const iconColor =
+                   paint['icon-color'] !== undefined
+@@ -867,7 +867,7 @@ export function stylefunction(
+                         zoom,
+                         f,
+                         functionCache,
+-                        featureState
++                        featureState,
+                       )
+                     : null;
+                 if (!iconColor || iconColor.a !== 0) {
+@@ -878,7 +878,7 @@ export function stylefunction(
+                     zoom,
+                     f,
+                     functionCache,
+-                    featureState
++                    featureState,
+                   );
+                   const haloWidth = getValue(
+                     layer,
+@@ -887,7 +887,7 @@ export function stylefunction(
+                     zoom,
+                     f,
+                     functionCache,
+-                    featureState
++                    featureState,
+                   );
+                   let iconCacheKey = `${icon}.${iconSize}.${haloWidth}.${haloColor}`;
+                   if (iconColor !== null) {
+@@ -899,7 +899,7 @@ export function stylefunction(
+                       layer,
+                       zoom,
+                       f,
+-                      functionCache
++                      functionCache,
+                     );
+                     let displacement;
+                     if ('icon-offset' in layout) {
+@@ -910,7 +910,7 @@ export function stylefunction(
+                         zoom,
+                         f,
+                         functionCache,
+-                        featureState
++                        featureState,
+                       ).slice(0);
+                       displacement[1] *= -1;
+                     }
+@@ -956,7 +956,7 @@ export function stylefunction(
+                               pixelRatio: spriteImageData.pixelRatio,
+                             },
+                             haloWidth,
+-                            haloColor
++                            haloColor,
+                           );
+                           color = undefined; // do not tint haloed icons
+                         } else {
+@@ -964,7 +964,7 @@ export function stylefunction(
+                             spriteImage,
+                             spriteImageData,
+                             haloWidth,
+-                            haloColor
++                            haloColor,
+                           );
+                         }
+                       } else {
+@@ -978,7 +978,7 @@ export function stylefunction(
+                                 width: spriteImageSize[0],
+                                 height: spriteImageSize[1],
+                               },
+-                              {r: 1, g: 1, b: 1, a: 1}
++                              {r: 1, g: 1, b: 1, a: 1},
+                             );
+                           }
+                           img = spriteImageUnSDFed;
+@@ -1027,9 +1027,9 @@ export function stylefunction(
+                           zoom,
+                           f,
+                           functionCache,
+-                          featureState
+-                        )
+-                      )
++                          featureState,
++                        ),
++                      ),
+                   );
+                   iconImg.setOpacity(
+                     getValue(
+@@ -1039,8 +1039,8 @@ export function stylefunction(
+                       zoom,
+                       f,
+                       functionCache,
+-                      featureState
+-                    )
++                      featureState,
++                    ),
+                   );
+                   iconImg.setAnchor(
+                     anchor[
+@@ -1051,9 +1051,9 @@ export function stylefunction(
+                         zoom,
+                         f,
+                         functionCache,
+-                        featureState
++                        featureState,
+                       )
+-                    ]
++                    ],
+                   );
+                   style.setImage(iconImg);
+                   text = style.getText();
+@@ -1090,7 +1090,7 @@ export function stylefunction(
+                   zoom,
+                   f,
+                   functionCache,
+-                  featureState
++                  featureState,
+                 )
+               : 5;
+           const circleStrokeColor = colorWithOpacity(
+@@ -1101,7 +1101,7 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
++              featureState,
+             ),
+             getValue(
+               layer,
+@@ -1110,8 +1110,8 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
+-            )
++              featureState,
++            ),
+           );
+ 
+           const circleTranslate = getValue(
+@@ -1121,7 +1121,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const circleColor = colorWithOpacity(
+             getValue(
+@@ -1131,7 +1131,7 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
++              featureState,
+             ),
+             getValue(
+               layer,
+@@ -1140,8 +1140,8 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
+-            )
++              featureState,
++            ),
+           );
+           const circleStrokeWidth = getValue(
+             layer,
+@@ -1150,7 +1150,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const cache_key =
+             circleRadius +
+@@ -1204,8 +1204,8 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
+-            )
++              featureState,
++            ),
+           );
+           const fontArray = getValue(
+             layer,
+@@ -1214,7 +1214,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           textLineHeight = getValue(
+             layer,
+@@ -1223,17 +1223,19 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           font = mb2css(
+             getFonts
+               ? getFonts(
+                   fontArray,
+-                  glStyle.metadata ? glStyle.metadata['ol:webfonts'] : undefined
++                  glStyle.metadata
++                    ? glStyle.metadata['ol:webfonts']
++                    : undefined,
+                 )
+               : fontArray,
+             textSize,
+-            textLineHeight
++            textLineHeight,
+           );
+           if (!font.includes('sans-serif')) {
+             font += ',sans-serif';
+@@ -1245,7 +1247,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           maxTextWidth = getValue(
+             layer,
+@@ -1254,7 +1256,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const textField = getValue(
+             layer,
+@@ -1263,7 +1265,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           if (typeof textField === 'object' && textField.sections) {
+             if (textField.sections.length === 1) {
+@@ -1276,7 +1278,7 @@ export function stylefunction(
+                 const chunkFont = mb2css(
+                   getFonts ? getFonts(fonts) : fonts,
+                   textSize * (chunk.scale || 1),
+-                  textLineHeight
++                  textLineHeight,
+                 );
+                 let text = chunk.text;
+                 if (text === '\n') {
+@@ -1291,7 +1293,7 @@ export function stylefunction(
+                   text,
+                   chunkFont,
+                   maxTextWidth,
+-                  letterSpacing
++                  letterSpacing,
+                 ).split('\n');
+                 for (let i = 0, ii = text.length; i < ii; ++i) {
+                   if (i > 0) {
+@@ -1312,7 +1314,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+         }
+         if (label && opacity && !skipLabel) {
+@@ -1336,7 +1338,7 @@ export function stylefunction(
+               text ||
+                 new Text({
+                   padding: [2, 2, 2, 2],
+-                })
++                }),
+             );
+           }
+           text = style.getText();
+@@ -1353,8 +1355,8 @@ export function stylefunction(
+           const wrappedLabel = Array.isArray(label)
+             ? label
+             : type == 2
+-            ? applyLetterSpacing(label, letterSpacing)
+-            : wrapText(label, font, maxTextWidth, letterSpacing);
++              ? applyLetterSpacing(label, letterSpacing)
++              : wrapText(label, font, maxTextWidth, letterSpacing);
+           text.setText(wrappedLabel);
+           text.setFont(font);
+           text.setRotation(
+@@ -1366,9 +1368,9 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
+-              )
+-            )
++                featureState,
++              ),
++            ),
+           );
+           const textAnchor = getValue(
+             layer,
+@@ -1377,7 +1379,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const placement =
+             hasImage || type == 1
+@@ -1389,7 +1391,7 @@ export function stylefunction(
+                   zoom,
+                   f,
+                   functionCache,
+-                  featureState
++                  featureState,
+                 );
+           let textAlign;
+           if (placement === 'line-center') {
+@@ -1406,7 +1408,7 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
++              featureState,
+             );
+             text.setRepeat(symbolSpacing * 2);
+           }
+@@ -1418,7 +1420,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const textOffset = getValue(
+             layer,
+@@ -1427,7 +1429,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const textTranslate = getValue(
+             layer,
+@@ -1436,7 +1438,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           // Text offset has to take halo width and line height into account
+           let vOffset = 0;
+@@ -1457,7 +1459,7 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
++              featureState,
+             );
+             text.setRotateWithView(textRotationAlignment == 'map');
+           } else {
+@@ -1470,11 +1472,11 @@ export function stylefunction(
+                   zoom,
+                   f,
+                   functionCache,
+-                  featureState
+-                )
++                  featureState,
++                ),
+               ) *
+                 label.length) /
+-                wrappedLabel.length
++                wrappedLabel.length,
+             );
+             text.setRotateWithView(false);
+           }
+@@ -1495,14 +1497,14 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           text.setJustify(textJustify === 'auto' ? undefined : textJustify);
+           text.setOffsetX(
+-            textOffset[0] * textSize + hOffset + textTranslate[0]
++            textOffset[0] * textSize + hOffset + textTranslate[0],
+           );
+           text.setOffsetY(
+-            textOffset[1] * textSize + vOffset + textTranslate[1]
++            textOffset[1] * textSize + vOffset + textTranslate[1],
+           );
+           textColor.setColor(
+             colorWithOpacity(
+@@ -1513,10 +1515,10 @@ export function stylefunction(
+                 zoom,
+                 f,
+                 functionCache,
+-                featureState
++                featureState,
+               ),
+-              opacity
+-            )
++              opacity,
++            ),
+           );
+           text.setFill(textColor);
+           const haloColor = colorWithOpacity(
+@@ -1527,9 +1529,9 @@ export function stylefunction(
+               zoom,
+               f,
+               functionCache,
+-              featureState
++              featureState,
+             ),
+-            opacity
++            opacity,
+           );
+           if (haloColor) {
+             textHalo.setColor(haloColor);
+@@ -1539,7 +1541,7 @@ export function stylefunction(
+             // 1/4 of text size (spec) x 2
+             const halfTextSize = 0.5 * textSize;
+             textHalo.setWidth(
+-              textHaloWidth <= halfTextSize ? textHaloWidth : halfTextSize
++              textHaloWidth <= halfTextSize ? textHaloWidth : halfTextSize,
+             );
+             text.setStroke(textHalo);
+           } else {
+@@ -1552,7 +1554,7 @@ export function stylefunction(
+             zoom,
+             f,
+             functionCache,
+-            featureState
++            featureState,
+           );
+           const padding = text.getPadding();
+           if (textPadding !== padding[0]) {
+diff --git a/src/text.js b/src/text.js
+index 1386fb75..b474c053 100644
+--- a/src/text.js
++++ b/src/text.js
+@@ -9,7 +9,7 @@ export function applyLetterSpacing(text, letterSpacing) {
+     const lines = text.split('\n');
+     const joinSpaceString = hairSpacePool.slice(
+       0,
+-      Math.round(letterSpacing / 0.1)
++      Math.round(letterSpacing / 0.1),
+     );
+     for (let l = 0, ll = lines.length; l < ll; ++l) {
+       if (l > 0) {
+@@ -157,7 +157,7 @@ const processedFontFamilies = {};
+  */
+ export function getFonts(
+   fonts,
+-  templateUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/{font-family}/{fontweight}{-fontstyle}.css'
++  templateUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/{font-family}/{fontweight}{-fontstyle}.css',
+ ) {
+   const fontsKey = fonts.toString();
+   if (fontsKey in processedFontFamilies) {
+@@ -182,7 +182,7 @@ export function getFonts(
+     if (!hasFontFamily(family)) {
+       if (
+         checkedFonts.get(
+-          `${fontDescription[2]}\n${fontDescription[1]} \n${family}`
++          `${fontDescription[2]}\n${fontDescription[1]} \n${family}`,
+         ) !== 100
+       ) {
+         const fontUrl = templateUrl
+@@ -191,7 +191,7 @@ export function getFonts(
+           .replace('{fontweight}', fontDescription[1])
+           .replace(
+             '{-fontstyle}',
+-            fontDescription[2].replace('normal', '').replace(/(.+)/, '-$1')
++            fontDescription[2].replace('normal', '').replace(/(.+)/, '-$1'),
+           )
+           .replace('{fontstyle}', fontDescription[2]);
+         if (!document.querySelector('link[href="' + fontUrl + '"]')) {
+diff --git a/src/util.js b/src/util.js
+index e9aa25b8..4a10bdd3 100644
+--- a/src/util.js
++++ b/src/util.js
+@@ -150,7 +150,7 @@ export function fetchResource(resourceType, url, options = {}, metadata) {
+           delete pendingRequests[url];
+           return Promise.reject(new Error('Error fetching source ' + url));
+         });
+-    }
++    },
+   );
+   pendingRequests[url] = [transformedRequest, pendingRequest];
+   return pendingRequest;
+@@ -234,7 +234,7 @@ export function getTileJson(glSource, styleUrl, options = {}) {
+         url,
+         options.accessToken,
+         options.accessTokenParam || 'access_token',
+-        styleUrl || location.href
++        styleUrl || location.href,
+       );
+       if (url.startsWith('mapbox://')) {
+         promise = Promise.resolve({
+@@ -250,7 +250,7 @@ export function getTileJson(glSource, styleUrl, options = {}) {
+           'Source',
+           normalizedSourceUrl,
+           options,
+-          metadata
++          metadata,
+         ).then(function (tileJson) {
+           tileJson.tiles = tileJson.tiles.map(function (tileUrl) {
+             if (tileJson.scheme === 'tms') {
+@@ -260,7 +260,7 @@ export function getTileJson(glSource, styleUrl, options = {}) {
+               tileUrl,
+               options.accessToken,
+               options.accessTokenParam || 'access_token',
+-              metadata.request.url
++              metadata.request.url,
+             );
+           });
+           return Promise.resolve({tileJson, tileLoadFunction});
+@@ -276,7 +276,7 @@ export function getTileJson(glSource, styleUrl, options = {}) {
+             tileUrl,
+             options.accessToken,
+             options.accessTokenParam || 'access_token',
+-            styleUrl || location.href
++            styleUrl || location.href,
+           );
+         }),
+       });
+@@ -301,7 +301,7 @@ export function drawIconHalo(
+   spriteImage,
+   spriteImageData,
+   haloWidth,
+-  haloColor
++  haloColor,
+ ) {
+   const imageCanvas = document.createElement('canvas');
+   const imgSize = [
+@@ -320,7 +320,7 @@ export function drawIconHalo(
+     haloWidth * spriteImageData.pixelRatio,
+     haloWidth * spriteImageData.pixelRatio,
+     spriteImageData.width,
+-    spriteImageData.height
++    spriteImageData.height,
+   );
+   const imageData = imageContext.getImageData(0, 0, imgSize[0], imgSize[1]);
+   imageContext.globalCompositeOperation = 'destination-over';
+@@ -338,7 +338,7 @@ export function drawIconHalo(
+           j,
+           haloWidth * spriteImageData.pixelRatio,
+           0,
+-          2 * Math.PI
++          2 * Math.PI,
+         );
+       }
+     }
+@@ -372,7 +372,7 @@ export function drawSDF(image, area, color) {
+     0,
+     0,
+     area.width,
+-    area.height
++    area.height,
+   );
+   const imageData = imageContext.getImageData(0, 0, area.width, area.height);
+   const data = imageData.data;

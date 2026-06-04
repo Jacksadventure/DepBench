@@ -1,0 +1,370 @@
+diff --git a/stake-pool/js/src/index.ts b/stake-pool/js/src/index.ts
+index d18495f4121..9b77e2a39d5 100644
+--- a/stake-pool/js/src/index.ts
++++ b/stake-pool/js/src/index.ts
+@@ -9,16 +9,19 @@ import {
+   SystemProgram,
+   TransactionInstruction,
+ } from '@solana/web3.js';
+-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
++import {
++  createApproveInstruction,
++  createAssociatedTokenAccountIdempotentInstruction,
++  getAccount,
++  getAssociatedTokenAddressSync,
++} from '@solana/spl-token';
+ import {
+   ValidatorAccount,
+-  addAssociatedTokenAccount,
+   arrayChunk,
+   calcLamportsWithdrawAmount,
+   findStakeProgramAddress,
+   findTransientStakeProgramAddress,
+   findWithdrawAuthorityProgramAddress,
+-  getTokenAccount,
+   getValidatorListAccount,
+   newStakeAccount,
+   prepareWithdrawAccounts,
+@@ -203,18 +206,18 @@ export async function depositStake(
+ 
+   const poolMint = stakePool.account.data.poolMint;
+ 
+-  let rentFee = 0;
+-
+   // Create token account if not specified
+   if (!poolTokenReceiverAccount) {
+-    const { associatedAddress, rentFee: fee } = await addAssociatedTokenAccount(
+-      connection,
+-      authorizedPubkey,
+-      poolMint,
+-      instructions,
++    const associatedAddress = getAssociatedTokenAddressSync(poolMint, authorizedPubkey);
++    instructions.push(
++      createAssociatedTokenAccountIdempotentInstruction(
++        authorizedPubkey,
++        associatedAddress,
++        authorizedPubkey,
++        poolMint,
++      ),
+     );
+     poolTokenReceiverAccount = associatedAddress;
+-    rentFee += fee;
+   }
+ 
+   instructions.push(
+@@ -254,7 +257,6 @@ export async function depositStake(
+   return {
+     instructions,
+     signers,
+-    rentFee,
+   };
+ }
+ 
+@@ -287,8 +289,6 @@ export async function depositSol(
+   const signers: Signer[] = [userSolTransfer];
+   const instructions: TransactionInstruction[] = [];
+ 
+-  let rentFee = 0;
+-
+   // Create the ephemeral SOL account
+   instructions.push(
+     SystemProgram.transfer({
+@@ -300,14 +300,16 @@ export async function depositSol(
+ 
+   // Create token account if not specified
+   if (!destinationTokenAccount) {
+-    const { associatedAddress, rentFee: fee } = await addAssociatedTokenAccount(
+-      connection,
+-      from,
+-      stakePool.poolMint,
+-      instructions,
++    const associatedAddress = getAssociatedTokenAddressSync(stakePool.poolMint, from);
++    instructions.push(
++      createAssociatedTokenAccountIdempotentInstruction(
++        from,
++        associatedAddress,
++        from,
++        stakePool.poolMint,
++      ),
+     );
+     destinationTokenAccount = associatedAddress;
+-    rentFee += fee;
+   }
+ 
+   const withdrawAuthority = await findWithdrawAuthorityProgramAddress(
+@@ -333,7 +335,6 @@ export async function depositSol(
+   return {
+     instructions,
+     signers,
+-    rentFee,
+   };
+ }
+ 
+@@ -355,29 +356,16 @@ export async function withdrawStake(
+   const poolAmount = solToLamports(amount);
+ 
+   if (!poolTokenAccount) {
+-    poolTokenAccount = await Token.getAssociatedTokenAddress(
+-      ASSOCIATED_TOKEN_PROGRAM_ID,
+-      TOKEN_PROGRAM_ID,
+-      stakePool.account.data.poolMint,
+-      tokenOwner,
+-    );
++    poolTokenAccount = getAssociatedTokenAddressSync(stakePool.account.data.poolMint, tokenOwner);
+   }
+ 
+-  const tokenAccount = await getTokenAccount(
+-    connection,
+-    poolTokenAccount,
+-    stakePool.account.data.poolMint,
+-  );
+-
+-  if (!tokenAccount) {
+-    throw new Error('Invalid token account');
+-  }
++  const tokenAccount = await getAccount(connection, poolTokenAccount);
+ 
+   // Check withdrawFrom balance
+-  if (tokenAccount.amount.toNumber() < poolAmount) {
++  if (tokenAccount.amount < poolAmount) {
+     throw new Error(
+       `Not enough token balance to withdraw ${lamportsToSol(poolAmount)} pool tokens.
+-        Maximum withdraw amount is ${lamportsToSol(tokenAccount.amount.toNumber())} pool tokens.`,
++        Maximum withdraw amount is ${lamportsToSol(tokenAccount.amount)} pool tokens.`,
+     );
+   }
+ 
+@@ -499,12 +487,10 @@ export async function withdrawStake(
+   const signers: Signer[] = [userTransferAuthority];
+ 
+   instructions.push(
+-    Token.createApproveInstruction(
+-      TOKEN_PROGRAM_ID,
++    createApproveInstruction(
+       poolTokenAccount,
+       userTransferAuthority.publicKey,
+       tokenOwner,
+-      [],
+       poolAmount,
+     ),
+   );
+@@ -595,27 +581,18 @@ export async function withdrawSol(
+   const stakePool = await getStakePoolAccount(connection, stakePoolAddress);
+   const poolAmount = solToLamports(amount);
+ 
+-  const poolTokenAccount = await Token.getAssociatedTokenAddress(
+-    ASSOCIATED_TOKEN_PROGRAM_ID,
+-    TOKEN_PROGRAM_ID,
++  const poolTokenAccount = getAssociatedTokenAddressSync(
+     stakePool.account.data.poolMint,
+     tokenOwner,
+   );
+ 
+-  const tokenAccount = await getTokenAccount(
+-    connection,
+-    poolTokenAccount,
+-    stakePool.account.data.poolMint,
+-  );
+-  if (!tokenAccount) {
+-    throw new Error('Invalid token account');
+-  }
++  const tokenAccount = await getAccount(connection, poolTokenAccount);
+ 
+   // Check withdrawFrom balance
+-  if (tokenAccount.amount.toNumber() < poolAmount) {
++  if (tokenAccount.amount < poolAmount) {
+     throw new Error(
+       `Not enough token balance to withdraw ${lamportsToSol(poolAmount)} pool tokens.
+-          Maximum withdraw amount is ${lamportsToSol(tokenAccount.amount.toNumber())} pool tokens.`,
++          Maximum withdraw amount is ${lamportsToSol(tokenAccount.amount)} pool tokens.`,
+     );
+   }
+ 
+@@ -625,12 +602,10 @@ export async function withdrawSol(
+   const signers: Signer[] = [userTransferAuthority];
+ 
+   instructions.push(
+-    Token.createApproveInstruction(
+-      TOKEN_PROGRAM_ID,
++    createApproveInstruction(
+       poolTokenAccount,
+       userTransferAuthority.publicKey,
+       tokenOwner,
+-      [],
+       poolAmount,
+     ),
+   );
+diff --git a/stake-pool/js/src/layouts.ts b/stake-pool/js/src/layouts.ts
+index 5027cc9bf99..020a8c37f83 100644
+--- a/stake-pool/js/src/layouts.ts
++++ b/stake-pool/js/src/layouts.ts
+@@ -1,6 +1,5 @@
+ import { publicKey, struct, u32, u64, u8, option, vec } from '@coral-xyz/borsh';
+ import { Lockup, PublicKey } from '@solana/web3.js';
+-import { AccountInfo } from '@solana/spl-token';
+ import BN from 'bn.js';
+ import {
+   Infer,
+@@ -21,23 +20,6 @@ export interface Fee {
+ 
+ const feeFields = [u64('denominator'), u64('numerator')];
+ 
+-/**
+- * AccountLayout.encode from "@solana/spl-token" doesn't work
+- */
+-export const AccountLayout = struct<AccountInfo>([
+-  publicKey('mint'),
+-  publicKey('owner'),
+-  u64('amount'),
+-  u32('delegateOption'),
+-  publicKey('delegate'),
+-  u8('state'),
+-  u32('isNativeOption'),
+-  u64('isNative'),
+-  u64('delegatedAmount'),
+-  u32('closeAuthorityOption'),
+-  publicKey('closeAuthority'),
+-]);
+-
+ export enum AccountType {
+   Uninitialized,
+   StakePool,
+diff --git a/stake-pool/js/src/utils/index.ts b/stake-pool/js/src/utils/index.ts
+index 1091d0eccd2..e93c2cded11 100644
+--- a/stake-pool/js/src/utils/index.ts
++++ b/stake-pool/js/src/utils/index.ts
+@@ -1,7 +1,6 @@
+ export * from './math';
+ export * from './program-address';
+ export * from './stake';
+-export * from './token';
+ export * from './instruction';
+ 
+ export function arrayChunk(array: any[], size: number): any[] {
+diff --git a/stake-pool/js/src/utils/math.ts b/stake-pool/js/src/utils/math.ts
+index ab64724e576..5f939bc8611 100644
+--- a/stake-pool/js/src/utils/math.ts
++++ b/stake-pool/js/src/utils/math.ts
+@@ -6,10 +6,13 @@ export function solToLamports(amount: number): number {
+   return Number(amount * LAMPORTS_PER_SOL);
+ }
+ 
+-export function lamportsToSol(lamports: number | BN): number {
++export function lamportsToSol(lamports: number | BN | bigint): number {
+   if (typeof lamports === 'number') {
+     return Math.abs(lamports) / LAMPORTS_PER_SOL;
+   }
++  if (typeof lamports === 'bigint') {
++    return Math.abs(Number(lamports)) / LAMPORTS_PER_SOL;
++  }
+ 
+   let signMultiplier = 1;
+   if (lamports.isNeg()) {
+diff --git a/stake-pool/js/src/utils/token.ts b/stake-pool/js/src/utils/token.ts
+deleted file mode 100644
+index ee20463f8c7..00000000000
+--- a/stake-pool/js/src/utils/token.ts
++++ /dev/null
+@@ -1,102 +0,0 @@
+-import { Connection, PublicKey, TransactionInstruction } from '@solana/web3.js';
+-import {
+-  AccountInfo,
+-  ASSOCIATED_TOKEN_PROGRAM_ID,
+-  MintInfo,
+-  Token,
+-  TOKEN_PROGRAM_ID,
+-} from '@solana/spl-token';
+-import { AccountLayout } from '../layouts';
+-
+-const FAILED_TO_FIND_ACCOUNT = 'Failed to find account';
+-const INVALID_ACCOUNT_OWNER = 'Invalid account owner';
+-
+-export async function getTokenMint(
+-  connection: Connection,
+-  tokenMintPubkey: PublicKey,
+-): Promise<MintInfo | undefined> {
+-  // @ts-ignore
+-  const token = new Token(connection, tokenMintPubkey, TOKEN_PROGRAM_ID, null);
+-  return token.getMintInfo();
+-}
+-
+-/**
+- * Retrieve the associated account or create one if not found.
+- * This account may then be used as a `transfer()` or `approve()` destination
+- */
+-export async function addAssociatedTokenAccount(
+-  connection: Connection,
+-  owner: PublicKey,
+-  mint: PublicKey,
+-  instructions: TransactionInstruction[],
+-) {
+-  const associatedAddress = await Token.getAssociatedTokenAddress(
+-    ASSOCIATED_TOKEN_PROGRAM_ID,
+-    TOKEN_PROGRAM_ID,
+-    mint,
+-    owner,
+-  );
+-
+-  let rentFee = 0;
+-
+-  // This is the optimum logic, considering TX fee, client-side computation,
+-  // RPC roundtrips and guaranteed idempotent.
+-  // Sadly we can't do this atomically;
+-  try {
+-    const account = await connection.getAccountInfo(associatedAddress);
+-    if (!account) {
+-      // noinspection ExceptionCaughtLocallyJS
+-      throw new Error(FAILED_TO_FIND_ACCOUNT);
+-    }
+-  } catch (err: any) {
+-    // INVALID_ACCOUNT_OWNER can be possible if the associatedAddress has
+-    // already been received some lamports (= became system accounts).
+-    // Assuming program derived addressing is safe, this is the only case
+-    // for the INVALID_ACCOUNT_OWNER in this code-path
+-    if (err.message === FAILED_TO_FIND_ACCOUNT || err.message === INVALID_ACCOUNT_OWNER) {
+-      instructions.push(
+-        Token.createAssociatedTokenAccountInstruction(
+-          ASSOCIATED_TOKEN_PROGRAM_ID,
+-          TOKEN_PROGRAM_ID,
+-          mint,
+-          associatedAddress,
+-          owner,
+-          owner,
+-        ),
+-      );
+-      rentFee = await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+-    } else {
+-      throw err;
+-    }
+-    console.warn(err);
+-  }
+-
+-  return {
+-    associatedAddress,
+-    rentFee,
+-  };
+-}
+-
+-export async function getTokenAccount(
+-  connection: Connection,
+-  tokenAccountAddress: PublicKey,
+-  expectedTokenMint: PublicKey,
+-): Promise<AccountInfo | void> {
+-  try {
+-    const account = await connection.getAccountInfo(tokenAccountAddress);
+-    if (!account) {
+-      // noinspection ExceptionCaughtLocallyJS
+-      throw new Error(`Invalid account ${tokenAccountAddress.toBase58()}`);
+-    }
+-    const tokenAccount = AccountLayout.decode(account.data) as AccountInfo;
+-    if (tokenAccount.mint?.toBase58() != expectedTokenMint.toBase58()) {
+-      // noinspection ExceptionCaughtLocallyJS
+-      throw new Error(
+-        `Invalid token mint for ${tokenAccountAddress}, expected mint is ${expectedTokenMint}`,
+-      );
+-    }
+-    return tokenAccount;
+-  } catch (error) {
+-    console.log(error);
+-  }
+-}

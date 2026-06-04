@@ -1,0 +1,113 @@
+diff --git a/internal/yaml/yaml_test.go b/internal/yaml/yaml_test.go
+index ef4f5cac..64327de7 100644
+--- a/internal/yaml/yaml_test.go
++++ b/internal/yaml/yaml_test.go
+@@ -12,8 +12,7 @@ import (
+ func TestExtractLeadingContentForYQ(t *testing.T) {
+ 	t.Parallel()
+ 	const (
+-		yqLeadingContentPrefix = "$yqLeadingContent$\n"
+-		yqDocSeparatorPrefix   = "$yqDocSeperator$\n"
++		yqDocSeparatorPrefix = "$yqDocSeperator$\n"
+ 	)
+ 	tests := []struct {
+ 		name                   string
+@@ -78,8 +77,7 @@ key: value`,
+ 				require.EqualError(t, err, test.expectedErrorMsg)
+ 			} else {
+ 				require.NoError(t, err)
+-				expectedLeadingContent := yqLeadingContentPrefix + test.expectedLeadingContent
+-				assert.Equal(t, expectedLeadingContent, actualLeadingContent)
++				assert.Equal(t, test.expectedLeadingContent, actualLeadingContent)
+ 				actualBytes, err := io.ReadAll(actual)
+ 				require.NoError(t, err)
+ 				assert.Equal(t, test.expected, string(actualBytes))
+diff --git a/update/yaml/yaml_test.go b/update/yaml/yaml_test.go
+index 1d199005..1015b80a 100644
+--- a/update/yaml/yaml_test.go
++++ b/update/yaml/yaml_test.go
+@@ -393,7 +393,7 @@ func TestYqExpression(t *testing.T) {
+ 				Path: ".version",
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `(.version) as $x | $x = "1.2.3"`,
++			expectedExpression: `(.version) ref $x | $x = "1.2.3"`,
+ 		},
+ 		{
+ 			name: "v4 path with custom style",
+@@ -402,7 +402,7 @@ func TestYqExpression(t *testing.T) {
+ 				Style: "double",
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `(.path.to.version) as $x | $x = "1.2.3" | $x style="double"`,
++			expectedExpression: `(.path.to.version) ref $x | $x = "1.2.3" | $x style="double"`,
+ 		},
+ 		{
+ 			name: "v4 path with auto-create and custom style",
+@@ -412,7 +412,7 @@ func TestYqExpression(t *testing.T) {
+ 				AutoCreate: true,
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `.path.to.version = "1.2.3" | (.path.to.version) as $x | $x = "1.2.3" | $x style="folded"`,
++			expectedExpression: `.path.to.version = "1.2.3" | (.path.to.version) ref $x | $x = "1.2.3" | $x style="folded"`,
+ 		},
+ 		{
+ 			name: "complex v4 path",
+@@ -420,7 +420,7 @@ func TestYqExpression(t *testing.T) {
+ 				Path: `.releases[] | select(.chart == "repo/chart") | .version`,
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `(.releases[] | select(.chart == "repo/chart") | .version) as $x | $x = "1.2.3"`,
++			expectedExpression: `(.releases[] | select(.chart == "repo/chart") | .version) ref $x | $x = "1.2.3"`,
+ 		},
+ 		{
+ 			name: "simple v3 path",
+@@ -428,7 +428,7 @@ func TestYqExpression(t *testing.T) {
+ 				Path: "version",
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `(.version) as $x | $x = "1.2.3"`,
++			expectedExpression: `(.version) ref $x | $x = "1.2.3"`,
+ 		},
+ 		{
+ 			name: "v3 path with custom style",
+@@ -437,7 +437,7 @@ func TestYqExpression(t *testing.T) {
+ 				Style: "double",
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `(.path.to.version) as $x | $x = "1.2.3" | $x style="double"`,
++			expectedExpression: `(.path.to.version) ref $x | $x = "1.2.3" | $x style="double"`,
+ 		},
+ 		{
+ 			name: "complex v3 path",
+@@ -445,7 +445,7 @@ func TestYqExpression(t *testing.T) {
+ 				Path: `releases.(chart==repo/chart).version`,
+ 			},
+ 			value:              "1.2.3",
+-			expectedExpression: `(.releases[] | select(.chart == "repo/chart") | .version) as $x | $x = "1.2.3"`,
++			expectedExpression: `(.releases[] | select(.chart == "repo/chart") | .version) ref $x | $x = "1.2.3"`,
+ 		},
+ 	}
+ 
+diff --git a/update/yq/yq_test.go b/update/yq/yq_test.go
+index a32b15e6..04d0c421 100644
+--- a/update/yq/yq_test.go
++++ b/update/yq/yq_test.go
+@@ -38,7 +38,7 @@ func TestNewUpdater(t *testing.T) {
+ 				Indent:       4,
+ 				Trim:         true,
+ 				UnwrapScalar: false,
+-				OutputFormat: yqlib.JsonOutputFormat,
++				OutputFormat: yqlib.JSONOutputFormat,
+ 			},
+ 		},
+ 		{
+@@ -367,7 +367,7 @@ object:
+ 				FilePath:     "output-to-json.yaml",
+ 				Expression:   `.`,
+ 				Output:       "output-to-json.json",
+-				OutputFormat: yqlib.JsonOutputFormat,
++				OutputFormat: yqlib.JSONOutputFormat,
+ 				Indent:       2,
+ 			},
+ 			expected: true,

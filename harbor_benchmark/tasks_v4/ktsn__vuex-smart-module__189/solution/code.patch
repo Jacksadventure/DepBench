@@ -1,0 +1,457 @@
+diff --git a/scripts/build.js b/scripts/build.js
+index 8a32f13..6cc443d 100644
+--- a/scripts/build.js
++++ b/scripts/build.js
+@@ -23,11 +23,11 @@ const baseConfig = {
+     banner,
+     globals: {
+       vue: 'Vue',
+-      vuex: 'Vuex'
+-    }
++      vuex: 'Vuex',
++    },
+   },
+   external: ['vue', 'vuex'],
+-  plugins: [nodeResolve()]
++  plugins: [nodeResolve()],
+ }
+ 
+ function run(options) {
+@@ -37,9 +37,9 @@ function run(options) {
+   const config = genConfig(head)
+ 
+   return build(config)
+-    .then(bundle => write(config, bundle, head.env === 'production'))
++    .then((bundle) => write(config, bundle, head.env === 'production'))
+     .then(() => run(tail))
+-    .catch(err => {
++    .catch((err) => {
+       console.error(err.stack)
+       process.exit(1)
+     })
+@@ -50,14 +50,14 @@ function genConfig(options) {
+ 
+   res.output = Object.assign({}, res.output, {
+     file: options.output,
+-    format: options.format
++    format: options.format,
+   })
+ 
+   if (options.env) {
+     res.plugins = res.plugins.concat([
+       replace({
+-        'process.env.NODE_ENV': JSON.stringify(options.env)
+-      })
++        'process.env.NODE_ENV': JSON.stringify(options.env),
++      }),
+     ])
+   }
+ 
+@@ -77,7 +77,7 @@ function write(config, bundle, prod) {
+       .then(minify)
+       .then(({ code }) => {
+         return new Promise((resolve, reject) => {
+-          fs.writeFile(config.output.file, code, err => {
++          fs.writeFile(config.output.file, code, (err) => {
+             if (err) {
+               return reject(err)
+             }
+@@ -91,12 +91,12 @@ function write(config, bundle, prod) {
+ function minify(chunks) {
+   return uglify.minify(chunks.output[0].code, {
+     compress: {
+-      toplevel: true
++      toplevel: true,
+     },
+     output: {
+       beautify: false,
+-      comments: /(?:^!|@license)/
+-    }
++      comments: /(?:^!|@license)/,
++    },
+   })
+ }
+ 
+diff --git a/scripts/options.js b/scripts/options.js
+index 77bedcc..5576364 100644
+--- a/scripts/options.js
++++ b/scripts/options.js
+@@ -3,20 +3,20 @@ const pkg = require('../package.json')
+ module.exports = [
+   {
+     output: `dist/${pkg.name}.cjs.js`,
+-    format: 'cjs'
++    format: 'cjs',
+   },
+   {
+     output: `dist/${pkg.name}.esm.js`,
+-    format: 'es'
++    format: 'es',
+   },
+   {
+     output: `dist/${pkg.name}.js`,
+     format: 'umd',
+-    env: 'development'
++    env: 'development',
+   },
+   {
+     output: `dist/${pkg.name}.min.js`,
+     format: 'umd',
+-    env: 'production'
+-  }
++    env: 'production',
++  },
+ ]
+diff --git a/src/assets.ts b/src/assets.ts
+index 486b67c..c930e3f 100644
+--- a/src/assets.ts
++++ b/src/assets.ts
+@@ -26,12 +26,12 @@ export function inject<T>(
+   const proto = F.prototype
+ 
+   const descs: PropertyDescriptorMap = {}
+-  Object.keys(injection).forEach(key => {
++  Object.keys(injection).forEach((key) => {
+     descs[key] = {
+       configurable: true,
+       enumerable: true,
+       writable: true,
+-      value: injection[key]
++      value: injection[key],
+     }
+   })
+ 
+diff --git a/src/context.ts b/src/context.ts
+index 48b9dca..3f42cb7 100644
+--- a/src/context.ts
++++ b/src/context.ts
+@@ -4,7 +4,7 @@ import {
+   Mutations as BaseMutations,
+   Actions as BaseActions,
+   Dispatcher,
+-  Committer
++  Committer,
+ } from './assets'
+ import { get, Class, gatherHandlerNames, assert } from './utils'
+ import { Module } from './module'
+@@ -101,7 +101,7 @@ export function createLazyContextPosition(
+     get namespace() {
+       assert(module.namespace !== undefined, message)
+       return module.namespace!
+-    }
++    },
+   }
+ }
+ 
+@@ -118,7 +118,7 @@ function normalizedDispatch(
+     return dispatch(
+       {
+         ...type,
+-        type: namespace + type.type
++        type: namespace + type.type,
+       },
+       payload
+     )
+@@ -149,7 +149,7 @@ export function getters(store: Store<any>, namespace: string): any {
+   const sliceIndex = namespace.length
+   const getters: Record<string, any> = {}
+ 
+-  Object.keys(store.getters).forEach(key => {
++  Object.keys(store.getters).forEach((key) => {
+     const sameNamespace = namespace === key.slice(0, sliceIndex)
+     const name = key.slice(sliceIndex)
+     if (!sameNamespace || !name) {
+@@ -158,7 +158,7 @@ export function getters(store: Store<any>, namespace: string): any {
+ 
+     Object.defineProperty(getters, name, {
+       get: () => store.getters[key],
+-      enumerable: true
++      enumerable: true,
+     })
+   })
+ 
+@@ -186,10 +186,10 @@ export class Context<Mod extends Module<any, any, any, any>> {
+         this.mutationsClass.prototype,
+         BaseMutations
+       )
+-      mutationNames.forEach(name => {
++      mutationNames.forEach((name) => {
+         Object.defineProperty(mutations, name, {
+           value: (payload: any) => this.commit(name, payload),
+-          enumerable: true
++          enumerable: true,
+         })
+       })
+     }
+@@ -206,10 +206,10 @@ export class Context<Mod extends Module<any, any, any, any>> {
+         this.actionsClass.prototype,
+         BaseActions
+       )
+-      actionNames.forEach(name => {
++      actionNames.forEach((name) => {
+         Object.defineProperty(actions, name, {
+           value: (payload: any) => this.dispatch(name, payload),
+-          enumerable: true
++          enumerable: true,
+         })
+       })
+     }
+diff --git a/src/index.ts b/src/index.ts
+index f2e4c83..0b41556 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -16,7 +16,7 @@ export function createStore(
+   const store: Store<any> = new Store({
+     ...rootModuleOptions,
+     ...options,
+-    plugins: [injectStore].concat(options.plugins || [])
++    plugins: [injectStore].concat(options.plugins || []),
+   })
+ 
+   return store
+diff --git a/src/mapper.ts b/src/mapper.ts
+index 2721974..45d7cc4 100644
+--- a/src/mapper.ts
++++ b/src/mapper.ts
+@@ -6,7 +6,7 @@ import {
+   dispatch as namespacedDispatch,
+   Commit,
+   Dispatch,
+-  createLazyContextPosition
++  createLazyContextPosition,
+ } from './context'
+ import { mapValues, get } from './utils'
+ import { Module } from './module'
+@@ -47,7 +47,7 @@ export class ComponentMapper<
+   mapState(map: any): { [key: string]: () => any } {
+     const pos = this.pos
+ 
+-    return createMappedObject(map, value => {
++    return createMappedObject(map, (value) => {
+       return function mappedStateComputed(this: Vue) {
+         const state = get(pos.path, this.$store.state)
+ 
+@@ -68,7 +68,7 @@ export class ComponentMapper<
+   mapGetters(map: any): { [key: string]: () => any } {
+     const pos = this.pos
+ 
+-    return createMappedObject(map, value => {
++    return createMappedObject(map, (value) => {
+       function mappedGetterComputed(this: Vue) {
+         return this.$store.getters[pos.namespace + value]
+       }
+@@ -94,7 +94,7 @@ export class ComponentMapper<
+   mapMutations(map: any): { [key: string]: (...args: any[]) => any } {
+     const pos = this.pos
+ 
+-    return createMappedObject(map, value => {
++    return createMappedObject(map, (value) => {
+       return function mappedMutationMethod(this: Vue, ...args: any[]) {
+         const commit = (type: any, payload: any) => {
+           return namespacedCommit(this.$store, pos.namespace, type, payload)
+@@ -121,7 +121,7 @@ export class ComponentMapper<
+   mapActions(map: any): { [key: string]: (...args: any[]) => any } {
+     const pos = this.pos
+ 
+-    return createMappedObject(map, value => {
++    return createMappedObject(map, (value) => {
+       return function mappedActionMethod(this: Vue, ...args: any[]) {
+         const dispatch = (type: any, payload: any) => {
+           return namespacedDispatch(this.$store, pos.namespace, type, payload)
+diff --git a/src/module.ts b/src/module.ts
+index 6739cfb..8ba10be 100644
+--- a/src/module.ts
++++ b/src/module.ts
+@@ -3,7 +3,7 @@ import {
+   Module as VuexModule,
+   GetterTree,
+   MutationTree,
+-  ActionTree
++  ActionTree,
+ } from 'vuex'
+ import {
+   Getters as BaseGetters,
+@@ -11,7 +11,7 @@ import {
+   Actions as BaseActions,
+   BA,
+   BG,
+-  BM
++  BM,
+ } from './assets'
+ import {
+   assert,
+@@ -21,7 +21,7 @@ import {
+   combine,
+   traverseDescriptors,
+   error,
+-  deprecated
++  deprecated,
+ } from './utils'
+ import { Context, Commit, Dispatch, createLazyContextPosition } from './context'
+ import { ComponentMapper, MappedFunction, RestArgs } from './mapper'
+@@ -66,7 +66,7 @@ export class Module<
+   clone(): Module<S, G, M, A> {
+     const options = { ...this.options }
+     if (options.modules) {
+-      options.modules = mapValues(options.modules, m => m.clone())
++      options.modules = mapValues(options.modules, (m) => m.clone())
+     }
+     return new Module(options)
+   }
+@@ -152,7 +152,7 @@ export class Module<
+       getters,
+       mutations,
+       actions,
+-      modules
++      modules,
+     } = this.options
+ 
+     const children = !modules
+@@ -177,7 +177,7 @@ export class Module<
+           },
+           {
+             options: {} as Record<string, VuexModule<any, any>>,
+-            injectStore: noop as (store: Store<any>) => void
++            injectStore: noop as (store: Store<any>) => void,
+           }
+         )
+ 
+@@ -192,14 +192,14 @@ export class Module<
+         getters: gettersInstance && gettersInstance.getters,
+         mutations: mutationsInstance && mutationsInstance.mutations,
+         actions: actionsInstance && actionsInstance.actions,
+-        modules: children && children.options
++        modules: children && children.options,
+       },
+       injectStore: combine(
+         children ? children.injectStore : noop,
+         gettersInstance ? gettersInstance.injectStore : noop,
+         mutationsInstance ? mutationsInstance.injectStore : noop,
+         actionsInstance ? actionsInstance.injectStore : noop
+-      )
++      ),
+     }
+   }
+ }
+@@ -219,7 +219,7 @@ function initGetters<
+   // Proxy all getters to print useful warning on development
+   function proxyGetters(getters: any, origin: string): any {
+     const proxy = Object.create(getters)
+-    Object.keys(options).forEach(key => {
++    Object.keys(options).forEach((key) => {
+       Object.defineProperty(proxy, key, {
+         get() {
+           error(
+@@ -229,7 +229,7 @@ function initGetters<
+           )
+           return getters[key]
+         },
+-        configurable: true
++        configurable: true,
+       })
+     })
+     return proxy
+@@ -261,15 +261,15 @@ function initGetters<
+ 
+   return {
+     getters: options,
+-    injectStore: store => {
++    injectStore: (store) => {
+       const context = module.context(store)
+ 
+       Object.defineProperty(getters, '__ctx__', {
+-        get: () => context
++        get: () => context,
+       })
+ 
+       getters.$init(store)
+-    }
++    },
+   }
+ }
+ 
+@@ -288,7 +288,7 @@ function initMutations<
+   // Proxy all mutations to print useful warning on development
+   function proxyMutations(mutations: any, origin: string): any {
+     const proxy = Object.create(mutations)
+-    Object.keys(options).forEach(key => {
++    Object.keys(options).forEach((key) => {
+       proxy[key] = (...args: any[]) => {
+         error(
+           `You are accessing ${Mutations.name}#${key} from ${Mutations.name}#${origin}` +
+@@ -318,12 +318,12 @@ function initMutations<
+ 
+   return {
+     mutations: options,
+-    injectStore: store => {
++    injectStore: (store) => {
+       const context = module.context(store)
+       Object.defineProperty(mutations, '__ctx__', {
+-        get: () => context
++        get: () => context,
+       })
+-    }
++    },
+   }
+ }
+ 
+@@ -342,7 +342,7 @@ function initActions<
+   // Proxy all actions to print useful warning on development
+   function proxyActions(actions: any, origin: string): any {
+     const proxy = Object.create(actions)
+-    Object.keys(options).forEach(key => {
++    Object.keys(options).forEach((key) => {
+       proxy[key] = (...args: any[]) => {
+         error(
+           `You are accessing ${Actions.name}#${key} from ${Actions.name}#${origin}` +
+@@ -371,14 +371,14 @@ function initActions<
+ 
+   return {
+     actions: options,
+-    injectStore: store => {
++    injectStore: (store) => {
+       const context = module.context(store)
+ 
+       Object.defineProperty(actions, '__ctx__', {
+-        get: () => context
++        get: () => context,
+       })
+ 
+       actions.$init(store)
+-    }
++    },
+   }
+ }
+diff --git a/src/utils.ts b/src/utils.ts
+index 229574e..32c3eb8 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -5,8 +5,8 @@ export interface Class<T> {
+ export const noop = () => {}
+ 
+ export function combine<T>(...fs: ((x: T) => void)[]): (x: T) => void {
+-  return x => {
+-    fs.forEach(f => f(x))
++  return (x) => {
++    fs.forEach((f) => f(x))
+   }
+ }
+ 
+@@ -21,7 +21,7 @@ export function mapValues<T, R>(
+   fn: (value: T, key: string) => R
+ ): Record<string, R> {
+   const res: Record<string, R> = {}
+-  Object.keys(record).forEach(key => {
++  Object.keys(record).forEach((key) => {
+     res[key] = fn(record[key], key)
+   })
+   return res
+@@ -51,7 +51,7 @@ export function traverseDescriptors(
+     return
+   }
+ 
+-  Object.getOwnPropertyNames(proto).forEach(key => {
++  Object.getOwnPropertyNames(proto).forEach((key) => {
+     // Ensure to only choose most extended properties
+     if (exclude[key]) return
+     exclude[key] = true

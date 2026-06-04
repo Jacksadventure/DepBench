@@ -1,0 +1,107 @@
+diff --git a/sqlframe/base/function_alternatives.py b/sqlframe/base/function_alternatives.py
+--- a/sqlframe/base/function_alternatives.py
++++ b/sqlframe/base/function_alternatives.py
+@@ -64,6 +64,39 @@ def first_always_ignore_nulls(col: ColumnOrName, ignorenulls: t.Optional[bool] =
+     return first(col)
+ 
+ 
++def to_timestamp_with_time_zone(col: ColumnOrName, format: t.Optional[str] = None) -> Column:
++    from sqlframe.base.session import _BaseSession
++
++    if format is not None:
++        return Column.invoke_expression_over_column(
++            col, expression.StrToTime, format=_BaseSession().format_time(format)
++        )
++
++    return Column.ensure_col(col).cast("timestamp with time zone", dialect="postgres")
++
++
++def to_timestamp_tz(col: ColumnOrName, format: t.Optional[str] = None) -> Column:
++    from sqlframe.base.session import _BaseSession
++
++    if format is not None:
++        return Column.invoke_expression_over_column(
++            col, expression.StrToTime, format=_BaseSession().format_time(format)
++        )
++
++    return Column.ensure_col(col).cast("timestamptz", dialect="duckdb")
++
++
++def to_timestamp_just_timestamp(col: ColumnOrName, format: t.Optional[str] = None) -> Column:
++    from sqlframe.base.session import _BaseSession
++
++    if format is not None:
++        return Column.invoke_expression_over_column(
++            col, expression.StrToTime, format=_BaseSession().format_time(format)
++        )
++
++    return Column.ensure_col(col).cast("datetime", dialect="bigquery")
++
++
+ def bitwise_not_from_bitnot(col: ColumnOrName) -> Column:
+     return Column.invoke_anonymous_function(col, "BITNOT")
+ 
+diff --git a/sqlframe/base/functions.py b/sqlframe/base/functions.py
+--- a/sqlframe/base/functions.py
++++ b/sqlframe/base/functions.py
+@@ -900,7 +900,7 @@ def to_timestamp(col: ColumnOrName, format: t.Optional[str] = None) -> Column:
+             col, expression.StrToTime, format=_BaseSession().format_time(format)
+         )
+ 
+-    return Column.ensure_col(col).cast("timestamp")
++    return Column.ensure_col(col).cast("timestampltz")
+ 
+ 
+ @meta()
+diff --git a/sqlframe/base/session.py b/sqlframe/base/session.py
+--- a/sqlframe/base/session.py
++++ b/sqlframe/base/session.py
+@@ -570,6 +570,8 @@ def _to_value(cls, value: t.Any) -> t.Any:
+             return cls._to_row(list(value.keys()), list(value.values()))
+         elif isinstance(value, (list, set, tuple)) and value:
+             return [cls._to_value(x) for x in value]
++        elif isinstance(value, datetime.datetime):
++            return value.replace(tzinfo=None)
+         return value
+ 
+     @classmethod
+diff --git a/sqlframe/bigquery/functions.py b/sqlframe/bigquery/functions.py
+--- a/sqlframe/bigquery/functions.py
++++ b/sqlframe/bigquery/functions.py
+@@ -73,6 +73,7 @@
+     _is_string_using_typeof_string as _is_string,
+     array_append_using_array_cat as array_append,
+     endswith_with_underscore as endswith,
++    to_timestamp_just_timestamp as to_timestamp,
+ )
+ 
+ 
+diff --git a/sqlframe/duckdb/functions.py b/sqlframe/duckdb/functions.py
+--- a/sqlframe/duckdb/functions.py
++++ b/sqlframe/duckdb/functions.py
+@@ -53,4 +53,5 @@
+     endswith_with_underscore as endswith,
+     last_day_with_cast as last_day,
+     regexp_replace_global_option as regexp_replace,
++    to_timestamp_tz as to_timestamp,
+ )
+diff --git a/sqlframe/duckdb/functions.pyi b/sqlframe/duckdb/functions.pyi
+--- a/sqlframe/duckdb/functions.pyi
++++ b/sqlframe/duckdb/functions.pyi
+@@ -29,6 +29,7 @@ from sqlframe.base.function_alternatives import (  # noqa
+     try_element_at_zero_based as try_element_at,
+     to_unix_timestamp_include_default_format as to_unix_timestamp,
+     regexp_replace_global_option as regexp_replace,
++    to_timestamp_tz as to_timestamp,
+ )
+ from sqlframe.base.functions import (
+     abs as abs,
+diff --git a/sqlframe/postgres/functions.py b/sqlframe/postgres/functions.py
+--- a/sqlframe/postgres/functions.py
++++ b/sqlframe/postgres/functions.py
+@@ -70,4 +70,5 @@
+     endswith_using_like as endswith,
+     last_day_with_cast as last_day,
+     regexp_replace_global_option as regexp_replace,
++    to_timestamp_with_time_zone as to_timestamp,
+ )

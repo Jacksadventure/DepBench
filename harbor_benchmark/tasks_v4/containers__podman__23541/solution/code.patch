@@ -1,0 +1,150 @@
+diff --git a/vendor/github.com/google/pprof/profile/profile.go b/vendor/github.com/google/pprof/profile/profile.go
+--- a/vendor/github.com/google/pprof/profile/profile.go
++++ b/vendor/github.com/google/pprof/profile/profile.go
+@@ -847,7 +847,7 @@ func (p *Profile) HasFileLines() bool {
+ // "[vdso]", [vsyscall]" and some others, see the code.
+ func (m *Mapping) Unsymbolizable() bool {
+ 	name := filepath.Base(m.File)
+-	return strings.HasPrefix(name, "[") || strings.HasPrefix(name, "linux-vdso") || strings.HasPrefix(m.File, "/dev/dri/")
++	return strings.HasPrefix(name, "[") || strings.HasPrefix(name, "linux-vdso") || strings.HasPrefix(m.File, "/dev/dri/") || m.File == "//anon"
+ }
+ 
+ // Copy makes a fully independent copy of a profile.
+diff --git a/vendor/github.com/onsi/ginkgo/v2/CHANGELOG.md b/vendor/github.com/onsi/ginkgo/v2/CHANGELOG.md
+--- a/vendor/github.com/onsi/ginkgo/v2/CHANGELOG.md
++++ b/vendor/github.com/onsi/ginkgo/v2/CHANGELOG.md
+@@ -1,3 +1,12 @@
++## 2.20.0
++
++### Features
++- Add buildvcs flag [be5ab95]
++
++### Maintenance
++- Add update-deps to makefile [d303d14]
++- bump all dependencies [7a50221]
++
+ ## 2.19.1
+ 
+ ### Fixes
+diff --git a/vendor/github.com/onsi/ginkgo/v2/Makefile b/vendor/github.com/onsi/ginkgo/v2/Makefile
+--- a/vendor/github.com/onsi/ginkgo/v2/Makefile
++++ b/vendor/github.com/onsi/ginkgo/v2/Makefile
+@@ -4,8 +4,13 @@ all:  vet test
+ 
+ .PHONY: test
+ test:
+-	go run github.com/onsi/ginkgo/v2/ginkgo -r -p
++	go run github.com/onsi/ginkgo/v2/ginkgo -r -p -randomize-all -keep-going
+ 
+ .PHONY: vet
+ vet:
+ 	go vet ./...
++
++.PHONY: update-deps
++update-deps:
++	go get -u ./...
++	go mod tidy
+\ No newline at end of file
+diff --git a/vendor/github.com/onsi/ginkgo/v2/types/config.go b/vendor/github.com/onsi/ginkgo/v2/types/config.go
+--- a/vendor/github.com/onsi/ginkgo/v2/types/config.go
++++ b/vendor/github.com/onsi/ginkgo/v2/types/config.go
+@@ -202,6 +202,7 @@ type GoFlagsConfig struct {
+ 	A             bool
+ 	ASMFlags      string
+ 	BuildMode     string
++	BuildVCS      bool
+ 	Compiler      string
+ 	GCCGoFlags    string
+ 	GCFlags       string
+@@ -528,6 +529,8 @@ var GoBuildFlags = GinkgoFlags{
+ 		Usage: "arguments to pass on each go tool asm invocation."},
+ 	{KeyPath: "Go.BuildMode", Name: "buildmode", UsageArgument: "mode", SectionKey: "go-build",
+ 		Usage: "build mode to use. See 'go help buildmode' for more."},
++	{KeyPath: "Go.BuildVCS", Name: "buildvcs", SectionKey: "go-build",
++		Usage: "adds version control information."},
+ 	{KeyPath: "Go.Compiler", Name: "compiler", UsageArgument: "name", SectionKey: "go-build",
+ 		Usage: "name of compiler to use, as in runtime.Compiler (gccgo or gc)."},
+ 	{KeyPath: "Go.GCCGoFlags", Name: "gccgoflags", UsageArgument: "'[pattern=]arg list'", SectionKey: "go-build",
+diff --git a/vendor/github.com/onsi/ginkgo/v2/types/version.go b/vendor/github.com/onsi/ginkgo/v2/types/version.go
+--- a/vendor/github.com/onsi/ginkgo/v2/types/version.go
++++ b/vendor/github.com/onsi/ginkgo/v2/types/version.go
+@@ -1,3 +1,3 @@
+ package types
+ 
+-const VERSION = "2.19.1"
++const VERSION = "2.20.0"
+diff --git a/vendor/golang.org/x/mod/LICENSE b/vendor/golang.org/x/mod/LICENSE
+--- a/vendor/golang.org/x/mod/LICENSE
++++ b/vendor/golang.org/x/mod/LICENSE
+@@ -1,4 +1,4 @@
+-Copyright (c) 2009 The Go Authors. All rights reserved.
++Copyright 2009 The Go Authors.
+ 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
+@@ -10,7 +10,7 @@ notice, this list of conditions and the following disclaimer.
+ copyright notice, this list of conditions and the following disclaimer
+ in the documentation and/or other materials provided with the
+ distribution.
+-   * Neither the name of Google Inc. nor the names of its
++   * Neither the name of Google LLC nor the names of its
+ contributors may be used to endorse or promote products derived from
+ this software without specific prior written permission.
+ 
+diff --git a/vendor/golang.org/x/tools/LICENSE b/vendor/golang.org/x/tools/LICENSE
+--- a/vendor/golang.org/x/tools/LICENSE
++++ b/vendor/golang.org/x/tools/LICENSE
+@@ -1,4 +1,4 @@
+-Copyright (c) 2009 The Go Authors. All rights reserved.
++Copyright 2009 The Go Authors.
+ 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
+@@ -10,7 +10,7 @@ notice, this list of conditions and the following disclaimer.
+ copyright notice, this list of conditions and the following disclaimer
+ in the documentation and/or other materials provided with the
+ distribution.
+-   * Neither the name of Google Inc. nor the names of its
++   * Neither the name of Google LLC nor the names of its
+ contributors may be used to endorse or promote products derived from
+ this software without specific prior written permission.
+ 
+diff --git a/vendor/modules.txt b/vendor/modules.txt
+--- a/vendor/modules.txt
++++ b/vendor/modules.txt
+@@ -667,7 +667,7 @@ github.com/google/go-intervals/intervalset
+ ## explicit; go 1.12
+ github.com/google/gofuzz
+ github.com/google/gofuzz/bytesource
+-# github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6
++# github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8
+ ## explicit; go 1.19
+ github.com/google/pprof/profile
+ # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+@@ -838,7 +838,7 @@ github.com/nxadm/tail/winfile
+ # github.com/oklog/ulid v1.3.1
+ ## explicit
+ github.com/oklog/ulid
+-# github.com/onsi/ginkgo/v2 v2.19.1
++# github.com/onsi/ginkgo/v2 v2.20.0
+ ## explicit; go 1.20
+ github.com/onsi/ginkgo/v2
+ github.com/onsi/ginkgo/v2/config
+@@ -1182,7 +1182,7 @@ golang.org/x/crypto/xts
+ golang.org/x/exp/constraints
+ golang.org/x/exp/maps
+ golang.org/x/exp/slices
+-# golang.org/x/mod v0.19.0
++# golang.org/x/mod v0.20.0
+ ## explicit; go 1.18
+ golang.org/x/mod/semver
+ golang.org/x/mod/sumdb/note
+@@ -1246,7 +1246,7 @@ golang.org/x/text/unicode/norm
+ # golang.org/x/time v0.5.0
+ ## explicit; go 1.18
+ golang.org/x/time/rate
+-# golang.org/x/tools v0.23.0
++# golang.org/x/tools v0.24.0
+ ## explicit; go 1.19
+ golang.org/x/tools/cover
+ golang.org/x/tools/go/ast/inspector

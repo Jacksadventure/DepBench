@@ -1,0 +1,41 @@
+diff --git a/index.js b/index.js
+index 2251c18..bd3904b 100644
+--- a/index.js
++++ b/index.js
+@@ -1,6 +1,7 @@
+ 'use strict'
+ const From = require('fastify-reply-from')
+ const WebSocket = require('ws')
++const { convertUrlToWebSocket } = require('./utils')
+ 
+ const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
+ const urlPattern = /^https?:\/\//
+@@ -98,11 +99,11 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
+   })
+ 
+   function createWebSocketUrl (request) {
+-    const source = new URL(request.url, 'http://127.0.0.1')
++    const source = new URL(request.url, 'ws://127.0.0.1')
+ 
+     const target = new URL(
+       source.pathname.replace(fastify.prefix, rewritePrefix),
+-      options.upstream
++      convertUrlToWebSocket(options.upstream)
+     )
+ 
+     target.search = source.search
+diff --git a/utils.js b/utils.js
+new file mode 100644
+index 0000000..a9c069d
+--- /dev/null
++++ b/utils.js
+@@ -0,0 +1,9 @@
++'use strict'
++
++function convertUrlToWebSocket (urlString) {
++  return urlString.replace(/^(http)(s)?:\/\//, 'ws$2://')
++}
++
++module.exports = {
++  convertUrlToWebSocket
++}

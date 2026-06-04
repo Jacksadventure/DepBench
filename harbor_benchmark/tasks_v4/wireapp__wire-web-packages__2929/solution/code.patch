@@ -1,0 +1,367 @@
+diff --git a/packages/api-client/demo/demo.js b/packages/api-client/demo/demo.js
+index f2dd760a55..f2ab302ab3 100644
+--- a/packages/api-client/demo/demo.js
++++ b/packages/api-client/demo/demo.js
+@@ -117,7 +117,7 @@ class Auth extends Component {
+   }
+ }
+ 
+-window.onload = function() {
++window.onload = function () {
+   const config = {
+     urls: BACKEND_ENV,
+   };
+diff --git a/packages/api-client/src/APIClient.test.node.ts b/packages/api-client/src/APIClient.test.node.ts
+index 311a7a609c..4e4bd13c04 100644
+--- a/packages/api-client/src/APIClient.test.node.ts
++++ b/packages/api-client/src/APIClient.test.node.ts
+@@ -125,9 +125,7 @@ describe('APIClient', () => {
+         .query({persist: loginData.clientType === 'permanent'})
+         .reply(200, accessTokenData);
+ 
+-      nock(baseUrl)
+-        .post(`${AuthAPI.URL.ACCESS}/${AuthAPI.URL.LOGOUT}`)
+-        .reply(200, undefined);
++      nock(baseUrl).post(`${AuthAPI.URL.ACCESS}/${AuthAPI.URL.LOGOUT}`).reply(200, undefined);
+     });
+ 
+     it('creates a context from a successful login', async () => {
+@@ -146,21 +144,11 @@ describe('APIClient', () => {
+     it('refreshes an access token when it becomes invalid', async () => {
+       const queriedHandle = 'webappbot';
+ 
+-      nock(baseUrl)
+-        .get(UserAPI.URL.USERS)
+-        .query({handles: queriedHandle})
+-        .once()
+-        .reply(401);
++      nock(baseUrl).get(UserAPI.URL.USERS).query({handles: queriedHandle}).once().reply(401);
+ 
+-      nock(baseUrl)
+-        .get(UserAPI.URL.USERS)
+-        .query({handles: queriedHandle})
+-        .twice()
+-        .reply(200, userData);
++      nock(baseUrl).get(UserAPI.URL.USERS).query({handles: queriedHandle}).twice().reply(200, userData);
+ 
+-      nock(baseUrl)
+-        .post(AuthAPI.URL.ACCESS)
+-        .reply(200, accessTokenData);
++      nock(baseUrl).post(AuthAPI.URL.ACCESS).reply(200, accessTokenData);
+ 
+       const client = new APIClient();
+       const context = await client.login(loginData);
+@@ -175,9 +163,7 @@ describe('APIClient', () => {
+ 
+   describe('"logout"', () => {
+     beforeEach(() => {
+-      nock(baseUrl)
+-        .post(`${AuthAPI.URL.ACCESS}/${AuthAPI.URL.LOGOUT}`)
+-        .reply(200);
++      nock(baseUrl).post(`${AuthAPI.URL.ACCESS}/${AuthAPI.URL.LOGOUT}`).reply(200);
+     });
+ 
+     it('can logout a user', async () => {
+@@ -234,13 +220,9 @@ describe('APIClient', () => {
+     };
+ 
+     beforeEach(() => {
+-      nock(baseUrl)
+-        .post(AuthAPI.URL.REGISTER, registerData)
+-        .reply(200, registerData);
++      nock(baseUrl).post(AuthAPI.URL.REGISTER, registerData).reply(200, registerData);
+ 
+-      nock(baseUrl)
+-        .post(AuthAPI.URL.ACCESS)
+-        .reply(200, accessTokenData);
++      nock(baseUrl).post(AuthAPI.URL.ACCESS).reply(200, accessTokenData);
+     });
+ 
+     it('automatically gets an access token after registration', async () => {
+diff --git a/packages/api-client/src/shims/node/buffer.ts b/packages/api-client/src/shims/node/buffer.ts
+index 971a07dde8..4e644ef4e9 100644
+--- a/packages/api-client/src/shims/node/buffer.ts
++++ b/packages/api-client/src/shims/node/buffer.ts
+@@ -22,9 +22,7 @@ import {createHash} from 'crypto';
+ export const bufferToString = (buffer: ArrayBuffer): string => Buffer.from(buffer).toString('utf8');
+ 
+ export const base64MD5FromBuffer = (buffer: ArrayBuffer): string => {
+-  return createHash('md5')
+-    .update(Buffer.from(buffer))
+-    .digest('base64');
++  return createHash('md5').update(Buffer.from(buffer)).digest('base64');
+ };
+ 
+ export const concatToBuffer = (...items: any[]) => Buffer.concat(items.map(item => Buffer.from(item)));
+diff --git a/packages/bazinga64/src/Converter.ts b/packages/bazinga64/src/Converter.ts
+index d051c133c2..ddb7d528e4 100644
+--- a/packages/bazinga64/src/Converter.ts
++++ b/packages/bazinga64/src/Converter.ts
+@@ -138,10 +138,7 @@ export class Converter {
+     const binaryString = Converter.arrayBufferViewToBaselineString(arrayBufferView);
+ 
+     const escapedString = binaryString.replace(/(.)/g, (match: string) => {
+-      const code = match
+-        .charCodeAt(0)
+-        .toString(16)
+-        .toUpperCase();
++      const code = match.charCodeAt(0).toString(16).toUpperCase();
+ 
+       if (code.length < 2) {
+         return `0${code}`;
+diff --git a/packages/cbor/README.md b/packages/cbor/README.md
+index 07d8e5c117..45b1b10170 100644
+--- a/packages/cbor/README.md
++++ b/packages/cbor/README.md
+@@ -30,11 +30,7 @@ const payload: Uint8Array = new Uint8Array([255, 18, 15, 34, 210, 168, 165, 188,
+ 
+ // Encoding
+ const encoder: CBOR.Encoder = new CBOR.Encoder();
+-const encoded: ArrayBuffer = encoder
+-  .object(1)
+-  .u8(0)
+-  .bytes(payload)
+-  .get_buffer();
++const encoded: ArrayBuffer = encoder.object(1).u8(0).bytes(payload).get_buffer();
+ 
+ // Decoding
+ let decoded: Uint8Array;
+diff --git a/packages/commons/src/main/LogFactory.ts b/packages/commons/src/main/LogFactory.ts
+index d167caaa87..51a9ddb901 100644
+--- a/packages/commons/src/main/LogFactory.ts
++++ b/packages/commons/src/main/LogFactory.ts
+@@ -53,9 +53,7 @@ export class LogFactory {
+     LogFactory.COLOR_CODE.G = (LogFactory.COLOR_CODE.G + LogFactory.COLOR_STEP.G) % 256;
+     LogFactory.COLOR_CODE.B = (LogFactory.COLOR_CODE.B + LogFactory.COLOR_STEP.B) % 256;
+ 
+-    const rHex = Number(LogFactory.COLOR_CODE.R)
+-      .toString(16)
+-      .padStart(2, '0');
++    const rHex = Number(LogFactory.COLOR_CODE.R).toString(16).padStart(2, '0');
+     const gHex = LogFactory.COLOR_CODE.G.toString(16).padStart(2, '0');
+     const bHex = LogFactory.COLOR_CODE.B.toString(16).padStart(2, '0');
+ 
+@@ -63,10 +61,7 @@ export class LogFactory {
+   }
+ 
+   static addTimestamp(logTransport: logdown.TransportOptions): void {
+-    const formattedDate = new Date()
+-      .toISOString()
+-      .split('.')[0]
+-      .replace('T', ' ');
++    const formattedDate = new Date().toISOString().split('.')[0].replace('T', ' ');
+     logTransport.args.unshift(`[${formattedDate}]`);
+   }
+ 
+diff --git a/packages/copy-config/src/main/utils.ts b/packages/copy-config/src/main/utils.ts
+index ea7cc605b8..d69f347d64 100644
+--- a/packages/copy-config/src/main/utils.ts
++++ b/packages/copy-config/src/main/utils.ts
+@@ -45,10 +45,7 @@ export async function downloadFileAsync(url: string, baseDir: string): Promise<v
+   await fs.ensureDir(baseDir);
+ 
+   await new Promise((resolve, reject) => {
+-    const writer = fs
+-      .createWriteStream(zipFile)
+-      .on('error', reject)
+-      .on('finish', resolve);
++    const writer = fs.createWriteStream(zipFile).on('error', reject).on('finish', resolve);
+ 
+     return axios
+       .request({
+diff --git a/packages/core/src/main/Account.test.node.ts b/packages/core/src/main/Account.test.node.ts
+index 6d4a6dc47a..3f92a7d9ee 100644
+--- a/packages/core/src/main/Account.test.node.ts
++++ b/packages/core/src/main/Account.test.node.ts
+@@ -74,17 +74,11 @@ describe('Account', () => {
+         return [StatusCode.OK, JSON.stringify(accessTokenData)];
+       });
+ 
+-    nock(MOCK_BACKEND.rest)
+-      .post(`${AuthAPI.URL.ACCESS}/${AuthAPI.URL.LOGOUT}`)
+-      .reply(StatusCode.OK, undefined);
++    nock(MOCK_BACKEND.rest).post(`${AuthAPI.URL.ACCESS}/${AuthAPI.URL.LOGOUT}`).reply(StatusCode.OK, undefined);
+ 
+-    nock(MOCK_BACKEND.rest)
+-      .post(AuthAPI.URL.ACCESS)
+-      .reply(StatusCode.OK, accessTokenData);
++    nock(MOCK_BACKEND.rest).post(AuthAPI.URL.ACCESS).reply(StatusCode.OK, accessTokenData);
+ 
+-    nock(MOCK_BACKEND.rest)
+-      .post(ClientAPI.URL.CLIENTS)
+-      .reply(StatusCode.OK, {id: CLIENT_ID});
++    nock(MOCK_BACKEND.rest).post(ClientAPI.URL.CLIENTS).reply(StatusCode.OK, {id: CLIENT_ID});
+ 
+     nock(MOCK_BACKEND.rest)
+       .post(
+diff --git a/packages/core/src/main/conversation/ConversationService.test.node.ts b/packages/core/src/main/conversation/ConversationService.test.node.ts
+index 743f69871d..9e0b54cfc4 100644
+--- a/packages/core/src/main/conversation/ConversationService.test.node.ts
++++ b/packages/core/src/main/conversation/ConversationService.test.node.ts
+@@ -238,10 +238,7 @@ describe('ConversationService', () => {
+         quotedMessageId: quoteId,
+       };
+ 
+-      const replyMessage = account
+-        .service!.conversation.messageBuilder.createText('', text)
+-        .withQuote(quote)
+-        .build();
++      const replyMessage = account.service!.conversation.messageBuilder.createText('', text).withQuote(quote).build();
+ 
+       expect(replyMessage.content.text).toEqual(text);
+       expect(replyMessage.content.quote).toEqual(jasmine.objectContaining({quotedMessageId: quoteId}));
+diff --git a/packages/core/src/main/cryptography/AssetCryptography.node.ts b/packages/core/src/main/cryptography/AssetCryptography.node.ts
+index 96376c56c2..570e1e5ed4 100644
+--- a/packages/core/src/main/cryptography/AssetCryptography.node.ts
++++ b/packages/core/src/main/cryptography/AssetCryptography.node.ts
+@@ -35,10 +35,7 @@ export const decryptAsset = async ({
+   keyBytes,
+   sha256: referenceSha256,
+ }: EncryptedAsset): Promise<Buffer> => {
+-  const computedSha256 = crypto
+-    .createHash('SHA256')
+-    .update(cipherText)
+-    .digest();
++  const computedSha256 = crypto.createHash('SHA256').update(cipherText).digest();
+ 
+   if (!isEqual(computedSha256, referenceSha256)) {
+     throw new Error('Encrypted asset does not match its SHA-256 hash');
+@@ -68,10 +65,7 @@ export const encryptAsset = async (plainText: Uint8Array): Promise<EncryptedAsse
+   ivCipherText.set(initializationVector, 0);
+   ivCipherText.set(cipherText, initializationVector.byteLength);
+ 
+-  const computedSha256 = crypto
+-    .createHash('SHA256')
+-    .update(Buffer.from(ivCipherText.buffer))
+-    .digest();
++  const computedSha256 = crypto.createHash('SHA256').update(Buffer.from(ivCipherText.buffer)).digest();
+ 
+   return {
+     cipherText: Buffer.from(ivCipherText.buffer),
+diff --git a/packages/core/src/main/cryptography/MessageHashService.ts b/packages/core/src/main/cryptography/MessageHashService.ts
+index 75952027d7..b27753ca2a 100644
+--- a/packages/core/src/main/cryptography/MessageHashService.ts
++++ b/packages/core/src/main/cryptography/MessageHashService.ts
+@@ -35,10 +35,7 @@ export class MessageHashService {
+   }
+ 
+   private createSha256Hash(buffer: Buffer): Buffer {
+-    const hashArray = hash
+-      .sha256()
+-      .update(buffer)
+-      .digest();
++    const hashArray = hash.sha256().update(buffer).digest();
+     return Buffer.from(hashArray);
+   }
+ 
+diff --git a/packages/license-collector/src/cli.ts b/packages/license-collector/src/cli.ts
+index 05d954cde3..d754248b7b 100644
+--- a/packages/license-collector/src/cli.ts
++++ b/packages/license-collector/src/cli.ts
+@@ -24,18 +24,12 @@ import * as path from 'path';
+ 
+ import {LicenseCollector} from './LicenseCollector';
+ 
+-const repositories = fs
+-  .readFileSync('repositories.txt', 'utf8')
+-  .split('\n')
+-  .filter(Boolean);
++const repositories = fs.readFileSync('repositories.txt', 'utf8').split('\n').filter(Boolean);
+ 
+ let filter: string[] = [];
+ 
+ try {
+-  filter = fs
+-    .readFileSync('filter.txt', 'utf8')
+-    .split('\n')
+-    .filter(Boolean);
++  filter = fs.readFileSync('filter.txt', 'utf8').split('\n').filter(Boolean);
+ } catch (error) {}
+ 
+ const outputFile = path.resolve('licenses.json');
+diff --git a/packages/react-ui-kit/src/Form/CodeInput.tsx b/packages/react-ui-kit/src/Form/CodeInput.tsx
+index ce05336b35..904c84cd14 100644
+--- a/packages/react-ui-kit/src/Form/CodeInput.tsx
++++ b/packages/react-ui-kit/src/Form/CodeInput.tsx
+@@ -137,12 +137,7 @@ export const CodeInput = ({
+     const pastedValue = event.clipboardData.getData('Text');
+     const cleanedPaste = pastedValue.replace(/[^0-9]/g, '');
+     if (/^[0-9]+$/.test(cleanedPaste)) {
+-      setValues(
+-        values
+-          .slice(0, fieldIndex)
+-          .concat(cleanedPaste.split(''))
+-          .slice(0, digits),
+-      );
++      setValues(values.slice(0, fieldIndex).concat(cleanedPaste.split('')).slice(0, digits));
+     }
+   };
+ 
+diff --git a/packages/react-ui-kit/src/Identity/colors.ts b/packages/react-ui-kit/src/Identity/colors.ts
+index 62e1e99168..f8baabc014 100644
+--- a/packages/react-ui-kit/src/Identity/colors.ts
++++ b/packages/react-ui-kit/src/Identity/colors.ts
+@@ -29,15 +29,11 @@ for (let index = 8; index < percent; index += 8) {
+ }
+ 
+ function shade(color: ColorParam, amount = 0.08): string {
+-  return Color(color)
+-    .mix(Color(BASE_COLOR.BLACK), amount)
+-    .toString();
++  return Color(color).mix(Color(BASE_COLOR.BLACK), amount).toString();
+ }
+ 
+ function tint(color: ColorParam, amount: number): string {
+-  return Color(color)
+-    .mix(Color(BASE_COLOR.WHITE), amount)
+-    .toString();
++  return Color(color).mix(Color(BASE_COLOR.WHITE), amount).toString();
+ }
+ 
+ function opaque(color: ColorParam, amount: number): string {
+diff --git a/packages/react-ui-kit/src/Layout/headerMenu/MenuSubLink.tsx b/packages/react-ui-kit/src/Layout/headerMenu/MenuSubLink.tsx
+index 1d99317586..320016ed84 100644
+--- a/packages/react-ui-kit/src/Layout/headerMenu/MenuSubLink.tsx
++++ b/packages/react-ui-kit/src/Layout/headerMenu/MenuSubLink.tsx
+@@ -34,9 +34,7 @@ export const menuSubLinkStyle: <T>(theme: Theme, props: MenuSubLinkProps<T>) =>
+ ) => ({
+   ...textStyle(theme, props),
+   '&:hover': {
+-    color: Color(theme.general.color)
+-      .mix(Color(COLOR.BLACK), 0.16)
+-      .toString(),
++    color: Color(theme.general.color).mix(Color(COLOR.BLACK), 0.16).toString(),
+   },
+   color: theme.general.color,
+   cursor: 'pointer',
+diff --git a/packages/react-ui-kit/src/Text/Link.tsx b/packages/react-ui-kit/src/Text/Link.tsx
+index a2358e21b4..a29fe2e2ca 100644
+--- a/packages/react-ui-kit/src/Text/Link.tsx
++++ b/packages/react-ui-kit/src/Text/Link.tsx
+@@ -33,9 +33,7 @@ export const linkStyle: <T>(theme: Theme, props: LinkProps<T>) => ObjectInterpol
+   {bold = true, color = theme.general.color, fontSize = '11px', textTransform = 'uppercase', ...props},
+ ) => {
+   const darker = 0.16;
+-  const hoverColor = Color(color)
+-    .mix(Color(COLOR.BLACK), darker)
+-    .toString();
++  const hoverColor = Color(color).mix(Color(COLOR.BLACK), darker).toString();
+   return {
+     ...textStyle(theme, {bold, color, fontSize, textTransform, ...props}),
+     '&:hover': {
+diff --git a/packages/store-engine-dexie/src/index.ts b/packages/store-engine-dexie/src/index.ts
+index 92be45f432..a4b3bd11f1 100644
+--- a/packages/store-engine-dexie/src/index.ts
++++ b/packages/store-engine-dexie/src/index.ts
+@@ -182,10 +182,7 @@ export class IndexedDBEngine implements CRUDEngine {
+   }
+ 
+   public async readAllPrimaryKeys<PrimaryKey = string>(tableName: string): Promise<PrimaryKey[]> {
+-    const keys = await this.db
+-      .table<PrimaryKey>(tableName)
+-      .toCollection()
+-      .keys();
++    const keys = await this.db.table<PrimaryKey>(tableName).toCollection().keys();
+     return keys.map(key => (key as any) as PrimaryKey);
+   }
+ 

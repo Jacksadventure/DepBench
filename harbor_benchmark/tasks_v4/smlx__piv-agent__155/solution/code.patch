@@ -1,0 +1,310 @@
+diff --git a/cmd/piv-agent/setup.go b/cmd/piv-agent/setup.go
+index d431763..ffaccfa 100644
+--- a/cmd/piv-agent/setup.go
++++ b/cmd/piv-agent/setup.go
+@@ -9,7 +9,7 @@ import (
+ 
+ 	"github.com/smlx/piv-agent/internal/pinentry"
+ 	"github.com/smlx/piv-agent/internal/securitykey"
+-	"golang.org/x/crypto/ssh/terminal"
++	"golang.org/x/term"
+ )
+ 
+ // SetupCmd represents the setup command.
+@@ -24,7 +24,7 @@ type SetupCmd struct {
+ // interactiveNewPIN prompts twice for a new PIN.
+ func interactiveNewPIN() (uint64, error) {
+ 	fmt.Print("Enter a new PIN/PUK (6-8 digits): ")
+-	rawPIN, err := terminal.ReadPassword(int(os.Stdin.Fd()))
++	rawPIN, err := term.ReadPassword(int(os.Stdin.Fd()))
+ 	fmt.Println()
+ 	if err != nil {
+ 		return 0, fmt.Errorf("couldn't read PIN/PUK: %w", err)
+@@ -34,7 +34,7 @@ func interactiveNewPIN() (uint64, error) {
+ 		return 0, fmt.Errorf("invalid characters: %w", err)
+ 	}
+ 	fmt.Print("Repeat PIN/PUK: ")
+-	repeat, err := terminal.ReadPassword(int(os.Stdin.Fd()))
++	repeat, err := term.ReadPassword(int(os.Stdin.Fd()))
+ 	fmt.Println()
+ 	if err != nil {
+ 		return 0, fmt.Errorf("couldn't read PIN/PUK: %w", err)
+diff --git a/cmd/piv-agent/setupslots.go b/cmd/piv-agent/setupslots.go
+index c31648d..e74d876 100644
+--- a/cmd/piv-agent/setupslots.go
++++ b/cmd/piv-agent/setupslots.go
+@@ -8,7 +8,7 @@ import (
+ 
+ 	"github.com/smlx/piv-agent/internal/pinentry"
+ 	"github.com/smlx/piv-agent/internal/securitykey"
+-	"golang.org/x/crypto/ssh/terminal"
++	"golang.org/x/term"
+ )
+ 
+ // SetupSlotsCmd represents the setup command.
+@@ -23,7 +23,7 @@ type SetupSlotsCmd struct {
+ // interactivePIN prompts once for an existing PIN.
+ func interactivePIN() (uint64, error) {
+ 	fmt.Print("Enter the PIN/PUK (6-8 digits): ")
+-	rawPIN, err := terminal.ReadPassword(int(os.Stdin.Fd()))
++	rawPIN, err := term.ReadPassword(int(os.Stdin.Fd()))
+ 	fmt.Println()
+ 	if err != nil {
+ 		return 0, fmt.Errorf("couldn't read PIN/PUK: %w", err)
+diff --git a/internal/assuan/assuan.go b/internal/assuan/assuan.go
+index 2efeb8f..b4aeb6c 100644
+--- a/internal/assuan/assuan.go
++++ b/internal/assuan/assuan.go
+@@ -13,10 +13,10 @@ import (
+ 	"strconv"
+ 	"strings"
+ 
++	"github.com/ProtonMail/go-crypto/openpgp"
+ 	"github.com/smlx/fsm"
+ 	"github.com/smlx/piv-agent/internal/notify"
+ 	"go.uber.org/zap"
+-	"golang.org/x/crypto/openpgp/s2k"
+ )
+ 
+ // version indicates the version of gpg-agent to emulate.
+@@ -162,7 +162,7 @@ func New(rw io.ReadWriter, log *zap.Logger, n *notify.Notify,
+ 						return fmt.Errorf("couldn't parse uint %s: %v", assuan.data[0], err)
+ 					}
+ 					var ok bool
+-					if assuan.hashAlgo, ok = s2k.HashIdToHash(byte(n)); !ok {
++					if assuan.hashAlgo, ok = openpgp.HashIdToHash(uint8(n)); !ok {
+ 						return fmt.Errorf("invalid hash algorithm value: %x", n)
+ 					}
+ 					hash, err = hexDecode(assuan.data[1:]...)
+diff --git a/internal/keyservice/gpg/havekey.go b/internal/keyservice/gpg/havekey.go
+index bb07e87..3dd2b17 100644
+--- a/internal/keyservice/gpg/havekey.go
++++ b/internal/keyservice/gpg/havekey.go
+@@ -5,6 +5,8 @@ import (
+ 	"crypto/ecdsa"
+ 	"crypto/rsa"
+ 	"fmt"
++
++	openpgpecdsa "github.com/ProtonMail/go-crypto/openpgp/ecdsa"
+ )
+ 
+ // Keygrips returns a slice of keygrip byteslices; one for each cryptographic
+@@ -15,13 +17,17 @@ func (g *KeyService) Keygrips() ([][]byte, error) {
+ 	var err error
+ 	for _, keyfile := range g.privKeys {
+ 		for _, privKey := range keyfile.keys {
+-			switch pubKey := privKey.PublicKey.PublicKey.(type) {
++			switch openpgpPubKey := privKey.PublicKey.PublicKey.(type) {
+ 			case *rsa.PublicKey:
+-				kg, err = keygripRSA(pubKey)
++				kg, err = keygripRSA(openpgpPubKey)
+ 				if err != nil {
+ 					return nil, fmt.Errorf("couldn't get keygrip: %w", err)
+ 				}
+-			case *ecdsa.PublicKey:
++			case *openpgpecdsa.PublicKey:
++				pubKey, err := ecdsaPublicKey(openpgpPubKey)
++				if err != nil {
++					return nil, fmt.Errorf("couldn't convert ecdsa public key: %v", err)
++				}
+ 				kg, err = KeygripECDSA(pubKey)
+ 				if err != nil {
+ 					return nil, fmt.Errorf("couldn't get keygrip: %w", err)
+diff --git a/internal/keyservice/gpg/keyfile.go b/internal/keyservice/gpg/keyfile.go
+index 1e058b4..a6d1a4e 100644
+--- a/internal/keyservice/gpg/keyfile.go
++++ b/internal/keyservice/gpg/keyfile.go
+@@ -6,8 +6,8 @@ import (
+ 	"os"
+ 	"path"
+ 
+-	"golang.org/x/crypto/openpgp/errors"
+-	"golang.org/x/crypto/openpgp/packet"
++	"github.com/ProtonMail/go-crypto/openpgp/errors"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ )
+ 
+ // keyfilePrivateKeys reads the given path and returns any private keys found.
+diff --git a/internal/keyservice/gpg/keyservice.go b/internal/keyservice/gpg/keyservice.go
+index bdc3938..3bbb77f 100644
+--- a/internal/keyservice/gpg/keyservice.go
++++ b/internal/keyservice/gpg/keyservice.go
+@@ -6,11 +6,13 @@ import (
+ 	"bytes"
+ 	"crypto"
+ 	"crypto/ecdsa"
++	"crypto/elliptic"
+ 	"crypto/rsa"
+ 	"fmt"
+ 
++	openpgpecdsa "github.com/ProtonMail/go-crypto/openpgp/ecdsa"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ 	"go.uber.org/zap"
+-	"golang.org/x/crypto/openpgp/packet"
+ )
+ 
+ // retries is the passphrase attempt limit when decrypting GPG keyfiles
+@@ -135,16 +137,63 @@ func (g *KeyService) getRSAKey(keygrip []byte) (*rsa.PrivateKey, error) {
+ 	return nil, nil
+ }
+ 
++func nameToCurve(name string) (elliptic.Curve, error) {
++	switch name {
++	case elliptic.P224().Params().Name:
++		return elliptic.P224(), nil
++	case elliptic.P256().Params().Name:
++		return elliptic.P256(), nil
++	case elliptic.P384().Params().Name:
++		return elliptic.P384(), nil
++	case elliptic.P521().Params().Name:
++		return elliptic.P521(), nil
++	default:
++		return nil, fmt.Errorf("unknown curve name: %s", name)
++	}
++}
++
++func ecdsaPublicKey(k *openpgpecdsa.PublicKey) (*ecdsa.PublicKey, error) {
++	curve, err := nameToCurve(k.GetCurve().GetCurveName())
++	if err != nil {
++		return nil, err
++	}
++	return &ecdsa.PublicKey{
++		Curve: curve,
++		X:     k.X,
++		Y:     k.Y,
++	}, nil
++}
++
++func ecdsaPrivateKey(k *openpgpecdsa.PrivateKey) (*ecdsa.PrivateKey, error) {
++	curve, err := nameToCurve(k.GetCurve().GetCurveName())
++	if err != nil {
++		return nil, err
++	}
++	return &ecdsa.PrivateKey{
++		D: k.D,
++		PublicKey: ecdsa.PublicKey{
++			Curve: curve,
++			X:     k.X,
++			Y:     k.Y,
++		},
++	}, nil
++}
++
+ // getECDSAKey returns a matching private ECDSA key if the keygrip matches. If
+ // a key is returned err will be nil. If no key is found, both values will be
+ // nil.
+ func (g *KeyService) getECDSAKey(keygrip []byte) (*ecdsa.PrivateKey, error) {
+ 	for _, pk := range g.privKeys {
+ 		for _, k := range pk.keys {
+-			pubKey, ok := k.PublicKey.PublicKey.(*ecdsa.PublicKey)
++			openpgpPubKey, ok := k.PublicKey.PublicKey.(*openpgpecdsa.PublicKey)
+ 			if !ok {
+ 				continue
+ 			}
++			pubKey, err := ecdsaPublicKey(openpgpPubKey)
++			if err != nil {
++				return nil,
++					fmt.Errorf("couldn't convert openpgp to stdlib ecdsa public key: %v", err)
++			}
+ 			pubKeygrip, err := KeygripECDSA(pubKey)
+ 			if err != nil {
+ 				return nil, fmt.Errorf("couldn't get ECDSA keygrip: %v", err)
+@@ -158,11 +207,16 @@ func (g *KeyService) getECDSAKey(keygrip []byte) (*ecdsa.PrivateKey, error) {
+ 			if err != nil {
+ 				return nil, err
+ 			}
+-			privKey, ok := k.PrivateKey.(*ecdsa.PrivateKey)
++			openpgpPrivKey, ok := k.PrivateKey.(*openpgpecdsa.PrivateKey)
+ 			if !ok {
+ 				return nil, fmt.Errorf("not an ECDSA key %s: %v",
+ 					k.KeyIdString(), err)
+ 			}
++			privKey, err := ecdsaPrivateKey(openpgpPrivKey)
++			if err != nil {
++				return nil,
++					fmt.Errorf("couldn't convert openpgp to stdlib ecdsa private key: %v", err)
++			}
+ 			return privKey, nil
+ 		}
+ 	}
+diff --git a/internal/securitykey/decryptingkey.go b/internal/securitykey/decryptingkey.go
+index 8c3fc10..8c870bc 100644
+--- a/internal/securitykey/decryptingkey.go
++++ b/internal/securitykey/decryptingkey.go
+@@ -5,8 +5,9 @@ import (
+ 	"errors"
+ 	"fmt"
+ 
++	openpgpecdsa "github.com/ProtonMail/go-crypto/openpgp/ecdsa"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ 	"github.com/go-piv/piv-go/piv"
+-	"golang.org/x/crypto/openpgp/packet"
+ )
+ 
+ // DecryptingKey is a cryptographic decrypting key on a hardware security
+@@ -37,7 +38,8 @@ func decryptingKeys(yk *piv.YubiKey) ([]DecryptingKey, error) {
+ 				Public:   pubKey,
+ 				SlotSpec: s,
+ 			},
+-			PubPGP: packet.NewECDSAPublicKey(cert.NotBefore, pubKey),
++			PubPGP: packet.NewECDSAPublicKey(cert.NotBefore,
++				openpgpecdsa.NewPublicKeyFromCurve(pubKey.Curve)),
+ 		})
+ 	}
+ 	return decryptingKeys, nil
+diff --git a/internal/securitykey/signingkey.go b/internal/securitykey/signingkey.go
+index 149cb19..b8866b4 100644
+--- a/internal/securitykey/signingkey.go
++++ b/internal/securitykey/signingkey.go
+@@ -5,8 +5,9 @@ import (
+ 	"errors"
+ 	"fmt"
+ 
++	openpgpecdsa "github.com/ProtonMail/go-crypto/openpgp/ecdsa"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ 	"github.com/go-piv/piv-go/piv"
+-	"golang.org/x/crypto/openpgp/packet"
+ 	"golang.org/x/crypto/ssh"
+ )
+ 
+@@ -43,7 +44,8 @@ func signingKeys(yk *piv.YubiKey) ([]SigningKey, error) {
+ 				SlotSpec: s,
+ 			},
+ 			PubSSH: pubSSH,
+-			PubPGP: packet.NewECDSAPublicKey(cert.NotBefore, pubKey),
++			PubPGP: packet.NewECDSAPublicKey(cert.NotBefore,
++				openpgpecdsa.NewPublicKeyFromCurve(pubKey.Curve)),
+ 		})
+ 	}
+ 	return signingKeys, nil
+diff --git a/internal/securitykey/string.go b/internal/securitykey/string.go
+index a6e80a3..c7ee1c6 100644
+--- a/internal/securitykey/string.go
++++ b/internal/securitykey/string.go
+@@ -8,11 +8,12 @@ import (
+ 	"strings"
+ 	"time"
+ 
++	"github.com/ProtonMail/go-crypto/openpgp"
++	"github.com/ProtonMail/go-crypto/openpgp/armor"
++	openpgpecdsa "github.com/ProtonMail/go-crypto/openpgp/ecdsa"
++	"github.com/ProtonMail/go-crypto/openpgp/errors"
++	"github.com/ProtonMail/go-crypto/openpgp/packet"
+ 	"github.com/go-piv/piv-go/piv"
+-	"golang.org/x/crypto/openpgp"
+-	"golang.org/x/crypto/openpgp/armor"
+-	"golang.org/x/crypto/openpgp/errors"
+-	"golang.org/x/crypto/openpgp/packet"
+ 	"golang.org/x/crypto/ssh"
+ )
+ 
+@@ -65,7 +66,8 @@ func (k *SecurityKey) synthesizeEntity(ck *CryptoKey, now time.Time,
+ 		// TODO: handle ed25519 keys
+ 		return nil, fmt.Errorf("not an ECDSA key")
+ 	}
+-	pub := packet.NewECDSAPublicKey(now, ecdsaPubKey)
++	pub := packet.NewECDSAPublicKey(now,
++		openpgpecdsa.NewPublicKeyFromCurve(ecdsaPubKey.Curve))
+ 	priv := packet.NewSignerPrivateKey(now, signer)
+ 	selfSignature := packet.Signature{
+ 		CreationTime: now,
