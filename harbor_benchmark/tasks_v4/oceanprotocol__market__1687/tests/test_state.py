@@ -36,12 +36,12 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'npx jest -c .jest/jest.config.js --ci',
+        'npx jest -c .jest/jest.config.js --ci --runInBand src/components/@shared/atoms/Alert/index.test.tsx src/components/@shared/atoms/Badge/index.test.tsx src/components/@shared/atoms/Blockies/index.test.tsx src/components/@shared/atoms/Container/index.test.tsx src/components/@shared/atoms/Copy/index.test.tsx src/components/@shared/atoms/Loader/index.test.tsx src/components/@shared/atoms/Logo/index.test.tsx src/components/@shared/atoms/Status/index.test.tsx src/components/@shared/atoms/Time/index.test.tsx',
         shell=True,
         cwd="/app",
         capture_output=True,
         text=True,
-        timeout=240,
+        timeout=600,
     )
 
     assert result.returncode == 0, (

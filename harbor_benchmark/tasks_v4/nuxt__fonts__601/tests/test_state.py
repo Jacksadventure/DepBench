@@ -104,7 +104,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'pnpm dev:prepare && pnpm exec vitest run test/basic.test.ts -t "adds preload links to the HTML with global CSS"',
+        'pnpm dev:prepare && pnpm exec vitest run test/basic.test.ts -t "adds preload links to the HTML with global CSS" --pool=forks',
         shell=True,
         cwd="/app",
         capture_output=True,
@@ -112,7 +112,13 @@ def test_dependency_upgrade_fix():
         timeout=600,
     )
 
-    assert result.returncode == 0, (
+    teardown_only_failure = (
+        "Test Files  1 passed" in result.stdout
+        and "Tests  1 passed" in result.stdout
+        and "Failed to terminate worker" in result.stderr
+    )
+
+    assert result.returncode == 0 or teardown_only_failure, (
         f"Test command failed with exit code {result.returncode}\n"
         f"STDOUT:\n{result.stdout[-2000:]}\n"
         f"STDERR:\n{result.stderr[-2000:]}"

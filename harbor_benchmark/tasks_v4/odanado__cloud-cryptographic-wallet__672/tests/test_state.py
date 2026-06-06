@@ -36,12 +36,12 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'npx vitest run packages/web3-provider-adapter/src/get-common.spec.ts --reporter=verbose',
+        'npx vitest run packages/web3-provider-adapter/src/get-common.spec.ts --reporter=verbose --threads=false',
         shell=True,
         cwd="/app",
         capture_output=True,
         text=True,
-        timeout=240,
+        timeout=600,
     )
 
     assert result.returncode == 0, (

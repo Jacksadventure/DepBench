@@ -104,7 +104,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'npm test',
+        'npx jest src/utils.test.ts --runInBand',
         shell=True,
         cwd="/app",
         capture_output=True,

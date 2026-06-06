@@ -18,8 +18,11 @@ else
     echo 'manifest.patch not found at /harbor/environment/patches/manifest.patch or /tmp/manifest.patch — skipping' >&2
 fi
 
-# 2) Replay the post-manifest install / setup commands originally baked into Dockerfile
-( cd /app && bash -c 'npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund && npm run build' )
+# 2) Replay dependency installation without the full monorepo build.
+# The full build includes Next.js e2e apps and can OOM in the 4GB task
+# container before the oracle source patch is applied. The verifier runs
+# the relevant Jest project directly, so installed dependencies are enough.
+( cd /app && bash -c 'npm ci --ignore-scripts --legacy-peer-deps --no-audit --no-fund' )
 
 
 # 3) Apply the source-code fix

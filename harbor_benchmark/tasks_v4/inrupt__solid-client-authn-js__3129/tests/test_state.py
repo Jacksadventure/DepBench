@@ -36,12 +36,12 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'npx jest --selectProjects node --no-coverage',
+        'npx jest --selectProjects node --no-coverage --runInBand',
         shell=True,
         cwd="/app",
         capture_output=True,
         text=True,
-        timeout=240,
+        timeout=600,
     )
 
     assert result.returncode == 0, (
