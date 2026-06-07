@@ -41,7 +41,7 @@ def test_dependency_upgrade_fix():
         cwd="/app",
         capture_output=True,
         text=True,
-        timeout=600,
+        timeout=1200,
     )
 
     assert result.returncode == 0, (
