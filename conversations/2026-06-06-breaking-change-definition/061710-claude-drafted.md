@@ -70,6 +70,20 @@ TEST(P ⊕ Δm ⊕ Δt) = PASS  →  inconclusive（不证明有，也不排除�
 
 编译失败是 API-level breaking change 的最强信号，优先于 test runner 触发。
 
+### Pre 阶段失败的纳入标准
+
+在 `TEST(P ⊕ Δm ⊕ Δt)` 的 pre 阶段，不要求失败一定表现为测试断言失败。只要 post 阶段
+`TEST(P ⊕ Δm ⊕ Δc ⊕ Δt) = PASS`，且 pre 失败可归因于缺少 `Δc` 导致的依赖升级不兼容，即可作为
+Witnessed Breaking Change：
+
+| 语言/生态类型 | pre 阶段可接受的 FAIL 形态 | 说明 |
+| ---- | ---- | ---- |
+| 编译型或强 build-step 语言（如 Java/Maven、Go、Rust、TypeScript） | 编译错误、`test-compile` 错误、类型错误、符号缺失、构建期 API 不兼容 | 这类失败说明升级后的依赖 API 已在 build 阶段破坏 consumer code；若加 `Δc` 后 post 通过，应计入 Level 1 / Tier A。 |
+| 解释型或弱 build-step 语言（如 Python、Ruby、JavaScript runtime path） | 运行时错误、import error、attribute/method missing、测试执行期间暴露的 API 不兼容 | 解释型语言可能没有独立编译阶段；运行时异常是对应的强 oracle 信号。 |
+
+不应自动纳入的 pre 失败包括：dependency resolution 失败、网络/缓存/环境问题、OOM/timeout、flaky test、
+以及 checkstyle/spotbugs/spotless/lint 等与依赖升级 API 兼容性无直接关系的质量门禁失败。
+
 ---
 
 ## 数据集范围（Dataset Scope）
@@ -82,7 +96,7 @@ TEST(P ⊕ Δm ⊕ Δt) = PASS  →  inconclusive（不证明有，也不排除�
 | Δc ≠ ∅ | PR 包含 production code 文件变更（非 test、非 generated/vendor） |
 | Δt ≠ ∅ | PR 包含开发者编写的测试变更（有实质内容增加，非纯删除） |
 | `TEST(P ⊕ Δm ⊕ Δc ⊕ Δt) = PASS` | Oracle solution 在 Harbor 中可复现通过（由 Harbor framework 保证） |
-| `TEST(P ⊕ Δm ⊕ Δt) = FAIL` | 不加代码修复则失败（Witnessed Breaking Change 定义） |
+| `TEST(P ⊕ Δm ⊕ Δt) = FAIL` | 不加代码修复则失败；编译型语言可表现为编译/构建错误，解释型语言可表现为运行时错误（Witnessed Breaking Change 定义） |
 
 ### 排除标准
 

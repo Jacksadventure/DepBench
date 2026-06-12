@@ -63,7 +63,7 @@ TEST(P ⊕ Δm ⊕ Δt) = PASS  →  inconclusive（既不确认有，也不排�
 ## 下一个 Agent 的待办事项
 
 1. **确认 Level 2 的处理策略**：这些 case 是纳入主分析（标注为"潜在 breaking change"）、单独报告，还是排除？需要 hrz 拍板。
-2. **澄清 `TEST(S)` 的边界**：编译失败（compilation error）是否算作 FAIL？编译失败是 breaking change 的强信号，应在定义中单独处理（优先于 test runner）。
+2. **已在 `061710-claude-drafted.md` 澄清 `TEST(S)` 的边界**：pre 阶段不要求一定是测试断言失败；编译型语言可表现为编译/构建错误，解释型语言可表现为运行时错误，只要 post 打入 `Δc` 后通过且失败可归因于依赖升级不兼容，即可作为 Level 1 强证据。
 3. **明确 Δc ≠ ∅ 的阈值**：纯空白/注释变化算不算？建议设最低 LOC delta（如 ≥1 行实质代码变更）。
 4. **处理 `TEST(P ⊕ Δm ⊕ Δc ⊕ Δt) = FAIL` 的情况**：fix 无效，这类 PR 应从数据集中排除，还是单独标注？
 5. **对 Level 2 case 随机抽样手工验证**：估计 test oracle 的 false negative rate，支撑论文中 Level 2 的可信度陈述。
