@@ -1,0 +1,345 @@
+diff --git a/exist-core/src/main/java/org/exist/dom/persistent/NodeProxy.java b/exist-core/src/main/java/org/exist/dom/persistent/NodeProxy.java
+--- a/exist-core/src/main/java/org/exist/dom/persistent/NodeProxy.java
++++ b/exist-core/src/main/java/org/exist/dom/persistent/NodeProxy.java
+@@ -681,6 +681,8 @@ public static int nodeType2XQuery(final short nodeType) {
+                 return Type.ATTRIBUTE;
+             case Node.TEXT_NODE:
+                 return Type.TEXT;
++            case Node.CDATA_SECTION_NODE:
++                return Type.CDATA_SECTION;
+             case Node.PROCESSING_INSTRUCTION_NODE:
+                 return Type.PROCESSING_INSTRUCTION;
+             case Node.COMMENT_NODE:
+diff --git a/exist-core/src/main/java/org/exist/xmldb/LocalXMLResource.java b/exist-core/src/main/java/org/exist/xmldb/LocalXMLResource.java
+--- a/exist-core/src/main/java/org/exist/xmldb/LocalXMLResource.java
++++ b/exist-core/src/main/java/org/exist/xmldb/LocalXMLResource.java
+@@ -28,6 +28,8 @@
+ import java.io.OutputStream;
+ import java.io.OutputStreamWriter;
+ import java.io.StringWriter;
++import java.lang.reflect.InvocationHandler;
++import java.lang.reflect.InvocationTargetException;
+ import java.lang.reflect.Method;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+@@ -38,6 +40,10 @@
+ import javax.annotation.Nullable;
+ import javax.xml.transform.TransformerException;
+ 
++import net.bytebuddy.ByteBuddy;
++import net.bytebuddy.dynamic.DynamicType;
++import net.bytebuddy.implementation.InvocationHandlerAdapter;
++import net.bytebuddy.matcher.ElementMatchers;
+ import org.apache.commons.io.IOUtils;
+ import org.exist.dom.memtree.DocumentImpl;
+ import org.exist.dom.memtree.NodeImpl;
+@@ -72,10 +78,6 @@
+ import com.evolvedbinary.j8fu.function.ConsumerE;
+ import com.evolvedbinary.j8fu.tuple.Tuple3;
+ 
+-import net.sf.cglib.proxy.Enhancer;
+-import net.sf.cglib.proxy.MethodInterceptor;
+-import net.sf.cglib.proxy.MethodProxy;
+-
+ /**
+  * Local implementation of XMLResource.
+  */
+@@ -329,20 +331,32 @@ private Node exportInternalNode(final Node node) {
+             throw new IllegalArgumentException("Provided node does not implement org.w3c.dom");
+         }
+ 
+-        final Enhancer enhancer = new Enhancer();
+-        enhancer.setSuperclass(domClazz.get());
+-        final Class[] interfaceClasses;
++        DynamicType.Builder<? extends Node> byteBuddyBuilder = new ByteBuddy()
++                .subclass(domClazz.get());
++
++        // these interfaces are just used to flag the node type (persistent or memtree) to make
++        // the implementation of {@link DOMMethodInterceptor} simpler.
+         if (node instanceof StoredNode) {
+-            interfaceClasses = new Class[]{domClazz.get(), StoredNodeIdentity.class};
++            byteBuddyBuilder = byteBuddyBuilder.implement(StoredNodeIdentity.class);
+         } else if (node instanceof org.exist.dom.memtree.NodeImpl) {
+-            interfaceClasses = new Class[]{domClazz.get(), MemtreeNodeIdentity.class};
+-        } else {
+-            interfaceClasses = new Class[] { domClazz.get() };
++            byteBuddyBuilder = byteBuddyBuilder.implement(MemtreeNodeIdentity.class);
+         }
+-        enhancer.setInterfaces(interfaceClasses);
+-        enhancer.setCallback(new DOMMethodInterceptor(node));
+ 
+-        return (Node)enhancer.create();
++        byteBuddyBuilder = byteBuddyBuilder
++                .method(ElementMatchers.any())
++                .intercept(InvocationHandlerAdapter.of(new DOMMethodInterceptor(node)));
++
++        try {
++            final Node nodeProxy = byteBuddyBuilder
++                    .make()
++                    .load(getClass().getClassLoader())
++                    .getLoaded()
++                    .getDeclaredConstructor().newInstance();
++
++            return nodeProxy;
++        } catch (final NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
++            throw new IllegalStateException(e.getMessage(), e);
++        }
+     }
+ 
+     private Optional<Class<? extends Node>> getW3cNodeInterface(final Class<? extends Node> nodeClazz) {
+@@ -352,15 +366,17 @@ private Optional<Class<? extends Node>> getW3cNodeInterface(final Class<? extend
+                 .map(c -> (Class<? extends Node>)c);
+     }
+ 
+-    private class DOMMethodInterceptor implements MethodInterceptor {
++    public class DOMMethodInterceptor implements InvocationHandler {
+         private final Node node;
+ 
+         public DOMMethodInterceptor(final Node node) {
+             this.node = node;
+         }
+ 
+         @Override
+-        public Object intercept(final Object obj, final Method method, final Object[] args, final MethodProxy proxy) throws Throwable {
++        public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
++
++
+             /*
+                 NOTE(AR): we have to take special care of eXist-db's
+                 persistent and memtree DOM's node equality.
+@@ -381,32 +397,32 @@ public Object intercept(final Object obj, final Method method, final Object[] ar
+              */
+             Object domResult = null;
+             if(method.getName().equals("equals")
+-                    && obj instanceof StoredNodeIdentity
++                    && proxy instanceof StoredNodeIdentity
+                     && args.length == 1 && args[0] instanceof StoredNodeIdentity) {
+-                final StoredNodeIdentity ni1 = ((StoredNodeIdentity) obj);
++                final StoredNodeIdentity ni1 = ((StoredNodeIdentity) proxy);
+                 final StoredNodeIdentity ni2 = ((StoredNodeIdentity) args[0]);
+ 
+                 final Optional<Boolean> niEquals = ni1.getNodeId().flatMap(n1id -> ni2.getNodeId().map(n1id::equals));
+                 if (niEquals.isPresent()) {
+                     domResult = niEquals.get();
+                 }
+             } else if(method.getName().equals("equals")
+-                        && obj instanceof MemtreeNodeIdentity
++                        && proxy instanceof MemtreeNodeIdentity
+                         && args.length == 1 && args[0] instanceof MemtreeNodeIdentity) {
+-                    final MemtreeNodeIdentity ni1 = ((MemtreeNodeIdentity) obj);
++                    final MemtreeNodeIdentity ni1 = ((MemtreeNodeIdentity) proxy);
+                     final MemtreeNodeIdentity ni2 = ((MemtreeNodeIdentity) args[0]);
+ 
+                     final Optional<Boolean> niEquals = ni1.getNodeId().flatMap(n1id -> ni2.getNodeId().map(n2id -> n1id._1 == n2id._1 && n1id._2 == n2id._2 && n1id._3 == n2id._3));
+                     if (niEquals.isPresent()) {
+                         domResult = niEquals.get();
+                     }
+             } else if(method.getName().equals("getNodeId")) {
+-                if (obj instanceof StoredNodeIdentity
+-                        && args.length == 0
++                if (proxy instanceof StoredNodeIdentity
++                        && (args == null || args.length == 0)
+                         && node instanceof StoredNode) {
+                     domResult = Optional.of(((StoredNode) node).getNodeId());
+-                } else if (obj instanceof MemtreeNodeIdentity
+-                        && args.length == 0
++                } else if (proxy instanceof MemtreeNodeIdentity
++                        && (args == null || args.length == 0)
+                         && node instanceof org.exist.dom.memtree.NodeImpl) {
+                     final org.exist.dom.memtree.NodeImpl memtreeNode = (org.exist.dom.memtree.NodeImpl) node;
+                     domResult = Optional.of(Tuple(memtreeNode.getOwnerDocument(), memtreeNode.getNodeNumber(), memtreeNode.getNodeType()));
+@@ -447,15 +463,15 @@ public int getLength() {
+      * Used by {@link DOMMethodInterceptor} to
+      * help with equality of persistent DOM nodes.
+      */
+-    private interface StoredNodeIdentity {
++    public interface StoredNodeIdentity {
+         Optional<NodeId> getNodeId();
+     }
+ 
+     /**
+      * Used by {@link DOMMethodInterceptor} to
+      * help with equality of memtree DOM nodes.
+      */
+-    private interface MemtreeNodeIdentity {
++    public interface MemtreeNodeIdentity {
+         Optional<Tuple3<DocumentImpl, Integer, Short>> getNodeId();
+     }
+ 
+diff --git a/extensions/exquery/restxq/src/main/java/org/exist/extensions/exquery/restxq/impl/adapters/DomEnhancingNodeProxyAdapter.java b/extensions/exquery/restxq/src/main/java/org/exist/extensions/exquery/restxq/impl/adapters/DomEnhancingNodeProxyAdapter.java
+--- a/extensions/exquery/restxq/src/main/java/org/exist/extensions/exquery/restxq/impl/adapters/DomEnhancingNodeProxyAdapter.java
++++ b/extensions/exquery/restxq/src/main/java/org/exist/extensions/exquery/restxq/impl/adapters/DomEnhancingNodeProxyAdapter.java
+@@ -26,20 +26,26 @@
+  */
+ package org.exist.extensions.exquery.restxq.impl.adapters;
+ 
+-import net.sf.cglib.proxy.Callback;
+-import net.sf.cglib.proxy.CallbackFilter;
+-import net.sf.cglib.proxy.Dispatcher;
+-import net.sf.cglib.proxy.Enhancer;
+-import net.sf.cglib.proxy.NoOp;
++import net.bytebuddy.ByteBuddy;
++import net.bytebuddy.dynamic.DynamicType;
++import net.bytebuddy.implementation.MethodCall;
++import net.bytebuddy.matcher.ElementMatchers;
+ import org.exist.dom.persistent.NodeHandle;
+ import org.exist.dom.persistent.NodeProxy;
++import org.exist.xquery.Expression;
+ import org.exist.xquery.value.Type;
+ import org.w3c.dom.Attr;
++import org.w3c.dom.Comment;
++import org.w3c.dom.CDATASection;
+ import org.w3c.dom.Document;
+ import org.w3c.dom.Element;
+ import org.w3c.dom.Node;
++import org.w3c.dom.ProcessingInstruction;
+ import org.w3c.dom.Text;
+ 
++import java.lang.reflect.InvocationTargetException;
++
++
+ /**
+  * A NodeProxy Proxy which enhances NodeProxy
+  * with a W3C DOM implementation by proxying to
+@@ -49,103 +55,49 @@
+  * @author <a href="mailto:adam.retter@googlemail.com">Adam Retter</a>
+  */
+ class DomEnhancingNodeProxyAdapter {
+-    
++
+     public static NodeProxy create(final NodeProxy nodeProxy) {
+-        
+-        final Class<? extends Node> clazzes[] = getNodeClasses(nodeProxy);
+-         
+-        // NoOp Callback is for NodeProxy calls
+-        // NodeDispatched Callback is for the underlying Node calls
+-        final Callback[] callbacks = {
+-          NoOp.INSTANCE,
+-          new NodeDispatcher(nodeProxy)
+-        };
+-        
+-        final CallbackFilter callbackFilter = method -> {
+ 
+-            final Class declaringClass = method.getDeclaringClass();
++        final Class<? extends Node> domClazz = getNodeClass(nodeProxy);
+ 
+-            //look for nodes
+-            boolean isMethodOnNode = false;
+-            if(declaringClass.equals(Node.class)) {
+-                isMethodOnNode = true;
+-            } else {
+-                //search parent interfaces
+-                for(final Class iface : declaringClass.getInterfaces()) {
+-                    if(iface.equals(Node.class)) {
+-                        isMethodOnNode = true;
+-                        break;
+-                    }
+-                }
+-            }
++        final DynamicType.Builder<? extends NodeProxy> byteBuddyBuilder = new ByteBuddy()
++                .subclass(NodeProxy.class)
++                .implement(domClazz)
+ 
+-            if(isMethodOnNode) {
+-                return 1; //The NodeDispatcher
+-            } else {
+-                return 0; //The NoOp pass through
+-            }
+-        };
+-        
+-        final Enhancer enhancer = new Enhancer();
+-        enhancer.setSuperclass(NodeProxy.class);
+-        enhancer.setInterfaces(clazzes);
+-        enhancer.setCallbackFilter(callbackFilter);
+-        enhancer.setCallbacks(callbacks);
+-        
+-        return (NodeProxy)enhancer.create(
+-            new Class[] {
+-                NodeHandle.class
+-            },
+-            new Object[] {
+-                nodeProxy
+-            });
+-    }
+-    
+-    private static Class<? extends Node>[] getNodeClasses(final NodeProxy nodeProxy) {
+-        switch(nodeProxy.getType()) {
+-            
+-            case Type.DOCUMENT:
+-                return new Class[] {
+-                    Document.class,
+-                    Node.class
+-                };
+-            
+-            case Type.ELEMENT:
+-                return new Class[] {
+-                    Element.class,
+-                    Node.class
+-                };
++                .method(ElementMatchers.isDeclaredBy(NodeProxy.class))
++                .intercept(MethodCall.invokeSelf().on(nodeProxy).withAllArguments())
+ 
+-            case Type.ATTRIBUTE:
+-                return new Class[] {
+-                    Attr.class,
+-                    Node.class
+-                };
+-                
+-            case Type.TEXT:
+-                return new Class[] {
+-                    Text.class,
+-                    Node.class
+-                };
++                .method(ElementMatchers.isDeclaredBy(domClazz).or(ElementMatchers.isDeclaredBy(Node.class)))
++                .intercept(MethodCall.invokeSelf().on(nodeProxy.getNode()).withAllArguments())
+ 
+-            default:
+-                return new Class[] {
+-                    Node.class
+-                };
++                .method(ElementMatchers.isHashCode())
++                .intercept(MethodCall.invokeSelf().on(nodeProxy));
++
++        try {
++            final NodeProxy nodeProxyProxy = byteBuddyBuilder
++                    .make()
++                    .load(nodeProxy.getClass().getClassLoader())
++                    .getLoaded()
++                    .getDeclaredConstructor(Expression.class, NodeHandle.class)
++                    .newInstance(nodeProxy.getExpression(), nodeProxy);
++
++            return nodeProxyProxy;
++        } catch (final NoSuchMethodException | InstantiationException | IllegalAccessException |
++                       InvocationTargetException e) {
++            throw new IllegalStateException(e.getMessage(), e);
+         }
+     }
+-    
+-    public static class NodeDispatcher implements Dispatcher {
+-        
+-        private final NodeProxy nodeProxy;
+-        
+-        public NodeDispatcher(final NodeProxy nodeProxy) {
+-            this.nodeProxy = nodeProxy;
+-        }
+-        
+-        @Override
+-        public Object loadObject() throws Exception {
+-            return nodeProxy.getNode();
+-        }
++
++    private static Class<? extends Node> getNodeClass(final NodeProxy nodeProxy) {
++        return switch (nodeProxy.getType()) {
++            case Type.ELEMENT -> Element.class;
++            case Type.ATTRIBUTE -> Attr.class;
++            case Type.TEXT -> Text.class;
++            case Type.PROCESSING_INSTRUCTION -> ProcessingInstruction.class;
++            case Type.COMMENT -> Comment.class;
++            case Type.DOCUMENT -> Document.class;
++            case Type.CDATA_SECTION -> CDATASection.class;
++            default -> Node.class;
++        };
+     }
+-}
+\ No newline at end of file
++}

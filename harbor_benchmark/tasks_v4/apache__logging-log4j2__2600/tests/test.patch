@@ -1,0 +1,116 @@
+diff --git a/log4j-core-test/src/test/java/org/apache/logging/log4j/core/impl/internal/QueuedScopedContextProviderTest.java b/log4j-core-test/src/test/java/org/apache/logging/log4j/core/impl/internal/QueuedScopedContextProviderTest.java
+deleted file mode 100644
+--- a/log4j-core-test/src/test/java/org/apache/logging/log4j/core/impl/internal/QueuedScopedContextProviderTest.java
++++ /dev/null
+@@ -1,57 +0,0 @@
+-/*
+- * Licensed to the Apache Software Foundation (ASF) under one or more
+- * contributor license agreements.  See the NOTICE file distributed with
+- * this work for additional information regarding copyright ownership.
+- * The ASF licenses this file to you under the Apache License, Version 2.0
+- * (the "License"); you may not use this file except in compliance with
+- * the License.  You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-package org.apache.logging.log4j.core.impl.internal;
+-
+-import org.apache.logging.log4j.test.spi.ScopedContextProviderSuite;
+-import org.junit.jupiter.api.Test;
+-
+-class QueuedScopedContextProviderTest extends ScopedContextProviderSuite {
+-
+-    private static QueuedScopedContextProvider createProvider() {
+-        return new QueuedScopedContextProvider();
+-    }
+-
+-    @Test
+-    void testScope() {
+-        testScope(createProvider());
+-    }
+-
+-    @Test
+-    void testRunWhere() {
+-        testRunWhere(createProvider());
+-    }
+-
+-    @Test
+-    void testRunThreads() {
+-        testRunThreads(createProvider());
+-    }
+-
+-    @Test
+-    void testThreads() throws Exception {
+-        testThreads(createProvider());
+-    }
+-
+-    @Test
+-    void testThreadException() throws Exception {
+-        testThreadException(createProvider());
+-    }
+-
+-    @Test
+-    void testThreadCall() throws Exception {
+-        testThreadCall(createProvider());
+-    }
+-}
+diff --git a/log4j-layout-template-json-test/src/test/java/org/apache/logging/log4j/layout/template/json/util/TruncatingBufferedWriterTest.java b/log4j-layout-template-json-test/src/test/java/org/apache/logging/log4j/layout/template/json/util/TruncatingBufferedWriterTest.java
+--- a/log4j-layout-template-json-test/src/test/java/org/apache/logging/log4j/layout/template/json/util/TruncatingBufferedWriterTest.java
++++ b/log4j-layout-template-json-test/src/test/java/org/apache/logging/log4j/layout/template/json/util/TruncatingBufferedWriterTest.java
+@@ -38,12 +38,20 @@ void test_okay_payloads() {
+         writer.write(new char[] {Character.MIN_VALUE, Character.MAX_VALUE});
+         writer.write("foo");
+         writer.write("foobar", 3, 3);
++        writer.write("empty", 3, 0);
+         writer.write(new char[] {'f', 'o', 'o', 'b', 'a', 'r', 'b', 'u', 'z', 'z'}, 6, 4);
++        writer.write(new char[] {'a', 'b', 'c'}, 0, 0);
++        writer.write(new char[] {}, 0, 0);
++        writer.write(new char[] {});
++        writer.write("", 0, 0);
++        writer.write("");
+         writer.append('!');
+         writer.append("yo");
+         writer.append(null);
+         writer.append("yo dog", 3, 6);
+         writer.append(null, -1, -1);
++        writer.append("", -1, -1);
++        writer.append("");
+ 
+         // Verify accessors.
+         final char[] expectedBuffer = new char[capacity];
+diff --git a/log4j-mongodb/src/test/java/org/apache/logging/log4j/mongodb/MongoDbResolver.java b/log4j-mongodb/src/test/java/org/apache/logging/log4j/mongodb/MongoDbResolver.java
+--- a/log4j-mongodb/src/test/java/org/apache/logging/log4j/mongodb/MongoDbResolver.java
++++ b/log4j-mongodb/src/test/java/org/apache/logging/log4j/mongodb/MongoDbResolver.java
+@@ -102,9 +102,8 @@ public void beforeAll(ExtensionContext context) throws Exception {
+                     protected Package packageOf(
+                             Command command, Distribution distribution, DistributionBaseUrl baseUrl) {
+                         if (distribution.platform().operatingSystem().type() == OSType.Windows) {
+-                            final Package relativePackage = legacyPackageResolverFactory()
+-                                    .apply(command)
+-                                    .packageFor(distribution);
++                            final Package relativePackage =
++                                    commandPackageResolver().apply(command).packageFor(distribution);
+                             final FileSet.Builder fileSetBuilder = FileSet.builder()
+                                     .addEntry(FileType.Library, "ssleay32.dll")
+                                     .addEntry(FileType.Library, "libeay32.dll");
+diff --git a/log4j-mongodb4/src/test/java/org/apache/logging/log4j/mongodb4/MongoDb4Resolver.java b/log4j-mongodb4/src/test/java/org/apache/logging/log4j/mongodb4/MongoDb4Resolver.java
+--- a/log4j-mongodb4/src/test/java/org/apache/logging/log4j/mongodb4/MongoDb4Resolver.java
++++ b/log4j-mongodb4/src/test/java/org/apache/logging/log4j/mongodb4/MongoDb4Resolver.java
+@@ -104,9 +104,8 @@ public void beforeAll(ExtensionContext context) throws Exception {
+                     protected Package packageOf(
+                             Command command, Distribution distribution, DistributionBaseUrl baseUrl) {
+                         if (distribution.platform().operatingSystem().type() == OSType.Windows) {
+-                            final Package relativePackage = legacyPackageResolverFactory()
+-                                    .apply(command)
+-                                    .packageFor(distribution);
++                            final Package relativePackage =
++                                    commandPackageResolver().apply(command).packageFor(distribution);
+                             final FileSet.Builder fileSetBuilder = FileSet.builder()
+                                     .addEntry(FileType.Library, "ssleay32.dll")
+                                     .addEntry(FileType.Library, "libeay32.dll");

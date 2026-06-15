@@ -1,0 +1,2930 @@
+diff --git a/hello-data-commons/hello-data-common/src/main/java/ch/bedag/dap/hellodata/commons/security/HellodataAuthenticationToken.java b/hello-data-commons/hello-data-common/src/main/java/ch/bedag/dap/hellodata/commons/security/HellodataAuthenticationToken.java
+--- a/hello-data-commons/hello-data-common/src/main/java/ch/bedag/dap/hellodata/commons/security/HellodataAuthenticationToken.java
++++ b/hello-data-commons/hello-data-common/src/main/java/ch/bedag/dap/hellodata/commons/security/HellodataAuthenticationToken.java
+@@ -62,7 +62,7 @@ public Object getCredentials() {
+ 
+     @Override
+     public Object getPrincipal() {
+-        return null;
++        return email;
+     }
+ 
+     public boolean isSuperuser() {
+diff --git a/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/HdContextEntity.java b/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/HdContextEntity.java
+--- a/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/HdContextEntity.java
++++ b/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/HdContextEntity.java
+@@ -28,10 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import ch.bedag.dap.hellodata.commons.sidecars.context.HdContextType;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.EnumType;
+-import jakarta.persistence.Enumerated;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -43,6 +40,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "context")
++@Table(name = "context")
+ public class HdContextEntity extends BaseEntity {
+ 
+     private String name;
+diff --git a/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/MetaInfoResourceEntity.java b/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/MetaInfoResourceEntity.java
+--- a/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/MetaInfoResourceEntity.java
++++ b/hello-data-commons/hello-data-metainfo-model/src/main/java/ch/bedag/dap/hellodata/commons/metainfomodel/entity/MetaInfoResourceEntity.java
+@@ -44,6 +44,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "resource")
++@Table(name = "resource")
+ public class MetaInfoResourceEntity extends BaseEntity {
+     @NotBlank
+     @Length(max = 55)
+diff --git a/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/NatsConfiguration.java b/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/NatsConfiguration.java
+--- a/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/NatsConfiguration.java
++++ b/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/NatsConfiguration.java
+@@ -28,12 +28,16 @@
+ 
+ import ch.bedag.dap.hellodata.commons.nats.actuator.NatsHealthIndicator;
+ import ch.bedag.dap.hellodata.commons.nats.bean.NatsConfigBeanPostProcessor;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.fasterxml.jackson.databind.json.JsonMapper;
++import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+ import io.nats.client.Connection;
+ import io.nats.client.ConnectionListener;
+ import io.nats.spring.boot.autoconfigure.NatsAutoConfiguration;
+ import lombok.NoArgsConstructor;
+ import lombok.extern.log4j.Log4j2;
+ import org.springframework.beans.factory.config.BeanDefinition;
++import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.context.annotation.Role;
+@@ -66,6 +70,12 @@ public NatsConfigBeanPostProcessor configBeanPostProcessor(Connection natsConnec
+         return new NatsConfigBeanPostProcessor(natsConnection);
+     }
+ 
++    @Bean
++    @ConditionalOnMissingBean(ObjectMapper.class)
++    public ObjectMapper objectMapper() {
++        return JsonMapper.builder().addModule(new JavaTimeModule()).build();
++    }
++
+     @Bean
+     public NatsHealthIndicator natsHealthIndicator(Connection auditNatsConnection) {
+         log.debug("[NATS] Creating NatsHealthIndicator.");
+diff --git a/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/actuator/NatsHealthIndicator.java b/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/actuator/NatsHealthIndicator.java
+--- a/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/actuator/NatsHealthIndicator.java
++++ b/hello-data-commons/hello-data-nats-spring/src/main/java/ch/bedag/dap/hellodata/commons/nats/actuator/NatsHealthIndicator.java
+@@ -37,8 +37,8 @@
+ import jakarta.annotation.PostConstruct;
+ import lombok.extern.log4j.Log4j2;
+ import org.springframework.beans.factory.annotation.Value;
+-import org.springframework.boot.actuate.health.AbstractHealthIndicator;
+-import org.springframework.boot.actuate.health.Health;
++import org.springframework.boot.health.contributor.AbstractHealthIndicator;
++import org.springframework.boot.health.contributor.Health;
+ import org.springframework.util.StringUtils;
+ 
+ import java.io.IOException;
+@@ -133,4 +133,5 @@ protected void doHealthCheck(Health.Builder builder) {
+             builder.down();
+         }
+     }
++
+ }
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/dashboard_access/entity/DashboardAccessEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/dashboard_access/entity/DashboardAccessEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/dashboard_access/entity/DashboardAccessEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/dashboard_access/entity/DashboardAccessEntity.java
+@@ -3,6 +3,7 @@
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Column;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -18,6 +19,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "dashboard_access")
++@Table(name = "dashboard_access")
+ public class DashboardAccessEntity extends BaseEntity {
+     @Column(name = "context_key", nullable = false)
+     private String contextKey;
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/monitoring/entity/StorageSizeEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/monitoring/entity/StorageSizeEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/monitoring/entity/StorageSizeEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/monitoring/entity/StorageSizeEntity.java
+@@ -28,10 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import ch.bedag.dap.hellodata.commons.sidecars.resources.v1.storage.data.StorageMonitoringResult;
+-import jakarta.persistence.Basic;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -44,6 +41,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "storage_size")
++@Table(name = "storage_size")
+ public class StorageSizeEntity extends BaseEntity {
+ 
+     @JdbcTypeCode(SqlTypes.JSON)
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/query/entity/QueryEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/query/entity/QueryEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/query/entity/QueryEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/query/entity/QueryEntity.java
+@@ -3,6 +3,7 @@
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Column;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -19,6 +20,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "query")
++@Table(name = "query")
+ public class QueryEntity extends BaseEntity {
+ 
+     @Column(name = "context_key", nullable = false)
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/PortalRoleEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/PortalRoleEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/PortalRoleEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/PortalRoleEntity.java
+@@ -28,10 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import ch.bedag.dap.hellodata.portalcommon.user.entity.Permissions;
+-import jakarta.persistence.Basic;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -43,6 +40,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "portal_role")
++@Table(name = "portal_role")
+ public class PortalRoleEntity extends BaseEntity {
+ 
+     @NaturalId
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/RoleEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/RoleEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/RoleEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/RoleEntity.java
+@@ -29,10 +29,7 @@
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import ch.bedag.dap.hellodata.commons.sidecars.context.HdContextType;
+ import ch.bedag.dap.hellodata.commons.sidecars.context.role.HdRoleName;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.EnumType;
+-import jakarta.persistence.Enumerated;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -45,6 +42,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "role")
++@Table(name = "role")
+ public class RoleEntity extends BaseEntity {
+ 
+     @NaturalId
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserContextRoleEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserContextRoleEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserContextRoleEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserContextRoleEntity.java
+@@ -32,6 +32,7 @@
+ import jakarta.persistence.Entity;
+ import jakarta.persistence.JoinColumn;
+ import jakarta.persistence.ManyToOne;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -40,6 +41,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "user_context_role")
++@Table(name = "user_context_role")
+ public class UserContextRoleEntity extends BaseEntity {
+ 
+     @ManyToOne
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserPortalRoleEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserPortalRoleEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserPortalRoleEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/role/entity/relation/UserPortalRoleEntity.java
+@@ -40,6 +40,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "user_portal_role")
++@Table(name = "user_portal_role")
+ public class UserPortalRoleEntity extends BaseEntity {
+ 
+     @ManyToOne
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/DefaultUserEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/DefaultUserEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/DefaultUserEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/DefaultUserEntity.java
+@@ -27,10 +27,7 @@
+ package ch.bedag.dap.hellodata.portalcommon.user.entity;
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
+-import jakarta.persistence.JoinColumn;
+-import jakarta.persistence.OneToOne;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -39,6 +36,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "default_user")
++@Table(name = "default_user")
+ public class DefaultUserEntity extends BaseEntity {
+     @OneToOne(fetch = FetchType.EAGER)
+     @JoinColumn(name = "user_id", nullable = false)
+diff --git a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/UserEntity.java b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/UserEntity.java
+--- a/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/UserEntity.java
++++ b/hello-data-commons/hello-data-portal-common/src/main/java/ch/bedag/dap/hellodata/portalcommon/user/entity/UserEntity.java
+@@ -30,10 +30,7 @@
+ import ch.bedag.dap.hellodata.portalcommon.role.entity.SystemDefaultPortalRoleName;
+ import ch.bedag.dap.hellodata.portalcommon.role.entity.relation.UserContextRoleEntity;
+ import ch.bedag.dap.hellodata.portalcommon.role.entity.relation.UserPortalRoleEntity;
+-import jakarta.persistence.CascadeType;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
+-import jakarta.persistence.OneToMany;
++import jakarta.persistence.*;
+ import jakarta.validation.constraints.NotBlank;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+@@ -53,6 +50,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "user_")
++@Table(name = "user_")
+ public class UserEntity extends BaseEntity {  //NOSONAR
+     private String authId;
+     @NotBlank
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/announcement/entity/AnnouncementEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/announcement/entity/AnnouncementEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/announcement/entity/AnnouncementEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/announcement/entity/AnnouncementEntity.java
+@@ -27,10 +27,7 @@
+ package ch.bedag.dap.hellodata.portal.announcement.entity;
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+-import jakarta.persistence.Basic;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -47,6 +44,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "announcement")
++@Table(name = "announcement")
+ public class AnnouncementEntity extends BaseEntity {
+ 
+     private Boolean published;
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/JacksonConfiguration.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/JacksonConfiguration.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/JacksonConfiguration.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/JacksonConfiguration.java
+@@ -29,10 +29,8 @@
+ import com.fasterxml.jackson.databind.ObjectMapper;
+ import com.fasterxml.jackson.databind.json.JsonMapper;
+ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+ 
+ @Configuration
+ public class JacksonConfiguration {
+@@ -41,24 +39,4 @@ public class JacksonConfiguration {
+     public ObjectMapper objectMapper() {
+         return JsonMapper.builder().addModule(new JavaTimeModule()).build();
+     }
+-
+-    @Bean
+-    public Jackson2ObjectMapperBuilder objectMapperBuilder() {
+-        return new Jackson2ObjectMapperBuilder() {
+-
+-            @Override
+-            public void configure(ObjectMapper objectMapper) {
+-                super.configure(objectMapper);
+-                objectMapper.registerModule(new JavaTimeModule());
+-            }
+-        };
+-    }
+-
+-    @Bean
+-    public Jackson2ObjectMapperBuilderCustomizer jacksonCustomizer() {
+-        return builder ->
+-                // Register the JavaTimeModule with the ObjectMapper
+-                builder.modulesToInstall(new JavaTimeModule());
+-
+-    }
+ }
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/PersistenceConfig.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/PersistenceConfig.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/PersistenceConfig.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/PersistenceConfig.java
+@@ -26,14 +26,14 @@
+  */
+ package ch.bedag.dap.hellodata.portal.base.config;
+ 
+-import org.springframework.boot.autoconfigure.domain.EntityScan;
++import org.springframework.boot.persistence.autoconfigure.EntityScan;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+ import org.springframework.transaction.annotation.EnableTransactionManagement;
+ 
+ @Configuration
+ @EnableTransactionManagement
+-@EntityScan(basePackages = { "ch.bedag.dap.hellodata" })
+-@EnableJpaRepositories(basePackages = { "ch.bedag.dap.hellodata" })
++@EntityScan(basePackages = {"ch.bedag.dap.hellodata"})
++@EnableJpaRepositories(basePackages = {"ch.bedag.dap.hellodata"})
+ public class PersistenceConfig {
+ }
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/RedisConfig.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/RedisConfig.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/RedisConfig.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/RedisConfig.java
+@@ -26,23 +26,24 @@
+  */
+ package ch.bedag.dap.hellodata.portal.base.config;
+ 
+-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+-import com.fasterxml.jackson.core.JsonGenerator;
+-import com.fasterxml.jackson.databind.DeserializationFeature;
+-import com.fasterxml.jackson.databind.ObjectMapper;
+ import org.springframework.beans.factory.annotation.Value;
+-import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
+ import org.springframework.cache.CacheManager;
+ import org.springframework.cache.annotation.EnableCaching;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.data.redis.cache.RedisCacheConfiguration;
+ import org.springframework.data.redis.cache.RedisCacheManager;
+ import org.springframework.data.redis.connection.RedisConnectionFactory;
+-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
++import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
+ import org.springframework.data.redis.serializer.RedisSerializationContext;
+ import org.springframework.data.redis.serializer.RedisSerializer;
+ import org.springframework.data.redis.serializer.StringRedisSerializer;
++import tools.jackson.databind.DefaultTyping;
++import tools.jackson.databind.DeserializationFeature;
++import tools.jackson.databind.ObjectMapper;
++import tools.jackson.databind.json.JsonMapper;
++import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
++import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
+ 
+ import java.time.Duration;
+ 
+@@ -60,30 +61,28 @@ public class RedisConfig {
+ 
+     @Bean
+     public CacheManager cacheManager(RedisConnectionFactory factory) {
+-        ObjectMapper objectMapper = new ObjectMapper();
+-        objectMapper.enable(JsonGenerator.Feature.IGNORE_UNKNOWN);
+-        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+-        objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
++        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
++                .allowIfBaseType(Object.class)
++                .build();
+ 
+-        RedisSerializer<Object> serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
++        ObjectMapper objectMapper = JsonMapper.builder()
++                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
++                .activateDefaultTypingAsProperty(ptv, DefaultTyping.NON_FINAL, "@class")
++                .build();
+ 
++        RedisSerializer<Object> serializer = new GenericJacksonJsonRedisSerializer(objectMapper);
+ 
+         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer));
+ 
+         return RedisCacheManager.builder(factory)
+                 .cacheDefaults(config)
+-                .build();
+-    }
+-
+-    @Bean
+-    public RedisCacheManagerBuilderCustomizer redisCacheManagerBuilderCustomizer() {
+-        return builder -> builder
+                 .withCacheConfiguration(USERS_WITH_DASHBOARD_CACHE,
+-                        RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(usersWithDashboardsTtlCacheMinutes)))
++                        config.entryTtl(Duration.ofMinutes(usersWithDashboardsTtlCacheMinutes)))
+                 .withCacheConfiguration(SUBSYSTEM_USERS_CACHE,
+-                        RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(subsystemUsersTtlCacheMinutes)));
++                        config.entryTtl(Duration.ofMinutes(subsystemUsersTtlCacheMinutes)))
++                .build();
+     }
+ }
+ 
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/SecurityConfig.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/SecurityConfig.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/SecurityConfig.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/base/config/SecurityConfig.java
+@@ -35,12 +35,11 @@
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.core.convert.converter.Converter;
+ import org.springframework.core.env.Environment;
+-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
++import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+ import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+ import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+ import org.springframework.security.web.SecurityFilterChain;
+-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+ import org.springframework.web.cors.CorsConfiguration;
+ 
+ import java.util.Arrays;
+@@ -52,7 +51,7 @@
+ @Configuration
+ @EnableWebSecurity
+ @RequiredArgsConstructor
+-@EnableGlobalMethodSecurity(prePostEnabled = true) //NOSONAR
++@EnableMethodSecurity //NOSONAR
+ public class SecurityConfig {
+ 
+     private static final String[] AUTH_WHITELIST = {
+@@ -81,16 +80,12 @@ public void init() {
+     }
+ 
+     @Bean
+-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
++    public SecurityFilterChain filterChain(HttpSecurity http) {
+         configureFrameOptions(http);
+         configureCors(http);
+         configureCsrf(http);
+         http.authorizeHttpRequests(auth -> {
+-            AntPathRequestMatcher[] matchers = new AntPathRequestMatcher[AUTH_WHITELIST.length]; //NOSONAR
+-            for (int i = 0; i < AUTH_WHITELIST.length; i++) {
+-                matchers[i] = new AntPathRequestMatcher(AUTH_WHITELIST[i]); //NOSONAR
+-            }
+-            auth.requestMatchers(matchers).permitAll();
++            auth.requestMatchers(AUTH_WHITELIST).permitAll();
+             auth.anyRequest().authenticated();
+         });
+         http.oauth2Login(withDefaults());
+@@ -100,26 +95,24 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+         return http.build();
+     }
+ 
+-    private void configureCsrf(HttpSecurity http) throws Exception {
++    private void configureCsrf(HttpSecurity http) {
+         if (env.matchesProfiles("disable-csrf")) {
+             http.csrf(csrf -> csrf.disable()); //NOSONAR
+         } else {
+             http.csrf(withDefaults());
+         }
+     }
+ 
+-    private void configureFrameOptions(HttpSecurity http) throws Exception {
++    private void configureFrameOptions(HttpSecurity http) {
+         if (env.matchesProfiles("disable-frame-options")) {
+             http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));
+         } else {
+             http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::deny));//backend is not embedded into iframe
+         }
+     }
+ 
+-    private void configureCors(HttpSecurity http) throws Exception {
+-        if (env.matchesProfiles("disable-cors")) {
+-            http.cors(cors -> cors.disable()); //NOSONAR
+-        } else {
++    private void configureCors(HttpSecurity http) {
++        if (!env.matchesProfiles("disable-cors")) {
+             List<String> allowedOriginList = Arrays.stream(allowedOrigins.split(",")).toList();
+ 
+             http.cors(cors -> cors.configurationSource(request -> {
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_comment/entity/DashboardCommentPermissionEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_comment/entity/DashboardCommentPermissionEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_comment/entity/DashboardCommentPermissionEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_comment/entity/DashboardCommentPermissionEntity.java
+@@ -29,6 +29,7 @@
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Column;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -39,6 +40,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "dashboard_comment_permission")
++@Table(name = "dashboard_comment_permission")
+ public class DashboardCommentPermissionEntity extends BaseEntity {
+ 
+     @Column(name = "user_id", nullable = false)
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_group/entity/DashboardGroupEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_group/entity/DashboardGroupEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_group/entity/DashboardGroupEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/dashboard_group/entity/DashboardGroupEntity.java
+@@ -27,10 +27,7 @@
+ package ch.bedag.dap.hellodata.portal.dashboard_group.entity;
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+-import jakarta.persistence.Basic;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -45,6 +42,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "dashboard_group")
++@Table(name = "dashboard_group")
+ public class DashboardGroupEntity extends BaseEntity {
+ 
+     @Column(nullable = false, length = 150)
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/documentation/entity/DocumentationEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/documentation/entity/DocumentationEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/documentation/entity/DocumentationEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/documentation/entity/DocumentationEntity.java
+@@ -27,10 +27,7 @@
+ package ch.bedag.dap.hellodata.portal.documentation.entity;
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+-import jakarta.persistence.Basic;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -44,6 +41,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "documentation")
++@Table(name = "documentation")
+ public class DocumentationEntity extends BaseEntity {
+ 
+     @JdbcTypeCode(SqlTypes.JSON)
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/external_dashboard/entity/ExternalDashboardEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/external_dashboard/entity/ExternalDashboardEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/external_dashboard/entity/ExternalDashboardEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/external_dashboard/entity/ExternalDashboardEntity.java
+@@ -28,6 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -37,6 +38,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "external_dashboard")
++@Table(name = "external_dashboard")
+ public class ExternalDashboardEntity extends BaseEntity {
+     @Length(max = 255)
+     private String url;
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/faq/entity/FaqEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/faq/entity/FaqEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/faq/entity/FaqEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/faq/entity/FaqEntity.java
+@@ -28,10 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import ch.bedag.dap.hellodata.portal.faq.data.FaqMessage;
+-import jakarta.persistence.Basic;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.FetchType;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -47,6 +44,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "faq")
++@Table(name = "faq")
+ public class FaqEntity extends BaseEntity {
+ 
+     /**
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/initialize/entity/ExampleUsersCreatedEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/initialize/entity/ExampleUsersCreatedEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/initialize/entity/ExampleUsersCreatedEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/initialize/entity/ExampleUsersCreatedEntity.java
+@@ -28,6 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -36,6 +37,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "example_users_created")
++@Table(name = "example_users_created")
+ public class ExampleUsersCreatedEntity extends BaseEntity {
+     private String dataDomainList;
+ 
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/superset/entity/DashboardMetadataEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/superset/entity/DashboardMetadataEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/superset/entity/DashboardMetadataEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/superset/entity/DashboardMetadataEntity.java
+@@ -28,6 +28,7 @@
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -37,6 +38,7 @@
+ @Setter
+ @RequiredArgsConstructor
+ @Entity(name = "dashboard_metadata")
++@Table(name = "dashboard_metadata")
+ public class DashboardMetadataEntity extends BaseEntity {
+     private int subsystemId;
+     @Length(max = 255)
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/sync/entity/UserSyncLockEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/sync/entity/UserSyncLockEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/sync/entity/UserSyncLockEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/sync/entity/UserSyncLockEntity.java
+@@ -1,10 +1,7 @@
+ package ch.bedag.dap.hellodata.portal.sync.entity;
+ 
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+-import jakarta.persistence.Column;
+-import jakarta.persistence.Entity;
+-import jakarta.persistence.EnumType;
+-import jakarta.persistence.Enumerated;
++import jakarta.persistence.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -15,6 +12,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "user_sync_lock")
++@Table(name = "user_sync_lock")
+ public class UserSyncLockEntity extends BaseEntity {
+ 
+     @Enumerated(EnumType.STRING)
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/entity/UserSelectedDashboardEntity.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/entity/UserSelectedDashboardEntity.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/entity/UserSelectedDashboardEntity.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/entity/UserSelectedDashboardEntity.java
+@@ -29,6 +29,7 @@
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Column;
+ import jakarta.persistence.Entity;
++import jakarta.persistence.Table;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
+@@ -41,6 +42,7 @@
+ @ToString
+ @RequiredArgsConstructor
+ @Entity(name = "user_selected_dashboard")
++@Table(name = "user_selected_dashboard")
+ public class UserSelectedDashboardEntity extends BaseEntity {
+ 
+     @Column(nullable = false)
+diff --git a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/service/KeycloakService.java b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/service/KeycloakService.java
+--- a/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/service/KeycloakService.java
++++ b/hello-data-portal/hello-data-portal-api/src/main/java/ch/bedag/dap/hellodata/portal/user/service/KeycloakService.java
+@@ -37,7 +37,6 @@
+ import org.springframework.http.HttpStatusCode;
+ import org.springframework.stereotype.Service;
+ import org.springframework.util.CollectionUtils;
+-import org.springframework.web.reactive.function.client.WebClient;
+ import org.springframework.web.server.ResponseStatusException;
+ 
+ import java.net.URI;
+@@ -62,7 +61,6 @@ public class KeycloakService {
+     private String realm;
+     @Value("${hello-data.auth-server.url}")
+     private String authServerUrl;
+-    private final WebClient.Builder exchangeTokenTarget;
+ 
+     public String createUser(UserRepresentation user) {
+         try (Response response = keycloak.realm(realmName).users().create(user)) {
+diff --git a/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.html b/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.html
+--- a/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.html
++++ b/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.html
+@@ -1,4 +1,5 @@
+-<div class="sidebar close" [class.minimized]="sidebarMinimized" id="appSidebar">
++<div class="sidebar close" [class.minimized]="sidebarMinimized" id="appSidebar"
++     [ngStyle]="environment.color && { 'background-color': environment.color, '--sidebar-bg': environment.color, '--sidebar-menu-hover': 'rgba(0,0,0,0.07)' } || null">
+   <div class="logo-details"
+        [class.logo-details-env]="environment.showEnvironment"
+        [ngStyle]="environment.color && { 'background-color': environment.color } || null">
+@@ -9,7 +10,7 @@
+   @if ((navItems$ | async); as navItems) {
+     <ul class="nav-links">
+       @for (item of navItems; track item.id) {
+-        <li>
++        <li (mouseenter)="repositionSecondLevelMenu($event)">
+           <a class="flex flex-col items-center justify-center first-level-item" (click)="openWindow(item)">
+             <span [class]="item.icon" class="p-menuitem-icon text-center" style="font-size: 2rem"></span>
+             <span class="text-center first-level-label"
+@@ -18,7 +19,7 @@
+           @if (item.items && item.items.length) {
+             <ul class="second-level-menu">
+               @for (sub of item.items; track sub.id || sub.label || $index) {
+-                <li>
++                <li (mouseenter)="repositionThirdLevelMenu($event)">
+                   <a class="flex items-center" (click)="openWindow(sub)">
+                     @if (sub.icon) {
+                       <span [class]="sub.icon" class="p-menuitem-icon"></span>
+@@ -29,18 +30,28 @@
+                     }
+                   </a>
+                   @if (sub.items && sub.items.length) {
+-                    <ul class="third-level-menu">
+-                      @for (third of sub.items; track third.id || third.label || $index) {
+-                        <li>
+-                          <a class="flex items-center" (click)="openWindow(third)">
+-                            @if (third.icon) {
+-                              <span [class]="third.icon" class="p-menuitem-icon"></span>
+-                            }
+-                            <span class="ml-2">{{ third.label | transloco }}</span>
+-                          </a>
+-                        </li>
+-                      }
+-                    </ul>
++                    <div class="third-level-menu">
++                      <div class="scroll-indicator scroll-indicator--up"
++                           (click)="scrollThirdLevel($event, -480)">
++                        <i class="pi pi-chevron-up"></i>
++                      </div>
++                      <ul class="third-level-menu__list" (scroll)="onThirdLevelScroll($event)">
++                        @for (third of sub.items; track third.id || third.label || $index) {
++                          <li>
++                            <a class="flex items-center" (click)="openWindow(third)">
++                              @if (third.icon) {
++                                <span [class]="third.icon" class="p-menuitem-icon"></span>
++                              }
++                              <span class="ml-2">{{ third.label | transloco }}</span>
++                            </a>
++                          </li>
++                        }
++                      </ul>
++                      <div class="scroll-indicator scroll-indicator--down"
++                           (click)="scrollThirdLevel($event, 480)">
++                        <i class="pi pi-chevron-down"></i>
++                      </div>
++                    </div>
+                   }
+                 </li>
+               }
+@@ -50,7 +61,8 @@
+       }
+     </ul>
+   }
+-  <div class="sidebar-toggle-btn" (click)="toggleSidebar()" (keydown.enter)="toggleSidebar()">
++  <div class="sidebar-toggle-btn" (click)="toggleSidebar()" (keydown.enter)="toggleSidebar()"
++       [ngStyle]="environment.color && { 'background-color': environment.color } || null">
+     @if (sidebarMinimized) {
+       <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+     } @else {
+diff --git a/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.ts b/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.ts
+--- a/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.ts
++++ b/hello-data-portal/hello-data-portal-ui/src/app/layouts/side-nav-outer-toolbar/side-nav-outer-toolbar.component.ts
+@@ -70,6 +70,10 @@ export class SideNavOuterToolbarComponent {
+       showEnvironment: environment.deploymentEnvironment.showEnvironment ?? true,
+       color: environment.deploymentEnvironment.headerColor ? environment.deploymentEnvironment.headerColor : ''
+     };
++    // Expose headerColor as a CSS custom property so global p-menu popups can use it
++    if (this.environment.color) {
++      document.documentElement.style.setProperty('--header-menu-bg', this.environment.color);
++    }
+   }
+ 
+   toggleSidebar(): void {
+@@ -105,4 +109,128 @@ export class SideNavOuterToolbarComponent {
+     }
+   }
+ 
++  /**
++   * Repositions the second-level flyout menu (position:absolute) so it
++   * stays within the viewport with PADDING px at the top and bottom.
++   * Does NOT set overflow or maxHeight — the second-level must keep
++   * overflow visible so the third-level can fly out.
++   */
++  repositionSecondLevelMenu(event: MouseEvent): void {
++    const li = event.currentTarget as HTMLElement;
++    const submenu = li.querySelector('.second-level-menu') as HTMLElement;
++    if (!submenu) {
++      return;
++    }
++    // Reset so measurements are accurate
++    submenu.style.top = '0';
++
++    requestAnimationFrame(() => {
++      const PADDING = 8;
++      const rect = submenu.getBoundingClientRect();
++      const viewportHeight = window.innerHeight;
++
++      if (rect.bottom > viewportHeight - PADDING) {
++        const overflow = rect.bottom - (viewportHeight - PADDING);
++        const newTop = -overflow;
++        const minTop = -(rect.top - PADDING);
++        submenu.style.top = `${Math.max(newTop, minTop)}px`;
++      }
++    });
++  }
++
++  /**
++   * Repositions the third-level flyout menu (position:absolute) so it
++   * stays within the viewport with PADDING px at the top and bottom.
++   * Also initialises the scroll-indicator arrows.
++   */
++  repositionThirdLevelMenu(event: MouseEvent): void {
++    const li = event.currentTarget as HTMLElement;
++    const submenu = li.querySelector('.third-level-menu') as HTMLElement;
++    if (!submenu) {
++      return;
++    }
++    // Reset so measurements are accurate
++    submenu.style.top = '0';
++
++    requestAnimationFrame(() => {
++      const PADDING = 8;
++      const rect = submenu.getBoundingClientRect();
++      const viewportHeight = window.innerHeight;
++
++      if (rect.bottom > viewportHeight - PADDING) {
++        const overflow = rect.bottom - (viewportHeight - PADDING);
++        const newTop = -overflow;
++        const minTop = -(rect.top - PADDING);
++        submenu.style.top = `${Math.max(newTop, minTop)}px`;
++      }
++      submenu.style.maxHeight = `${viewportHeight - 2 * PADDING}px`;
++
++      // Update scroll indicators
++      const list = submenu.querySelector('.third-level-menu__list') as HTMLElement;
++      if (list) {
++        this.updateScrollIndicators(submenu, list);
++      }
++    });
++  }
++
++  /**
++   * Handle scroll events on the third-level list to update arrow indicators.
++   */
++  onThirdLevelScroll(event: Event): void {
++    const list = event.target as HTMLElement;
++    const submenu = list.closest('.third-level-menu') as HTMLElement;
++    if (submenu && list) {
++      this.updateScrollIndicators(submenu, list);
++    }
++  }
++
++  /**
++   * Scroll the third-level list by `delta` pixels when an arrow is clicked.
++   * Uses a custom eased animation so larger distances are clearly visible.
++   */
++  scrollThirdLevel(event: MouseEvent, delta: number): void {
++    event.stopPropagation();
++    const indicator = event.currentTarget as HTMLElement;
++    const wrapper = indicator.closest('.third-level-menu') as HTMLElement;
++    const list = wrapper?.querySelector('.third-level-menu__list') as HTMLElement;
++    if (!list) {
++      return;
++    }
++
++    const duration = 400; // ms
++    const start = list.scrollTop;
++    const startTime = performance.now();
++
++    const easeInOutCubic = (t: number): number =>
++      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
++
++    const step = (now: number) => {
++      const elapsed = Math.min((now - startTime) / duration, 1);
++      list.scrollTop = start + delta * easeInOutCubic(elapsed);
++      if (elapsed < 1) {
++        requestAnimationFrame(step);
++      }
++    };
++    requestAnimationFrame(step);
++  }
++
++  /**
++   * Show/hide scroll-indicator arrows based on current scroll position.
++   * Uses CSS class toggling for smooth transitions.
++   */
++  private updateScrollIndicators(wrapper: HTMLElement, list: HTMLElement): void {
++    const upArrow = wrapper.querySelector('.scroll-indicator--up') as HTMLElement;
++    const downArrow = wrapper.querySelector('.scroll-indicator--down') as HTMLElement;
++    if (!upArrow || !downArrow) {
++      return;
++    }
++
++    const isScrollable = list.scrollHeight > list.clientHeight;
++    const atTop = list.scrollTop <= 1;
++    const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
++
++    upArrow.classList.toggle('visible', isScrollable && !atTop);
++    downArrow.classList.toggle('visible', isScrollable && !atBottom);
++  }
++
+ }
+diff --git a/hello-data-portal/hello-data-portal-ui/src/app/shared/components/header/header.component.ts b/hello-data-portal/hello-data-portal-ui/src/app/shared/components/header/header.component.ts
+--- a/hello-data-portal/hello-data-portal-ui/src/app/shared/components/header/header.component.ts
++++ b/hello-data-portal/hello-data-portal-ui/src/app/shared/components/header/header.component.ts
+@@ -188,12 +188,14 @@ export class HeaderComponent {
+       this.store.select(selectSupportedLanguages)
+     ]).pipe(tap(([selectedLanguage, supportedLanguages]) => {
+       this.selectedLanguage = selectedLanguage.code;
++      const selectedPrefix = (this.selectedLanguage ?? '').slice(0, 2).toLowerCase();
+       const languagesLocal: any = [];
+       for (const language of supportedLanguages) {
++        const langPrefix = language.slice(0, 2).toLowerCase();
+         languagesLocal.push({
+           code: language,
+           label: language.slice(0, 2)?.toUpperCase(),
+-          selected: language.startsWith(this.selectedLanguage as string)
++          selected: langPrefix === selectedPrefix
+         });
+       }
+       this.supportedLanguages = languagesLocal;
+diff --git a/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.effects.ts b/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.effects.ts
+--- a/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.effects.ts
++++ b/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.effects.ts
+@@ -307,15 +307,12 @@ export class AuthEffects {
+         this._store.select(selectSupportedLanguages)
+       ),
+       tap(([_, selectedLanguage, supportedLanguages]) => {
+-        if (selectedLanguage && !supportedLanguages.includes(selectedLanguage.code as string)) {
+-          const lang = supportedLanguages.find(lang => lang.startsWith(selectedLanguage.code as string));
+-          if (lang) {
+-            this._translateService.setActiveLang(lang);
+-          } else {
+-            this._translateService.setActiveLang(this._translateService.getDefaultLanguage());
+-          }
+-        } else if (selectedLanguage) {
+-          this._translateService.setActiveLang(selectedLanguage.code as string);
++        const selectedPrefix = (selectedLanguage?.code ?? '').slice(0, 2).toLowerCase();
++        const matchedLang = supportedLanguages.find(lang => lang.slice(0, 2).toLowerCase() === selectedPrefix);
++        if (matchedLang) {
++          this._translateService.setActiveLang(matchedLang);
++        } else {
++          this._translateService.setActiveLang(this._translateService.getDefaultLanguage());
+         }
+       }),
+       switchMap(() => {
+diff --git a/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.selector.ts b/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.selector.ts
+--- a/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.selector.ts
++++ b/hello-data-portal/hello-data-portal-ui/src/app/store/auth/auth.selector.ts
+@@ -127,14 +127,16 @@ export const selectSelectedLanguage = createSelector(
+   (state: AuthState) => {
+     if (!state.selectedLanguage) {
+       const browserLanguage = navigator.language.replace('-', '_');
+-      if (!state.supportedLanguages) {
++      const browserPrefix = browserLanguage.slice(0, 2).toLowerCase();
++      if (!state.supportedLanguages || state.supportedLanguages.length === 0) {
+         return {code: state.defaultLanguage, typeTranslationKey: '@App fallback language'};
+       }
+-      if (browserLanguage.startsWith('en')) {
++      if (browserPrefix === 'en') {
+         return {code: 'en', typeTranslationKey: '@Browser default language'};
+       }
+-      if (state.supportedLanguages.includes(browserLanguage)) {
+-        return {code: browserLanguage, typeTranslationKey: '@Browser default language'};
++      const matchedLang = state.supportedLanguages.find(lang => lang.slice(0, 2).toLowerCase() === browserPrefix);
++      if (matchedLang) {
++        return {code: matchedLang, typeTranslationKey: '@Browser default language'};
+       } else {
+         return {code: state.defaultLanguage, typeTranslationKey: '@App fallback language'};
+       }
+diff --git a/hello-data-portal/hello-data-portal-ui/src/assets/i18n/de_CH.json b/hello-data-portal/hello-data-portal-ui/src/assets/i18n/de_CH.json
+--- a/hello-data-portal/hello-data-portal-ui/src/assets/i18n/de_CH.json
++++ b/hello-data-portal/hello-data-portal-ui/src/assets/i18n/de_CH.json
+@@ -4,6 +4,7 @@
+   "@Active": "Aktiv",
+   "@Active users": "Aktive Benutzer",
+   "@Add": "Hinzufügen",
++  "@Add entry": "Eintrag hinzufügen",
+   "@Add tag (max 10 chars)": "Tag hinzufügen (max 10 Zeichen)",
+   "@Add tags": "Tags hinzufügen",
+   "@Add tags (optional)": "Tags hinzufügen (optional)",
+@@ -26,11 +27,12 @@
+   "@Author": "Autor",
+   "@Available Projects": "Projekte",
+   "@Browser default language": "[Standardsprache des Browsers]",
+-  "@Business Domain Role": "Rolle im Geschäftsbereich",
+   "@Business domain": "Fachdomäne",
++  "@Business Domain Role": "Rolle im Geschäftsbereich",
+   "@Business process": "Geschäftsprozess",
+   "@Cancel": "Abbrechen",
+   "@Clear": "Löschen",
++  "@Clear all filters": "Alle Filter löschen",
+   "@Clear cache": "Cache leeren",
+   "@Close comments panel": "Kommentarfeld schliessen",
+   "@Comment": "Kommentar",
+@@ -40,6 +42,7 @@
+   "@Comment deleted successfully": "Kommentar erfolgreich gelöscht",
+   "@Comment edited successfully": "Kommentar erfolgreich bearbeitet",
+   "@Comment published successfully": "Kommentar erfolgreich veröffentlicht",
++  "@Comment sent for review successfully": "Kommentar erfolgreich zur Überprüfung gesendet",
+   "@Comment unpublished successfully": "Veröffentlichung des Kommentars aufgehoben",
+   "@Comment updated successfully": "Kommentar erfolgreich aktualisiert",
+   "@Comment version restored": "Vorherige veröffentlichte Version wiederhergestellt",
+@@ -49,95 +52,69 @@
+   "@Comments exported successfully": "Kommentare erfolgreich exportiert",
+   "@Comments imported and updated successfully": "{{imported}} Kommentar(e) importiert, {{updated}} Kommentar(e) aktualisiert",
+   "@Comments imported successfully": "{{count}} Kommentar(e) erfolgreich importiert",
+-  "@Dashboard comment permissions": "Dashboard-Kommentarrechte",
+   "@Confirm": "Bestätigen",
++  "@Context key": "Kontext-Schlüssel",
+   "@Context name": "Kontext Name",
+   "@Continue edition": "Fortsetzung der Ausgabe",
+   "@Create": "Erstellen",
+   "@Create announcement": "Ankündigung erstellen",
++  "@Create dashboard group": "Dashboard-Gruppe erstellen",
+   "@Create role": "Rolle erstellen",
+   "@Created": "Erstellt",
+   "@Created by": "Erstellt von",
+   "@Created date": "Erstellungsdatum",
+-  "@DM Viewer": "DataMarts Viewer",
+-  "@DM Viewer Link": "DataMarts Viewer",
+-  "@draft": "Entwurf",
+-  "@ready for review": "Zur Überprüfung bereit",
+-  "@published": "Veröffentlicht",
+-  "@declined": "Abgelehnt",
+-  "@deleted": "Gelöscht",
+-  "@Send for review": "Zur Überprüfung senden",
+-  "@Send for review question": "Diesen Kommentar zur Überprüfung senden?",
+-  "@Comment sent for review successfully": "Kommentar erfolgreich zur Überprüfung gesendet",
+-  "@Delete version": "Version löschen",
+-  "@Delete version question": "Diese Version löschen?",
+-  "@Version deleted successfully": "Version erfolgreich gelöscht",
+-  "@DWH Viewer": "DWH Viewer",
+   "@Dalete faq": "FAQ löschen",
+   "@Dashboard": "Dashboard",
+-  "@Dashboard List": "Liste",
+-  "@Dashboard Overview": "Dashboards",
+   "@Dashboard access": "Dashboard-Zugriff",
++  "@Dashboard comment permissions": "Dashboard-Kommentarrechte",
++  "@Dashboard entries": "Dashboard-Einträge",
+   "@Dashboard export completed": "Dashboard-Export abgeschlossen",
+   "@Dashboard export started": "Dashboard-Export gestartet. Bitte warten...",
+-  "@Dashboard import-export": "Dashboard Import/Export",
+   "@Dashboard group": "Dashboard-Gruppe",
+-  "@Dashboard groups": "Dashboard-Gruppen",
+-  "@Dashboard Groups": "Dashboard-Gruppen",
+-  "@Select dashboard groups to add user to multiple dashboards at once": "Dashboard-Gruppen auswählen, um Benutzer mehreren Dashboards gleichzeitig hinzuzufügen",
+   "@Dashboard group created successfully": "Dashboard-Gruppe erfolgreich erstellt",
+-  "@Dashboard group updated successfully": "Dashboard-Gruppe erfolgreich aktualisiert",
+   "@Dashboard group deleted successfully": "Dashboard-Gruppe erfolgreich gelöscht",
+-  "@Dashboard entries": "Dashboard-Einträge",
+-  "@Dashboard ID": "Dashboard-ID",
+-  "@Dashboard title": "Dashboard-Titel",
+-  "@Data Domain": "Datendomäne",
+-  "@Domain Type": "Domänentyp",
+-  "@Dashboards": "Dashboards",
+-  "@No dashboards": "Keine Dashboards",
+-  "@No dashboards available": "Keine Dashboards verfügbar",
+-  "@No users": "Keine Benutzer",
+-  "@No users available": "Keine Benutzer verfügbar",
+-  "@Users": "Benutzer",
+-  "@Search dashboards": "Dashboards suchen",
+-  "@Search users": "Benutzer suchen",
+-  "@Select all": "Alle auswählen",
+-  "@Create dashboard group": "Dashboard-Gruppe erstellen",
+-  "@Delete dashboard group": "Dashboard-Gruppe löschen",
+-  "@Delete dashboard group question": "Möchten Sie diese Dashboard-Gruppe wirklich löschen?",
+-  "@Group name": "Gruppenname",
+-  "@Group name is invalid": "Gruppenname ist ungültig (min. 3, max. 150 Zeichen, muss mit Buchstabe oder Zahl beginnen)",
+   "@Dashboard group name already exists": "Eine Dashboard-Gruppe mit diesem Namen existiert bereits",
+-  "@Context key": "Kontext-Schlüssel",
+-  "@Add entry": "Eintrag hinzufügen",
+-  "@Remove": "Entfernen",
++  "@Dashboard group updated successfully": "Dashboard-Gruppe erfolgreich aktualisiert",
++  "@Dashboard groups": "Dashboard-Gruppen",
++  "@Dashboard Groups": "Dashboard-Gruppen",
++  "@Dashboard ID": "Dashboard-ID",
++  "@Dashboard import-export": "Dashboard Import/Export",
++  "@Dashboard List": "Liste",
+   "@Dashboard metadata updated": "Metadaten des Dashboards aktualisiert",
++  "@Dashboard Overview": "Dashboards",
+   "@Dashboard permissions updated": "Dashboard-Berechtigungen aktualisiert",
++  "@Dashboard title": "Dashboard-Titel",
+   "@Dashboards": "Dashboards",
+   "@Dashboards uploaded successfully": "Dashboards erfolgreich hochgeladen",
+-  "@Data Eng": "Data Eng.",
+-  "@Data Lineage": "Data Lineage",
+-  "@Data Mart": "Data Mart",
+-  "@Data Marts": "Data Marts",
+   "@Data analyst": "Datenanalyse",
++  "@Data Domain": "Datendomäne",
+   "@Data domain": "Datendomäne",
+   "@Data domain changed": "Datendomäne geändert in {{dataDomainName}}",
+   "@Data domain is invalid": "Datendomäne ist ungültig",
++  "@Data Eng": "Data Eng.",
++  "@Data Lineage": "Data Lineage",
++  "@Data Mart": "Data Mart",
++  "@Data Marts": "Data Marts",
+   "@Database size": "Datenbankgrösse",
+   "@Datasource": "Datenquelle",
+   "@Date": "Datum",
+   "@Dbt Docs for project": "DBT Dokumentation für das Projekt",
+   "@Dbt Project Docs": "Dbt Projektdokumente",
++  "@Decline": "Ablehnen",
++  "@Decline comment warning": "Sie sind dabei, diesen Entwurf abzulehnen. Der Autor wird den Ablehnungsgrund anstelle seiner letzten veröffentlichten Version sehen.",
++  "@Decline draft": "Entwurf ablehnen",
++  "@Decline reason": "Ablehnungsgrund",
++  "@declined": "Abgelehnt",
++  "@Declined by": "Abgelehnt von",
+   "@Delete": "Löschen",
+   "@Delete announcement": "Ankündigung löschen",
+   "@Delete announcement question": "Soll die Ankündigung wirklich gelöscht werden?",
+-  "@Delete comment question": "Möchten Sie diesen Kommentar löschen?",
+   "@Delete comment": "Kommentar löschen",
++  "@Delete comment question": "Möchten Sie diesen Kommentar löschen?",
+   "@Delete comment warning": "Sie sind dabei, diesen Kommentar zu löschen. Bitte geben Sie einen Grund für die Löschung an.",
++  "@Delete dashboard group": "Dashboard-Gruppe löschen",
++  "@Delete dashboard group question": "Möchten Sie diese Dashboard-Gruppe wirklich löschen?",
+   "@Delete entire comment": "Gesamten Kommentar löschen (alle Versionen)",
+-  "@Deletion reason": "Löschgrund",
+-  "@Enter reason for deleting this comment": "Grund für die Löschung dieses Kommentars eingeben",
+-  "@Deleted by": "Gelöscht von",
+   "@Delete external dashboard": "Link zu externem Dashboard löschen",
+   "@Delete external dashboard question": "Soll der Link zum externen Dashboard wirklich gelöscht werden?",
+   "@Delete faq": "FAQ löschen",
+@@ -147,6 +124,11 @@
+   "@Delete role question": "Soll die Rolle {{role}} wirklich gelöscht werden?",
+   "@Delete user": "Benutzer löschen",
+   "@Delete user question": "Soll Benutzer {{user}} wirklich gelöscht werden?",
++  "@Delete version": "Version löschen",
++  "@Delete version question": "Diese Version löschen?",
++  "@deleted": "Gelöscht",
++  "@Deleted by": "Gelöscht von",
++  "@Deletion reason": "Löschgrund",
+   "@Department": "Ressort",
+   "@Description": "Beschreibung",
+   "@Detail": "Detail",
+@@ -158,6 +140,8 @@
+   "@Disable user question": "Benutzer {{user}} deaktivieren?",
+   "@Discard changes": "Änderungen verwerfen",
+   "@Dismiss": "Zurückweisen",
++  "@DM Viewer": "DataMarts Viewer",
++  "@DM Viewer Link": "DataMarts Viewer",
+   "@Do not show again": "Nicht mehr anzeigen",
+   "@Doc": "Doc",
+   "@Docs": "Docs",
+@@ -166,20 +150,27 @@
+   "@Documentation updated": "Dokumentation aktualisiert",
+   "@Domain": "Domäne",
+   "@Domain Comments": "Domänen-Kommentare",
++  "@Domain Type": "Domänentyp",
+   "@Domain type": "Domänentyp",
+   "@Done": "Fertig",
++  "@draft": "Entwurf",
++  "@Draft declined": "Entwurf abgelehnt",
++  "@DWH Viewer": "DWH Viewer",
+   "@E-mail": "Email",
+   "@Edit": "Bearbeiten",
+   "@Edit comment": "Kommentar bearbeiten",
++  "@Edit declined comment warning": "Dieser Kommentar wurde abgelehnt. Beim Speichern wird eine neue Entwurfsversion zur Überprüfung erstellt.",
+   "@Edit published comment question": "Dieser Kommentar ist veröffentlicht. Die Bearbeitung erstellt eine neue Entwurfsversion. Die veröffentlichte Version wird ersetzt, wenn der neue Entwurf veröffentlicht wird. Fortfahren?",
+   "@Edit published comment warning": "Dieser Kommentar ist veröffentlicht. Beim Speichern wird eine neue Entwurfsversion erstellt, die erneut veröffentlicht werden muss.",
+-  "@Edit declined comment warning": "Dieser Kommentar wurde abgelehnt. Beim Speichern wird eine neue Entwurfsversion zur Überprüfung erstellt.",
++  "@edited": "bearbeitet",
+   "@Email": "Email",
+   "@Email is invalid": "E-Mail ist ungültig",
+   "@Enable": "Aktivieren",
+   "@Enable user": "Benutzer aktivieren",
+   "@Enable user question": "Benutzer {{user}} aktivieren?",
+   "@Enabled": "Aktiviert",
++  "@Enter reason for declining this draft": "Geben Sie den Grund für die Ablehnung dieses Entwurfs ein",
++  "@Enter reason for deleting this comment": "Grund für die Löschung dieses Kommentars eingeben",
+   "@Env DEV": "Dev",
+   "@Env PREVIEW": "Preview",
+   "@Env PROD": "Prod",
+@@ -199,11 +190,11 @@
+   "@Failed to export comments": "Kommentare konnten nicht exportiert werden",
+   "@Failed to import comments": "Kommentare konnten nicht importiert werden",
+   "@Faq": "FAQ",
+-  "@File must be JSON format": "Datei muss im JSON-Format sein",
+   "@Faq added successfully": "FAQ erfolgreich hinzugefügt",
+   "@Faq deleted successfully": "FAQ erfolgreich gelöscht",
+   "@Faq management": "FAQ Verwaltung",
+   "@Faq updated successfully": "FAQ erfolgreich aktualisiert",
++  "@File must be JSON format": "Datei muss im JSON-Format sein",
+   "@FileBrowser": "Datei-Browser",
+   "@Filebrowser": "Dateibrowser",
+   "@Filter hint": "Eingeben und Enter drücken zum Filtern",
+@@ -212,6 +203,8 @@
+   "@Go to dashboard": "Offen",
+   "@Go to dashboard element": "Zum Dashboard-Element gehen",
+   "@Go to referenced page": "Zur referenzierten Seite gehen",
++  "@Group name": "Gruppenname",
++  "@Group name is invalid": "Gruppenname ist ungültig (min. 3, max. 150 Zeichen, muss mit Buchstabe oder Zahl beginnen)",
+   "@HD Extensions": "HD Extensions",
+   "@HD Solutions": "HD Solutions",
+   "@HD Tools": "HD Tools",
+@@ -226,9 +219,9 @@
+   "@Info": "Info",
+   "@Instance name": "Datendomäne",
+   "@Instance url": "Datendomäne URL",
++  "@Invalid JSON file": "Ungültige JSON-Datei",
+   "@Invitation for user resent successfully": "Einladung für {{username}} erfolgreich erneut gesendet",
+   "@Invitation for user sent successfully": "Einladung für {{email}} erfolgreich gesendet",
+-  "@Invalid JSON file": "Ungültige JSON-Datei",
+   "@Invite": "Einladen",
+   "@Invite user": "Benutzer einladen",
+   "@Invite user question": "Benutzer {{user}} einladen?",
+@@ -238,12 +231,12 @@
+   "@Is viewer": "Viewer",
+   "@Language": "Sprache",
+   "@Last edited": "Zuletzt bearbeitet",
+-  "@Link": "Link",
+   "@Last login": "Letzte Anmeldung",
+   "@Last name": "Nachname",
+   "@Last name is invalid": "Nachname ist ungültig",
+   "@Lineage": "Lineage",
+   "@Lineage Docs List": "Liste",
++  "@Link": "Link",
+   "@Link to dashboard element (optional)": "Link zu Dashboard-Element (optional)",
+   "@Link to specific page (optional)": "Link zu einer bestimmten Seite (optional)",
+   "@List": "Liste",
+@@ -259,15 +252,19 @@
+   "@Name": "Name",
+   "@Never": "Nie",
+   "@No": "Nein",
++  "@No announcements found": "Keine Ankündigungen gefunden",
+   "@No comments": "Keine Kommentare",
+   "@No comments found": "Keine Kommentare gefunden",
+   "@No dashboard selected": "Kein Dashboard ausgewählt",
+-  "@No dashboards found": "Keine Dashboards gefunden.",
++  "@No dashboards": "Keine Dashboards",
++  "@No dashboards available": "Keine Dashboards verfügbar",
++  "@No dashboards found": "Keine Dashboards gefunden",
+   "@No data found": "Keine Daten gefunden",
+-  "@No announcements found": "Keine Ankündigungen gefunden",
+   "@No FAQ entries found": "Keine FAQ-Einträge gefunden",
+   "@No permissions": "Keine Berechtigungen",
+   "@No tags selected": "Keine Tags ausgewählt",
++  "@No users": "Keine Benutzer",
++  "@No users available": "Keine Benutzer verfügbar",
+   "@Not Allowed": "Nicht erlaubt",
+   "@Of": "von",
+   "@Open": "Öffnen",
+@@ -288,20 +285,24 @@
+   "@Portal role management": "Portal Rollenverwaltung",
+   "@Portal role updated successfully": "Portal Rolle {{role}} erfolgreich aktualisiert",
+   "@Portal roles management": "Portal Rollenverwaltung",
++  "@Preparing your workspace": "Arbeitsbereich wird vorbereitet...",
+   "@Professional responsibility": "Fachverantwortung",
+   "@Profile": "Profil",
+   "@Publish": "Veröffentlichen",
+   "@Publish comment question": "Möchten Sie diesen Kommentar veröffentlichen?",
++  "@published": "Veröffentlicht",
+   "@Published": "Veröffentlicht",
+   "@Published date": "Veröffentlicht am",
+-  "@Quarter": "Quartal",
+   "@Q1": "Q1",
+   "@Q2": "Q2",
+   "@Q3": "Q3",
+   "@Q4": "Q4",
++  "@Quarter": "Quartal",
+   "@Queries": "Abfragen",
+   "@Read": "Lesen",
++  "@ready for review": "Zur Überprüfung bereit",
+   "@Reload": "Neu laden",
++  "@Remove": "Entfernen",
+   "@Resent invitation": "Einladung erneut versenden",
+   "@Restore": "Wiederherstellen",
+   "@Restore this version": "Diese Version wiederherstellen",
+@@ -313,11 +314,17 @@
+   "@Save changes": "Änderungen speichern",
+   "@Scheduled": "Aktualisierung",
+   "@Search": "Suche",
+-  "@Clear all filters": "Alle Filter löschen",
++  "@Search dashboards": "Dashboards suchen",
++  "@Search users": "Benutzer suchen",
+   "@Select a Dashboard": "Dashboard auswählen",
+   "@Select a Data Domain": "Datendomänen auswählen",
++  "@Select all": "Alle auswählen",
++  "@Select dashboard groups to add user to multiple dashboards at once": "Dashboard-Gruppen auswählen, um Benutzer mehreren Dashboards gleichzeitig hinzuzufügen",
++  "@Selected Dashboards": "Ausgewählte Dashboards",
+   "@Selected Data Domain": "Ausgewählte Datendomäne",
+   "@Selected language": "Ausgewählte Sprache",
++  "@Send for review": "Zur Überprüfung senden",
++  "@Send for review question": "Diesen Kommentar zur Überprüfung senden?",
+   "@Set permissions": "Berechtigungen setzen",
+   "@Set superuser": "Als HELLODATA_ADMIN festlegen",
+   "@Set-superuser": "Als HELLODATA_ADMIN festlegen",
+@@ -332,13 +339,12 @@
+   "@Subscriptions": "Service Abonnements",
+   "@Subsystem users": "Subsystembenutzer",
+   "@Summary header": "Status | Dokumentation | Service Abonnements",
+-  "@Info": "Info",
+   "@Superset Instanz öffnen": " >> Superset Instanz öffnen <<",
+   "@Superuser": "HELLODATA ADMIN",
++  "@Sync in progress": "Synchronisierung läuft",
+   "@Sync Started": "Synchronisation der Benutzer mit allen Umsystemen wurde erfolgreich gestartet",
+-  "@Sync Users": "Synchronisation",
++  "@Sync Users": "Benutzer synchronisieren",
+   "@Sync Users Title": "Synchronisiere Benutzer mit allen Umsystemen",
+-  "@Sync in progress": "Synchronisierung läuft",
+   "@Tag": "Tag",
+   "@Tags": "Tags",
+   "@Text": "Text",
+@@ -350,14 +356,6 @@
+   "@Unexpected error occurred": "Ein unerwarteter Fehler ist aufgetreten",
+   "@Unpublish": "Veröffentlichung aufheben",
+   "@Unpublish comment question": "Möchten Sie die Veröffentlichung dieses Kommentars aufheben?",
+-  "@Decline": "Ablehnen",
+-  "@Decline draft": "Entwurf ablehnen",
+-  "@Decline reason": "Ablehnungsgrund",
+-  "@Decline comment warning": "Sie sind dabei, diesen Entwurf abzulehnen. Der Autor wird den Ablehnungsgrund anstelle seiner letzten veröffentlichten Version sehen.",
+-  "@Draft declined": "Entwurf abgelehnt",
+-  "@Declined by": "Abgelehnt von",
+-  "@declined": "Abgelehnt",
+-  "@Enter reason for declining this draft": "Geben Sie den Grund für die Ablehnung dieses Entwurfs ein",
+   "@Unsaved changes message": "Sie haben nicht gespeicherte Änderungen!",
+   "@Unsaved changes title": "Nicht gespeicherte Änderungen",
+   "@Unset superuser": "Von HELLODATA_ADMIN abmelden",
+@@ -386,22 +384,16 @@
+   "@Value has minimum length": "Wert hat Mindestlänge: {{min}}",
+   "@Version": "Version",
+   "@Version Control": "Versionskontrolle",
++  "@Version deleted successfully": "Version erfolgreich gelöscht",
+   "@Version history": "Versionsverlauf",
+   "@View announcements": "Ankündigungen anzeigen",
+   "@Welcome": "Willkommen",
+   "@Workspace": "Datendomäne",
+   "@Workspace permissions updated": "Datendomänen Berechtigungen aktualisiert",
+   "@Workspaces": "Datendomänen",
+   "@Write": "Schreiben",
+-  "@No dashboards found": "Keine Dashboards gefunden",
+-  "@Select all": "Alle auswählen",
+-  "@Selected Dashboards": "Ausgewählte Dashboards",
+   "@Write a comment": "Schreiben Sie einen Kommentar...",
+   "@Year": "Jahr",
+   "@Yes": "Ja",
+-  "@You are not allowed to access this page": "Du bist leider nicht berechtigt, auf diese Seite zuzugreifen. Kontaktiere bitte deinen Administrator.",
+-  "@Preparing your workspace": "Arbeitsbereich wird vorbereitet...",
+-  "@draft": "Entwurf",
+-  "@declined": "Abgelehnt",
+-  "@edited": "bearbeitet"
++  "@You are not allowed to access this page": "Du bist leider nicht berechtigt, auf diese Seite zuzugreifen. Kontaktiere bitte deinen Administrator."
+ }
+diff --git a/hello-data-portal/hello-data-portal-ui/src/assets/i18n/en.json b/hello-data-portal/hello-data-portal-ui/src/assets/i18n/en.json
+--- a/hello-data-portal/hello-data-portal-ui/src/assets/i18n/en.json
++++ b/hello-data-portal/hello-data-portal-ui/src/assets/i18n/en.json
+@@ -4,6 +4,7 @@
+   "@Active": "Active",
+   "@Active users": "Active users",
+   "@Add": "Add",
++  "@Add entry": "Add entry",
+   "@Add tag (max 10 chars)": "Add tag (max 10 characters)",
+   "@Add tags": "Add tags",
+   "@Add tags (optional)": "Add tags (optional)",
+@@ -26,11 +27,12 @@
+   "@Author": "Author",
+   "@Available Projects": "Projects",
+   "@Browser default language": "[Browser default language]",
+-  "@Business Domain Role": "Business Domain Role",
+   "@Business domain": "Business Domain",
++  "@Business Domain Role": "Business Domain Role",
+   "@Business process": "Business Process",
+   "@Cancel": "Cancel",
+   "@Clear": "Clear",
++  "@Clear all filters": "Clear all filters",
+   "@Clear cache": "Clear cache",
+   "@Close comments panel": "Close comments panel",
+   "@Comment": "Comment",
+@@ -40,6 +42,7 @@
+   "@Comment deleted successfully": "Comment deleted successfully",
+   "@Comment edited successfully": "Comment edited successfully",
+   "@Comment published successfully": "Comment published successfully",
++  "@Comment sent for review successfully": "Comment sent for review successfully",
+   "@Comment unpublished successfully": "Comment unpublished successfully",
+   "@Comment updated successfully": "Comment updated successfully",
+   "@Comment version restored": "Previous published version restored",
+@@ -49,95 +52,69 @@
+   "@Comments exported successfully": "Comments exported successfully",
+   "@Comments imported and updated successfully": "{{imported}} comment(s) imported, {{updated}} comment(s) updated",
+   "@Comments imported successfully": "{{count}} comment(s) imported successfully",
+-  "@Dashboard comment permissions": "Dashboard comment permissions",
+   "@Confirm": "Confirm",
++  "@Context key": "Context key",
+   "@Context name": "Context name",
+   "@Continue edition": "Continue edition",
+   "@Create": "Create",
+   "@Create announcement": "Create notification",
++  "@Create dashboard group": "Create dashboard group",
+   "@Create role": "Create role",
+   "@Created": "Created",
+   "@Created by": "Created by",
+   "@Created date": "Created date",
+-  "@DM Viewer": "DataMarts Viewer",
+-  "@DM Viewer Link": "DataMarts Viewer",
+-  "@draft": "Draft",
+-  "@ready for review": "Ready for review",
+-  "@published": "Published",
+-  "@declined": "Declined",
+-  "@deleted": "Deleted",
+-  "@Send for review": "Send for review",
+-  "@Send for review question": "Send this comment for review?",
+-  "@Comment sent for review successfully": "Comment sent for review successfully",
+-  "@Delete version": "Delete version",
+-  "@Delete version question": "Delete this version?",
+-  "@Version deleted successfully": "Version deleted successfully",
+-  "@DWH Viewer": "DWH Viewer",
+   "@Dalete faq": "Delete FAQ",
+   "@Dashboard": "Dashboard",
+-  "@Dashboard List": "List",
+-  "@Dashboard Overview": "Dashboard overview",
+   "@Dashboard access": "Dashboard access",
++  "@Dashboard comment permissions": "Dashboard comment permissions",
++  "@Dashboard entries": "Dashboard entries",
+   "@Dashboard export completed": "Dashboard export completed",
+   "@Dashboard export started": "Dashboard export started. Please wait...",
+-  "@Dashboard import-export": "Dashboards import-export",
+   "@Dashboard group": "Dashboard group",
+-  "@Dashboard groups": "Dashboard groups",
+-  "@Dashboard Groups": "Dashboard Groups",
+-  "@Select dashboard groups to add user to multiple dashboards at once": "Select dashboard groups to add user to multiple dashboards at once",
+   "@Dashboard group created successfully": "Dashboard group created successfully",
+-  "@Dashboard group updated successfully": "Dashboard group updated successfully",
+   "@Dashboard group deleted successfully": "Dashboard group deleted successfully",
+-  "@Dashboard entries": "Dashboard entries",
+-  "@Dashboard ID": "Dashboard ID",
+-  "@Dashboard title": "Dashboard title",
+-  "@Data Domain": "Data Domain",
+-  "@Domain Type": "Domain Type",
+-  "@Dashboards": "Dashboards",
+-  "@No dashboards": "No dashboards",
+-  "@No dashboards available": "No dashboards available",
+-  "@No users": "No users",
+-  "@No users available": "No users available",
+-  "@Users": "Users",
+-  "@Search dashboards": "Search dashboards",
+-  "@Search users": "Search users",
+-  "@Select all": "Select all",
+-  "@Create dashboard group": "Create dashboard group",
+-  "@Delete dashboard group": "Delete dashboard group",
+-  "@Delete dashboard group question": "Are you sure you want to delete this dashboard group?",
+-  "@Group name": "Group name",
+-  "@Group name is invalid": "Group name is invalid (min 3, max 150 characters, must start with letter or number)",
+   "@Dashboard group name already exists": "A dashboard group with this name already exists",
+-  "@Context key": "Context key",
+-  "@Add entry": "Add entry",
+-  "@Remove": "Remove",
++  "@Dashboard group updated successfully": "Dashboard group updated successfully",
++  "@Dashboard groups": "Dashboard groups",
++  "@Dashboard Groups": "Dashboard Groups",
++  "@Dashboard ID": "Dashboard ID",
++  "@Dashboard import-export": "Dashboards import-export",
++  "@Dashboard List": "List",
+   "@Dashboard metadata updated": "Dashboard metadata updated",
++  "@Dashboard Overview": "Dashboard overview",
+   "@Dashboard permissions updated": "Dashboard permissions updated",
++  "@Dashboard title": "Dashboard title",
+   "@Dashboards": "Dashboards",
+   "@Dashboards uploaded successfully": "Dashboards uploaded successfully",
+-  "@Data Eng": "Data Eng.",
+-  "@Data Lineage": "Data Lineage",
+-  "@Data Mart": "Data Mart",
+-  "@Data Marts": "Data Marts",
+   "@Data analyst": "Data analyst",
++  "@Data Domain": "Data Domain",
+   "@Data domain": "Data Domain",
+   "@Data domain changed": "Data domain changed into {{dataDomainName}}",
+   "@Data domain is invalid": "Data domain is invalid",
++  "@Data Eng": "Data Eng.",
++  "@Data Lineage": "Data Lineage",
++  "@Data Mart": "Data Mart",
++  "@Data Marts": "Data Marts",
+   "@Database size": "Database size",
+   "@Datasource": "Datasource",
+   "@Date": "Date",
+   "@Dbt Docs for project": "DBT documentation for project",
+   "@Dbt Project Docs": "Dbt Docs",
++  "@Decline": "Decline",
++  "@Decline comment warning": "You are about to decline this draft. The author will see the decline reason instead of their last published version.",
++  "@Decline draft": "Decline Draft",
++  "@Decline reason": "Decline Reason",
++  "@declined": "Declined",
++  "@Declined by": "Declined by",
+   "@Delete": "Delete",
+   "@Delete announcement": "Delete notification",
+   "@Delete announcement question": "Do you want to delete the notification?",
+-  "@Delete comment question": "Do you want to delete this comment?",
+   "@Delete comment": "Delete Comment",
++  "@Delete comment question": "Do you want to delete this comment?",
+   "@Delete comment warning": "You are about to delete this comment. Please provide a reason for the deletion.",
++  "@Delete dashboard group": "Delete dashboard group",
++  "@Delete dashboard group question": "Are you sure you want to delete this dashboard group?",
+   "@Delete entire comment": "Delete entire comment (all versions)",
+-  "@Deletion reason": "Deletion Reason",
+-  "@Enter reason for deleting this comment": "Enter reason for deleting this comment",
+-  "@Deleted by": "Deleted by",
+   "@Delete external dashboard": "Delete external dashboard",
+   "@Delete external dashboard question": "Do you really want to delete the link to the external dashboard?",
+   "@Delete faq": "Delete FAQ",
+@@ -147,6 +124,11 @@
+   "@Delete role question": "Delete role {{role}}?",
+   "@Delete user": "Delete user",
+   "@Delete user question": "Delete user {{user}}?",
++  "@Delete version": "Delete version",
++  "@Delete version question": "Delete this version?",
++  "@deleted": "Deleted",
++  "@Deleted by": "Deleted by",
++  "@Deletion reason": "Deletion Reason",
+   "@Department": "Department",
+   "@Description": "Description",
+   "@Detail": "Detail",
+@@ -158,6 +140,8 @@
+   "@Disable user question": "Disable user {{user}}?",
+   "@Discard changes": "Discard changes",
+   "@Dismiss": "Dismiss",
++  "@DM Viewer": "DataMarts Viewer",
++  "@DM Viewer Link": "DataMarts Viewer",
+   "@Do not show again": "Don't show again",
+   "@Doc": "Doc",
+   "@Docs": "Docs",
+@@ -166,20 +150,27 @@
+   "@Documentation updated": "Documentation updated",
+   "@Domain": "Domain",
+   "@Domain Comments": "Domain Comments",
++  "@Domain Type": "Domain Type",
+   "@Domain type": "Domain Type",
+   "@Done": "Done",
++  "@draft": "Draft",
++  "@Draft declined": "Draft Declined",
++  "@DWH Viewer": "DWH Viewer",
+   "@E-mail": "Email",
+   "@Edit": "Edit",
+   "@Edit comment": "Edit comment",
++  "@Edit declined comment warning": "This comment was declined. Saving will create a new draft version for review.",
+   "@Edit published comment question": "This comment is published. Editing will create a new draft version. The published version will be replaced when the new draft is published. Continue?",
+   "@Edit published comment warning": "This comment is published. Saving will create a new draft version that needs to be published again.",
+-  "@Edit declined comment warning": "This comment was declined. Saving will create a new draft version for review.",
++  "@edited": "edited",
+   "@Email": "Email",
+   "@Email is invalid": "Email is invalid",
+   "@Enable": "Enable",
+   "@Enable user": "Enable user",
+   "@Enable user question": "Enable user {{user}}?",
+   "@Enabled": "Enabled",
++  "@Enter reason for declining this draft": "Enter the reason for declining this draft",
++  "@Enter reason for deleting this comment": "Enter reason for deleting this comment",
+   "@Env DEV": "Dev",
+   "@Env PREVIEW": "Preview",
+   "@Env PROD": "Prod",
+@@ -199,11 +190,11 @@
+   "@Failed to export comments": "Failed to export comments",
+   "@Failed to import comments": "Failed to import comments",
+   "@Faq": "FAQ",
+-  "@File must be JSON format": "File must be in JSON format",
+   "@Faq added successfully": "FAQ added successfully",
+   "@Faq deleted successfully": "FAQ deleted successfully",
+   "@Faq management": "FAQ management",
+   "@Faq updated successfully": "FAQ updated successfully",
++  "@File must be JSON format": "File must be in JSON format",
+   "@FileBrowser": "File Browser",
+   "@Filebrowser": "Filebrowser",
+   "@Filter hint": "Type and press Enter to filter",
+@@ -212,6 +203,8 @@
+   "@Go to dashboard": "Open",
+   "@Go to dashboard element": "Go to dashboard element",
+   "@Go to referenced page": "Go to referenced page",
++  "@Group name": "Group name",
++  "@Group name is invalid": "Group name is invalid (min 3, max 150 characters, must start with letter or number)",
+   "@HD Extensions": "HD Extensions",
+   "@HD Solutions": "HD Solutions",
+   "@HD Tools": "HD Tools",
+@@ -226,9 +219,9 @@
+   "@Info": "Info",
+   "@Instance name": "Instance name",
+   "@Instance url": "Instance url",
++  "@Invalid JSON file": "Invalid JSON file",
+   "@Invitation for user resent successfully": "Invitation for {{username}} resent successfully",
+   "@Invitation for user sent successfully": "Invitation for {{email}} sent successfully",
+-  "@Invalid JSON file": "Invalid JSON file",
+   "@Invite": "Invite",
+   "@Invite user": "Invite user",
+   "@Invite user question": "Invite user {{user}}?",
+@@ -238,12 +231,12 @@
+   "@Is viewer": "Viewer",
+   "@Language": "Language",
+   "@Last edited": "Last edited",
+-  "@Link": "Link",
+   "@Last login": "Last login",
+   "@Last name": "Last name",
+   "@Last name is invalid": "Last name is invalid",
+   "@Lineage": "Lineage",
+   "@Lineage Docs List": "List",
++  "@Link": "Link",
+   "@Link to dashboard element (optional)": "Link to dashboard element (optional)",
+   "@Link to specific page (optional)": "Link to specific page (optional)",
+   "@List": "List",
+@@ -259,15 +252,19 @@
+   "@Name": "Name",
+   "@Never": "Never",
+   "@No": "No",
++  "@No announcements found": "No announcements found",
+   "@No comments": "No comments",
+   "@No comments found": "No comments found",
+   "@No dashboard selected": "No dashboard selected",
+-  "@No dashboards found": "No dashboards found.",
++  "@No dashboards": "No dashboards",
++  "@No dashboards available": "No dashboards available",
++  "@No dashboards found": "No dashboards found",
+   "@No data found": "No data found",
+-  "@No announcements found": "No announcements found",
+   "@No FAQ entries found": "No FAQ entries found",
+   "@No permissions": "No permissions",
+   "@No tags selected": "No tags selected",
++  "@No users": "No users",
++  "@No users available": "No users available",
+   "@Not Allowed": "Not Allowed",
+   "@Of": "of",
+   "@Open": "Open",
+@@ -288,20 +285,24 @@
+   "@Portal role management": "Portal role management",
+   "@Portal role updated successfully": "Portal role {{role}} updated successfully",
+   "@Portal roles management": "Portal roles management",
++  "@Preparing your workspace": "Preparing your workspace...",
+   "@Professional responsibility": "Professional responsibility",
+   "@Profile": "Profile",
+   "@Publish": "Publish",
+   "@Publish comment question": "Do you want to publish this comment?",
++  "@published": "Published",
+   "@Published": "Published",
+   "@Published date": "Published on",
+-  "@Quarter": "Quarter",
+   "@Q1": "Q1",
+   "@Q2": "Q2",
+   "@Q3": "Q3",
+   "@Q4": "Q4",
++  "@Quarter": "Quarter",
+   "@Queries": "Queries",
+   "@Read": "Read",
++  "@ready for review": "Ready for review",
+   "@Reload": "Reload",
++  "@Remove": "Remove",
+   "@Resent invitation": "Resend invitation",
+   "@Restore": "Restore",
+   "@Restore this version": "Restore this version",
+@@ -313,11 +314,17 @@
+   "@Save changes": "Save changes",
+   "@Scheduled": "Scheduled",
+   "@Search": "Search",
+-  "@Clear all filters": "Clear all filters",
++  "@Search dashboards": "Search dashboards",
++  "@Search users": "Search users",
+   "@Select a Dashboard": "Select a Dashboard",
+   "@Select a Data Domain": "Select a Data Domain",
++  "@Select all": "Select all",
++  "@Select dashboard groups to add user to multiple dashboards at once": "Select dashboard groups to add user to multiple dashboards at once",
++  "@Selected Dashboards": "Selected Dashboards",
+   "@Selected Data Domain": "Selected Data Domain",
+   "@Selected language": "Selected language",
++  "@Send for review": "Send for review",
++  "@Send for review question": "Send this comment for review?",
+   "@Set permissions": "Set permissions",
+   "@Set superuser": "Set as superuser",
+   "@Set-superuser": "Set as superuser",
+@@ -332,13 +339,12 @@
+   "@Subscriptions": "Subscriptions",
+   "@Subsystem users": "Subsystem users",
+   "@Summary header": "Status | Documentation | Subscriptions",
+-  "@Info": "Info",
+   "@Superset Instanz öffnen": "Open Superset Instance",
+   "@Superuser": "HELLODATA ADMIN",
++  "@Sync in progress": "Sync in progress",
+   "@Sync Started": "Synchronization of users with surrounding systems started successfully",
+-  "@Sync Users": "Sync",
++  "@Sync Users": "Sync Users",
+   "@Sync Users Title": "Synchronize users with surrounding systems",
+-  "@Sync in progress": "Sync in progress",
+   "@Tag": "Tag",
+   "@Tags": "Tags",
+   "@Text": "Text",
+@@ -350,14 +356,6 @@
+   "@Unexpected error occurred": "Unexpected error occurred",
+   "@Unpublish": "Unpublish",
+   "@Unpublish comment question": "Do you want to unpublish this comment?",
+-  "@Decline": "Decline",
+-  "@Decline draft": "Decline Draft",
+-  "@Decline reason": "Decline Reason",
+-  "@Decline comment warning": "You are about to decline this draft. The author will see the decline reason instead of their last published version.",
+-  "@Draft declined": "Draft Declined",
+-  "@Declined by": "Declined by",
+-  "@declined": "Declined",
+-  "@Enter reason for declining this draft": "Enter the reason for declining this draft",
+   "@Unsaved changes message": "You have usaved changes!",
+   "@Unsaved changes title": "Unsaved changes",
+   "@Unset superuser": "Unset from superuser",
+@@ -386,6 +384,7 @@
+   "@Value has minimum length": "Value has minimum length: {{min}}",
+   "@Version": "Version",
+   "@Version Control": "Version Control",
++  "@Version deleted successfully": "Version deleted successfully",
+   "@Version history": "Version history",
+   "@View announcements": "View Notifications",
+   "@Welcome": "Welcome",
+@@ -395,12 +394,6 @@
+   "@Write": "Write",
+   "@Write a comment": "Write a comment...",
+   "@Year": "Year",
+-  "@No dashboards found": "No dashboards found",
+-  "@Select all": "Select all",
+-  "@Selected Dashboards": "Selected Dashboards",
+   "@Yes": "Yes",
+-  "@You are not allowed to access this page": "You are not allowed to access this page. Contact your administrator.",
+-  "@Preparing your workspace": "Preparing your workspace...",
+-  "@draft": "Draft",
+-  "@edited": "edited"
++  "@You are not allowed to access this page": "You are not allowed to access this page. Contact your administrator."
+ }
+diff --git a/hello-data-portal/hello-data-portal-ui/src/assets/i18n/fr_CH.json b/hello-data-portal/hello-data-portal-ui/src/assets/i18n/fr_CH.json
+--- a/hello-data-portal/hello-data-portal-ui/src/assets/i18n/fr_CH.json
++++ b/hello-data-portal/hello-data-portal-ui/src/assets/i18n/fr_CH.json
+@@ -4,6 +4,7 @@
+   "@Active": "Actif",
+   "@Active users": "Utilisateurs actifs",
+   "@Add": "Ajouter",
++  "@Add entry": "Ajouter une entrée",
+   "@Add tag (max 10 chars)": "Ajouter un tag (max 10 caractères)",
+   "@Add tags": "Ajouter des tags",
+   "@Add tags (optional)": "Ajouter des tags (optionnel)",
+@@ -26,11 +27,12 @@
+   "@Author": "Auteur",
+   "@Available Projects": "Projets",
+   "@Browser default language": "[Langue par défaut du navigateur]",
+-  "@Business Domain Role": "Rôle dans le domaine d'activité",
+   "@Business domain": "Domaine métier",
++  "@Business Domain Role": "Rôle dans le domaine d'activité",
+   "@Business process": "Processus métier",
+   "@Cancel": "Annuler",
+   "@Clear": "Effacer",
++  "@Clear all filters": "Supprimer tous les filtres",
+   "@Clear cache": "Vider le cache",
+   "@Close comments panel": "Fermer le panneau de commentaires",
+   "@Comment": "Commentaire",
+@@ -40,6 +42,7 @@
+   "@Comment deleted successfully": "Commentaire supprimé avec succès",
+   "@Comment edited successfully": "Commentaire modifié avec succès",
+   "@Comment published successfully": "Commentaire publié avec succès",
++  "@Comment sent for review successfully": "Commentaire envoyé pour révision avec succès",
+   "@Comment unpublished successfully": "Publication du commentaire annulée",
+   "@Comment updated successfully": "Commentaire mis à jour avec succès",
+   "@Comment version restored": "Version publiée précédente restaurée",
+@@ -49,95 +52,69 @@
+   "@Comments exported successfully": "Commentaires exportés avec succès",
+   "@Comments imported and updated successfully": "{{imported}} commentaire(s) importé(s), {{updated}} commentaire(s) mis à jour",
+   "@Comments imported successfully": "{{count}} commentaire(s) importé(s) avec succès",
+-  "@Dashboard comment permissions": "Droits de commentaire du tableau de bord",
+   "@Confirm": "Confirmer",
++  "@Context key": "Clé de contexte",
+   "@Context name": "Nom du contexte",
+   "@Continue edition": "Continuer l'édition",
+   "@Create": "Créer",
+   "@Create announcement": "Créer une notification",
++  "@Create dashboard group": "Créer un groupe de tableaux de bord",
+   "@Create role": "Créer un rôle",
+   "@Created": "Créé",
+   "@Created by": "Créé par",
+   "@Created date": "Date de création",
+-  "@DM Viewer": "Visualiseur de datamarts",
+-  "@DM Viewer Link": "Visualiseur de datamarts",
+-  "@draft": "Brouillon",
+-  "@ready for review": "Prêt pour révision",
+-  "@published": "Publié",
+-  "@declined": "Refusé",
+-  "@deleted": "Supprimé",
+-  "@Send for review": "Envoyer pour révision",
+-  "@Send for review question": "Envoyer ce commentaire pour révision ?",
+-  "@Comment sent for review successfully": "Commentaire envoyé pour révision avec succès",
+-  "@Delete version": "Supprimer la version",
+-  "@Delete version question": "Supprimer cette version ?",
+-  "@Version deleted successfully": "Version supprimée avec succès",
+-  "@DWH Viewer": "Visualiseur DWH",
+   "@Dalete faq": "Supprimer la FAQ",
+   "@Dashboard": "Tableau de bord",
+-  "@Dashboard List": "Liste",
+-  "@Dashboard Overview": "Aperçu du tableau de bord",
+   "@Dashboard access": "Accès au tableau de bord",
++  "@Dashboard comment permissions": "Droits de commentaire du tableau de bord",
++  "@Dashboard entries": "Entrées de tableaux de bord",
+   "@Dashboard export completed": "Exportation du tableau de bord terminée",
+   "@Dashboard export started": "L'exportation du tableau de bord a commencé. Veuillez patienter…",
+-  "@Dashboard import-export": "Import-export de tableaux de bord",
+   "@Dashboard group": "Groupe de tableaux de bord",
+-  "@Dashboard groups": "Groupes de tableaux de bord",
+-  "@Dashboard Groups": "Groupes de tableaux de bord",
+-  "@Select dashboard groups to add user to multiple dashboards at once": "Sélectionnez des groupes de tableaux de bord pour ajouter un utilisateur à plusieurs tableaux de bord à la fois",
+   "@Dashboard group created successfully": "Groupe de tableaux de bord créé avec succès",
+-  "@Dashboard group updated successfully": "Groupe de tableaux de bord mis à jour avec succès",
+   "@Dashboard group deleted successfully": "Groupe de tableaux de bord supprimé avec succès",
+-  "@Dashboard entries": "Entrées de tableaux de bord",
+-  "@Dashboard ID": "ID du tableau de bord",
+-  "@Dashboard title": "Titre du tableau de bord",
+-  "@Data Domain": "Domaine de données",
+-  "@Domain Type": "Type de domaine",
+-  "@Dashboards": "Tableaux de bord",
+-  "@No dashboards": "Aucun tableau de bord",
+-  "@No dashboards available": "Aucun tableau de bord disponible",
+-  "@No users": "Aucun utilisateur",
+-  "@No users available": "Aucun utilisateur disponible",
+-  "@Users": "Utilisateurs",
+-  "@Search dashboards": "Rechercher des tableaux de bord",
+-  "@Search users": "Rechercher des utilisateurs",
+-  "@Select all": "Tout sélectionner",
+-  "@Create dashboard group": "Créer un groupe de tableaux de bord",
+-  "@Delete dashboard group": "Supprimer le groupe de tableaux de bord",
+-  "@Delete dashboard group question": "Voulez-vous vraiment supprimer ce groupe de tableaux de bord ?",
+-  "@Group name": "Nom du groupe",
+-  "@Group name is invalid": "Le nom du groupe est invalide (min 3, max 150 caractères, doit commencer par une lettre ou un chiffre)",
+   "@Dashboard group name already exists": "Un groupe de tableaux de bord avec ce nom existe déjà",
+-  "@Context key": "Clé de contexte",
+-  "@Add entry": "Ajouter une entrée",
+-  "@Remove": "Supprimer",
++  "@Dashboard group updated successfully": "Groupe de tableaux de bord mis à jour avec succès",
++  "@Dashboard groups": "Groupes de tableaux de bord",
++  "@Dashboard Groups": "Groupes de tableaux de bord",
++  "@Dashboard ID": "ID du tableau de bord",
++  "@Dashboard import-export": "Import-export de tableaux de bord",
++  "@Dashboard List": "Liste",
+   "@Dashboard metadata updated": "Métadonnées du tableau de bord mises à jour",
++  "@Dashboard Overview": "Aperçu du tableau de bord",
+   "@Dashboard permissions updated": "Autorisations du tableau de bord mises à jour",
++  "@Dashboard title": "Titre du tableau de bord",
+   "@Dashboards": "Tableaux de bord",
+   "@Dashboards uploaded successfully": "Tableaux de bord importés avec succès",
+-  "@Data Eng": "Ingénierie des données",
+-  "@Data Lineage": "Traçabilité des données",
+-  "@Data Mart": "Datamart",
+-  "@Data Marts": "Datamarts",
+   "@Data analyst": "Analyste de données",
++  "@Data Domain": "Domaine de données",
+   "@Data domain": "Domaine de données",
+   "@Data domain changed": "Le domaine de données a été modifié en {{dataDomainName}}",
+   "@Data domain is invalid": "Le domaine de données est invalide",
++  "@Data Eng": "Ingénierie des données",
++  "@Data Lineage": "Traçabilité des données",
++  "@Data Mart": "Datamart",
++  "@Data Marts": "Datamarts",
+   "@Database size": "Taille de la base de données",
+   "@Datasource": "La source de données",
+   "@Date": "Date",
+   "@Dbt Docs for project": "Documentation DBT pour le projet",
+   "@Dbt Project Docs": "Documentation du projet DBT",
++  "@Decline": "Refuser",
++  "@Decline comment warning": "Vous êtes sur le point de refuser ce brouillon. L'auteur verra la raison du refus au lieu de sa dernière version publiée.",
++  "@Decline draft": "Refuser le brouillon",
++  "@Decline reason": "Raison du refus",
++  "@declined": "Refus",
++  "@Declined by": "Refusé par",
+   "@Delete": "Supprimer",
+   "@Delete announcement": "Supprimer la notification",
+   "@Delete announcement question": "Voulez-vous vraiment supprimer la notification ?",
+-  "@Delete comment question": "Voulez-vous supprimer ce commentaire ?",
+   "@Delete comment": "Supprimer le commentaire",
++  "@Delete comment question": "Voulez-vous supprimer ce commentaire ?",
+   "@Delete comment warning": "Vous êtes sur le point de supprimer ce commentaire. Veuillez indiquer la raison de la suppression.",
++  "@Delete dashboard group": "Supprimer le groupe de tableaux de bord",
++  "@Delete dashboard group question": "Voulez-vous vraiment supprimer ce groupe de tableaux de bord ?",
+   "@Delete entire comment": "Supprimer le commentaire entier (toutes les versions)",
+-  "@Deletion reason": "Raison de la suppression",
+-  "@Enter reason for deleting this comment": "Indiquer la raison de la suppression de ce commentaire",
+-  "@Deleted by": "Supprimé par",
+   "@Delete external dashboard": "Supprimer le lien vers le tableau de bord externe",
+   "@Delete external dashboard question": "Voulez-vous vraiment supprimer le lien vers le tableau de bord externe ?",
+   "@Delete faq": "Supprimer la FAQ",
+@@ -147,6 +124,11 @@
+   "@Delete role question": "Voulez-vous vraiment supprimer le rôle {{role}} ?",
+   "@Delete user": "Supprimer l'utilisateur",
+   "@Delete user question": "Voulez-vous vraiment supprimer l'utilisateur {{user}} ?",
++  "@Delete version": "Supprimer la version",
++  "@Delete version question": "Supprimer cette version ?",
++  "@deleted": "Supprimé",
++  "@Deleted by": "Supprimé par",
++  "@Deletion reason": "Raison de la suppression",
+   "@Department": "Département",
+   "@Description": "Description",
+   "@Detail": "Détail",
+@@ -158,6 +140,8 @@
+   "@Disable user question": "Désactiver l'utilisateur {{user}} ?",
+   "@Discard changes": "Rejeter les modifications",
+   "@Dismiss": "Rejeter",
++  "@DM Viewer": "Visualiseur de datamarts",
++  "@DM Viewer Link": "Visualiseur de datamarts",
+   "@Do not show again": "Ne plus montrer",
+   "@Doc": "Doc",
+   "@Docs": "Docs",
+@@ -166,20 +150,27 @@
+   "@Documentation updated": "Mise à jour de la documentation",
+   "@Domain": "Domaine",
+   "@Domain Comments": "Commentaires du domaine",
++  "@Domain Type": "Type de domaine",
+   "@Domain type": "Type de domaine",
+   "@Done": "Terminé",
++  "@draft": "Brouillon",
++  "@Draft declined": "Brouillon refusé",
++  "@DWH Viewer": "Visualiseur DWH",
+   "@E-mail": "Email",
+   "@Edit": "Modifier",
+   "@Edit comment": "Modifier le commentaire",
++  "@Edit declined comment warning": "Ce commentaire a été refusé. L'enregistrement créera une nouvelle version brouillon pour révision.",
+   "@Edit published comment question": "Ce commentaire est publié. La modification créera une nouvelle version brouillon. La version publiée sera remplacée lorsque le nouveau brouillon sera publié. Continuer?",
+   "@Edit published comment warning": "Ce commentaire est publié. L'enregistrement créera une nouvelle version brouillon qui devra être publiée à nouveau.",
+-  "@Edit declined comment warning": "Ce commentaire a été refusé. L'enregistrement créera une nouvelle version brouillon pour révision.",
++  "@edited": "modifi",
+   "@Email": "Email",
+   "@Email is invalid": "L'adresse e-email est invalide",
+   "@Enable": "Activer",
+   "@Enable user": "Activer l'utilisateur",
+   "@Enable user question": "Activer l'utilisateur {{user}} ?",
+   "@Enabled": "Activé",
++  "@Enter reason for declining this draft": "Entrez la raison du refus de ce brouillon",
++  "@Enter reason for deleting this comment": "Indiquer la raison de la suppression de ce commentaire",
+   "@Env DEV": "Dev",
+   "@Env PREVIEW": "Preview",
+   "@Env PROD": "Prod",
+@@ -199,11 +190,11 @@
+   "@Failed to export comments": "Échec de l'exportation des commentaires",
+   "@Failed to import comments": "Échec de l'importation des commentaires",
+   "@Faq": "FAQ",
+-  "@File must be JSON format": "Le fichier doit être au format JSON",
+   "@Faq added successfully": "FAQ ajouté avec succès",
+   "@Faq deleted successfully": "FAQ supprimé avec succès",
+   "@Faq management": "Gestion de la FAQ",
+   "@Faq updated successfully": "FAQ mise à jour avec succès",
++  "@File must be JSON format": "Le fichier doit être au format JSON",
+   "@FileBrowser": "Explorateur de fichiers",
+   "@Filebrowser": "Navigateur de fichiers",
+   "@Filter hint": "Saisir et appuyer sur Entrée pour filtrer",
+@@ -212,6 +203,8 @@
+   "@Go to dashboard": "Ouvrir",
+   "@Go to dashboard element": "Accéder à l'élément du tableau de bord",
+   "@Go to referenced page": "Aller à la page référencée",
++  "@Group name": "Nom du groupe",
++  "@Group name is invalid": "Le nom du groupe est invalide (min 3, max 150 caractères, doit commencer par une lettre ou un chiffre)",
+   "@HD Extensions": "Extensions HD",
+   "@HD Solutions": "Solutions HD",
+   "@HD Tools": "Outils HD",
+@@ -226,9 +219,9 @@
+   "@Info": "Info",
+   "@Instance name": "Domaine de données",
+   "@Instance url": "URL du domaine de données",
++  "@Invalid JSON file": "Fichier JSON invalide",
+   "@Invitation for user resent successfully": "Invitation pour {{username}} renvoyée avec succès",
+   "@Invitation for user sent successfully": "Invitation pour {{email}} envoyée avec succès",
+-  "@Invalid JSON file": "Fichier JSON invalide",
+   "@Invite": "Inviter",
+   "@Invite user": "Inviter l'utilisateur",
+   "@Invite user question": "Inviter l'utilisateur {{user}} ?",
+@@ -238,12 +231,12 @@
+   "@Is viewer": "Visualiseur",
+   "@Language": "Langue",
+   "@Last edited": "Dernière modification",
+-  "@Link": "Lien",
+   "@Last login": "Dernière connexion",
+   "@Last name": "Nom de famille",
+   "@Last name is invalid": "Le nom de famille est invalide",
+   "@Lineage": "Traçabilité",
+   "@Lineage Docs List": "Liste",
++  "@Link": "Lien",
+   "@Link to dashboard element (optional)": "Lien vers un élément du tableau de bord (optionnel)",
+   "@Link to specific page (optional)": "Lien vers une page spécifique (optionnel)",
+   "@List": "Liste",
+@@ -259,15 +252,19 @@
+   "@Name": "Prénom",
+   "@Never": "Jamais",
+   "@No": "Non",
++  "@No announcements found": "Aucune annonce trouvée",
+   "@No comments": "Pas de commentaires",
+   "@No comments found": "Aucun commentaire trouvé",
+   "@No dashboard selected": "Aucun tableau de bord sélectionné",
+-  "@No dashboards found": "Aucun tableau de bord trouvé.",
++  "@No dashboards": "Aucun tableau de bord",
++  "@No dashboards available": "Aucun tableau de bord disponible",
++  "@No dashboards found": "Aucun tableau de bord trouvé",
+   "@No data found": "Aucune donnée trouvée",
+-  "@No announcements found": "Aucune annonce trouvée",
+   "@No FAQ entries found": "Aucune entrée FAQ trouvée",
+   "@No permissions": "Pas d'autorisations",
+   "@No tags selected": "Aucun tag sélectionné",
++  "@No users": "Aucun utilisateur",
++  "@No users available": "Aucun utilisateur disponible",
+   "@Not Allowed": "Non autorisé",
+   "@Of": "de",
+   "@Open": "Ouvert",
+@@ -288,20 +285,24 @@
+   "@Portal role management": "Gestion du rôle du portail",
+   "@Portal role updated successfully": "Rôle du portail {{role}} mis à jour avec succès",
+   "@Portal roles management": "Gestion des rôles du portail",
++  "@Preparing your workspace": "Préparation de votre espace de travail...",
+   "@Professional responsibility": "Responsabilité métier",
+   "@Profile": "Profil",
+   "@Publish": "Publier",
+   "@Publish comment question": "Voulez-vous publier ce commentaire ?",
++  "@published": "Publié",
+   "@Published": "Publié",
+   "@Published date": "Publié le",
+-  "@Quarter": "Trimestre",
+   "@Q1": "T1",
+   "@Q2": "T2",
+   "@Q3": "T3",
+   "@Q4": "T4",
++  "@Quarter": "Trimestre",
+   "@Queries": "Requêtes",
+   "@Read": "Lire",
++  "@ready for review": "Prêt pour révision",
+   "@Reload": "Recharger",
++  "@Remove": "Supprimer",
+   "@Resent invitation": "Renvoyer l'invitation",
+   "@Restore": "Restaurer",
+   "@Restore this version": "Restaurer cette version",
+@@ -313,11 +314,17 @@
+   "@Save changes": "Enregistrer les modifications",
+   "@Scheduled": "Mise à jour",
+   "@Search": "Recherche",
+-  "@Clear all filters": "Supprimer tous les filtres",
++  "@Search dashboards": "Rechercher des tableaux de bord",
++  "@Search users": "Rechercher des utilisateurs",
+   "@Select a Dashboard": "Sélectionner le tableau de bord",
+   "@Select a Data Domain": "Sélectionner le domaine de données ",
++  "@Select all": "Tout sélectionner",
++  "@Select dashboard groups to add user to multiple dashboards at once": "Sélectionnez des groupes de tableaux de bord pour ajouter un utilisateur à plusieurs tableaux de bord à la fois",
++  "@Selected Dashboards": "Tableaux de bord sélectionnés",
+   "@Selected Data Domain": "Domaine de données choisi",
+   "@Selected language": "Langue choisie",
++  "@Send for review": "Envoyer pour révision",
++  "@Send for review question": "Envoyer ce commentaire pour révision ?",
+   "@Set permissions": "Définir les autorisations",
+   "@Set superuser": "Définir comme super-utilisateur",
+   "@Set-superuser": "Définir comme super-utilisateur",
+@@ -332,13 +339,12 @@
+   "@Subscriptions": "Service d'abonnements",
+   "@Subsystem users": "Utilisateurs du sous-système",
+   "@Summary header": "Statut | Documentation | Service d'abonnements",
+-  "@Info": "Info",
+   "@Superset Instanz öffnen": "Ouvrir l'instance Superset",
+   "@Superuser": "HELLODATA ADMIN",
++  "@Sync in progress": "Synchronisation en cours",
+   "@Sync Started": "La synchronisation des utilisateurs avec tous les systèmes environnants a été lancée avec succès",
+-  "@Sync Users": "Synchronisation",
++  "@Sync Users": "Synchroniser les utilisateurs",
+   "@Sync Users Title": "Synchroniser les utilisateurs avec les systèmes environnants",
+-  "@Sync in progress": "Synchronisation en cours",
+   "@Tag": "Tag",
+   "@Tags": "Tags",
+   "@Text": "Texte",
+@@ -350,14 +356,6 @@
+   "@Unexpected error occurred": "Une erreur inattendue est survenue",
+   "@Unpublish": "Annuler la publication",
+   "@Unpublish comment question": "Voulez-vous annuler la publication de ce commentaire ?",
+-  "@Decline": "Refuser",
+-  "@Decline draft": "Refuser le brouillon",
+-  "@Decline reason": "Raison du refus",
+-  "@Decline comment warning": "Vous êtes sur le point de refuser ce brouillon. L'auteur verra la raison du refus au lieu de sa dernière version publiée.",
+-  "@Draft declined": "Brouillon refusé",
+-  "@Declined by": "Refusé par",
+-  "@declined": "Refusé",
+-  "@Enter reason for declining this draft": "Entrez la raison du refus de ce brouillon",
+   "@Unsaved changes message": "Vous avez des modifications non enregistrées !",
+   "@Unsaved changes title": "Modifications non enregistrées",
+   "@Unset superuser": "# Retirer les privilèges de super-utilisateur",
+@@ -386,22 +384,16 @@
+   "@Value has minimum length": "La valeur a une longueur minimale de : {{min}}",
+   "@Version": "Version",
+   "@Version Control": "Contrôle de version",
++  "@Version deleted successfully": "Version supprimée avec succès",
+   "@Version history": "Historique des versions",
+   "@View announcements": "Afficher les notifications",
+   "@Welcome": "Bienvenue",
+   "@Workspace": "Domaine de données",
+   "@Workspace permissions updated": "Autorisations des domaines de données mises à jour",
+   "@Workspaces": "Domaines de données",
+   "@Write": "Écrire",
+-  "@No dashboards found": "Aucun tableau de bord trouvé",
+-  "@Select all": "Tout sélectionner",
+-  "@Selected Dashboards": "Tableaux de bord sélectionnés",
+   "@Write a comment": "Écrire un commentaire...",
+   "@Year": "Année",
+   "@Yes": "Oui",
+-  "@You are not allowed to access this page": "Vous n'êtes pas autorisé à accéder à cette page. Veuillez contactez votre administrateur.",
+-  "@Preparing your workspace": "Préparation de votre espace de travail...",
+-  "@draft": "Brouillon",
+-  "@declined": "Refus",
+-  "@edited": "modifi"
++  "@You are not allowed to access this page": "Vous n'êtes pas autorisé à accéder à cette page. Veuillez contactez votre administrateur."
+ }
+diff --git a/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_content_section.scss b/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_content_section.scss
+--- a/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_content_section.scss
++++ b/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_content_section.scss
+@@ -462,3 +462,7 @@ fieldset, p-iconfield > input {
+ p-divider {
+   border: 1px solid rgba(0, 0, 0, 0.02);
+ }
++
++.ql-editor ol li[data-list=bullet]:before {
++  content: "" !important;
++}
+diff --git a/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_sidebar.scss b/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_sidebar.scss
+--- a/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_sidebar.scss
++++ b/hello-data-portal/hello-data-portal-ui/src/assets/styles/layout/_sidebar.scss
+@@ -296,7 +296,7 @@ body {
+   position: absolute;
+   left: 100%;
+   top: 0;
+-  background: $background-color;
++  background: var(--sidebar-bg, #{$background-color});
+   list-style: none;
+   padding: 0;
+   margin: 0;
+@@ -310,12 +310,75 @@ body {
+   z-index: 300;
+ }
+ 
+-// Only the third-level menu scrolls — the second-level must keep
+-// overflow visible so the absolutely-positioned third-level can fly out.
++// The second-level must keep overflow visible so the absolutely-positioned
++// third-level can fly out. JS repositions it to stay within the viewport.
++// .third-level-menu is now a wrapper <div>; the scrollable list is inside
++// .third-level-menu__list.
+ .sidebar.close .nav-links li .third-level-menu {
++  display: flex;
++  flex-direction: column;
+   max-height: calc(100vh - 16px);
++  white-space: normal;
++  overflow-wrap: break-word;
++  word-break: break-word;
++  width: max-content;
++  max-width: min(500px, calc(100vw - 200px));
++}
++
++.sidebar.close .nav-links li .third-level-menu__list {
+   overflow-y: auto;
+-  scrollbar-width: thin;
++  flex: 1 1 auto;
++  min-height: 0;
++  list-style: none;
++  padding: 0;
++  margin: 0;
++  scrollbar-width: thin; // Firefox — thin overlay scrollbar
++  scrollbar-color: transparent transparent; // Firefox — hidden by default
++  &:hover {
++    scrollbar-color: rgba(0, 0, 0, 0.3) transparent; // Firefox — show on hover
++  }
++
++  &::-webkit-scrollbar {
++    width: 6px;
++  }
++
++  &::-webkit-scrollbar-track {
++    background: transparent;
++  }
++
++  &::-webkit-scrollbar-thumb {
++    background: transparent;
++    border-radius: 3px;
++    transition: background 0.2s ease;
++  }
++
++  &:hover::-webkit-scrollbar-thumb {
++    background: rgba(0, 0, 0, 0.3);
++  }
++}
++
++// Scroll indicator arrows
++.scroll-indicator {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  overflow: hidden;
++  max-height: 0;
++  opacity: 0;
++  padding: 0;
++  color: var(--p-text-muted-color, #6c757d);
++  font-size: 0.75rem;
++  flex-shrink: 0;
++  pointer-events: none;
++  user-select: none;
++  transition: opacity 0.2s ease, max-height 0.2s ease, padding 0.2s ease;
++}
++
++.scroll-indicator.visible {
++  max-height: 24px;
++  opacity: 1;
++  padding: 4px 0;
++  cursor: pointer;
+ }
+ 
+ .sidebar.close .nav-links li:hover > .second-level-menu {
+@@ -330,6 +393,11 @@ body {
+   pointer-events: auto;
+ }
+ 
++// Only enable pointer-events on scroll indicators when the menu is visible
++.sidebar.close .nav-links .second-level-menu li:hover > .third-level-menu .scroll-indicator.visible {
++  pointer-events: auto;
++}
++
+ .sidebar .nav-links .second-level-menu li,
+ .sidebar .nav-links .third-level-menu li {
+   position: relative;
+@@ -349,7 +417,7 @@ body {
+ 
+ .sidebar .nav-links .second-level-menu li:hover > a,
+ .sidebar .nav-links .third-level-menu li:hover > a {
+-  background-color: var(--p-menu-item-focus-background, var(--surface-hover));
++  background-color: var(--sidebar-menu-hover, var(--p-menu-item-focus-background, var(--surface-hover)));
+ }
+ 
+ .sidebar .nav-links .second-level-menu li:first-child:hover > a,
+@@ -406,7 +474,7 @@ body {
+ 
+ .sidebar.close > .nav-links > li:hover {
+   color: var(--text-color);
+-  background-color: var(--p-menu-item-focus-background, var(--surface-hover));
++  background-color: var(--sidebar-menu-hover, var(--p-menu-item-focus-background, var(--surface-hover)));
+   border-radius: 4px;
+ }
+ 
+@@ -460,6 +528,7 @@ body {
+   cursor: pointer;
+   padding-top: 8px;
+   padding-bottom: 10px;
++  color: $menu-item-text-color;
+ }
+ 
+ .sidebar.close .nav-links li a .link_name {
+diff --git a/hello-data-portal/hello-data-portal-ui/src/styles.scss b/hello-data-portal/hello-data-portal-ui/src/styles.scss
+--- a/hello-data-portal/hello-data-portal-ui/src/styles.scss
++++ b/hello-data-portal/hello-data-portal-ui/src/styles.scss
+@@ -71,6 +71,25 @@
+   border-radius: 0 0 var(--p-menu-border-radius, 4px) var(--p-menu-border-radius, 4px);
+ }
+ 
++// When headerColor is set, apply it to the p-menu popup background
++// and keep the hover state consistent with the sidebar menus.
++:root[style*="--header-menu-bg"] .p-menu {
++  background-color: var(--header-menu-bg);
++  // Override PrimeNG's own CSS custom properties used for hover/focus
++  --p-menu-item-focus-background: rgba(0, 0, 0, 0.07);
++  --p-menu-item-active-background: rgba(0, 0, 0, 0.07);
++}
++
++:root[style*="--header-menu-bg"] .p-menu .p-menu-item-content:hover,
++:root[style*="--header-menu-bg"] .p-menu .p-menu-item.p-focus > .p-menu-item-content,
++:root[style*="--header-menu-bg"] .p-menu .p-menu-item:not(.p-disabled) > .p-menu-item-content:hover {
++  background: rgba(0, 0, 0, 0.07) !important;
++}
++
++:root[style*="--header-menu-bg"] .layout-topbar .layout-topbar-button:hover {
++  background-color: rgba(0, 0, 0, 0.07) !important;
++}
++
+ body {
+   background-color: var(--p-surface-ground, #fafafa);
+ }
+diff --git a/hello-data-sidecars/hello-data-sidecar-airflow/src/main/java/ch/bedag/dap/hellodata/sidecars/airflow/config/SecurityConfig.java b/hello-data-sidecars/hello-data-sidecar-airflow/src/main/java/ch/bedag/dap/hellodata/sidecars/airflow/config/SecurityConfig.java
+--- a/hello-data-sidecars/hello-data-sidecar-airflow/src/main/java/ch/bedag/dap/hellodata/sidecars/airflow/config/SecurityConfig.java
++++ b/hello-data-sidecars/hello-data-sidecar-airflow/src/main/java/ch/bedag/dap/hellodata/sidecars/airflow/config/SecurityConfig.java
+@@ -26,7 +26,7 @@
+  */
+ package ch.bedag.dap.hellodata.sidecars.airflow.config;
+ 
+-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
++import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+@@ -35,7 +35,7 @@
+ @Configuration
+ public class SecurityConfig {
+     @Bean
+-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
++    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+         http.securityMatcher(EndpointRequest.toAnyEndpoint());
+         http.authorizeHttpRequests(requests -> requests.anyRequest().permitAll());
+         return http.build();
+diff --git a/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Privilege.java b/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Privilege.java
+--- a/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Privilege.java
++++ b/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Privilege.java
+@@ -29,6 +29,7 @@
+ import ch.badag.dap.hellodata.commons.basemodel.BaseEntity;
+ import jakarta.persistence.Entity;
+ import jakarta.persistence.ManyToMany;
++import jakarta.persistence.Table;
+ import jakarta.validation.constraints.NotNull;
+ import jakarta.validation.constraints.Size;
+ import lombok.Getter;
+@@ -37,6 +38,7 @@
+ import java.util.Collection;
+ 
+ @Entity(name = "hd_privilege")
++@Table(name = "hd_privilege")
+ @Getter
+ @Setter
+ public class Privilege extends BaseEntity {
+diff --git a/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Role.java b/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Role.java
+--- a/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Role.java
++++ b/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/Role.java
+@@ -36,6 +36,7 @@
+ import java.util.Collection;
+ 
+ @Entity(name = "hd_role")
++@Table(name = "hd_role")
+ @Getter
+ @Setter
+ public class Role extends BaseEntity {
+diff --git a/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/User.java b/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/User.java
+--- a/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/User.java
++++ b/hello-data-sidecars/hello-data-sidecar-cloudbeaver/src/main/java/ch/bedag/dap/hellodata/sidecars/cloudbeaver/entities/User.java
+@@ -38,6 +38,7 @@
+ import java.util.UUID;
+ 
+ @Entity(name = "hd_user")
++@Table(name = "hd_user")
+ @Getter
+ @Setter
+ public class User extends BaseEntity implements Persistable<UUID> {
+diff --git a/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/config/SecurityConfig.java b/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/config/SecurityConfig.java
+--- a/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/config/SecurityConfig.java
++++ b/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/config/SecurityConfig.java
+@@ -26,7 +26,7 @@
+  */
+ package ch.bedag.dap.hellodata.sidecars.dbt.config;
+ 
+-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
++import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+diff --git a/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/entities/User.java b/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/entities/User.java
+--- a/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/entities/User.java
++++ b/hello-data-sidecars/hello-data-sidecar-dbt-docs/src/main/java/ch/bedag/dap/hellodata/sidecars/dbt/entities/User.java
+@@ -36,6 +36,7 @@
+ import java.util.Collection;
+ 
+ @Entity(name = "dbt_user")
++@Table(name = "dbt_user")
+ @Getter
+ @Setter
+ public class User extends BaseEntity {
+diff --git a/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/HDSidecarPortal.java b/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/HDSidecarPortal.java
+--- a/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/HDSidecarPortal.java
++++ b/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/HDSidecarPortal.java
+@@ -27,14 +27,11 @@
+ package ch.bedag.dap.hellodata.sidecars.portal;
+ 
+ import ch.bedag.dap.hellodata.commons.nats.annotation.EnableJetStream;
+-import com.fasterxml.jackson.databind.ObjectMapper;
+-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+ import org.springframework.boot.SpringApplication;
+ import org.springframework.boot.autoconfigure.SpringBootApplication;
+-import org.springframework.boot.autoconfigure.domain.EntityScan;
++import org.springframework.boot.persistence.autoconfigure.EntityScan;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+ import org.springframework.scheduling.annotation.EnableScheduling;
+ import org.springframework.transaction.annotation.EnableTransactionManagement;
+ import org.springframework.web.client.RestTemplate;
+@@ -56,15 +53,4 @@ public RestTemplate restTemplate() {
+         return new RestTemplate();
+     }
+ 
+-    @Bean
+-    public Jackson2ObjectMapperBuilder objectMapperBuilder() {
+-        return new Jackson2ObjectMapperBuilder() {
+-
+-            @Override
+-            public void configure(ObjectMapper objectMapper) {
+-                super.configure(objectMapper);
+-                objectMapper.registerModule(new JavaTimeModule());
+-            }
+-        };
+-    }
+ }
+diff --git a/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/config/SecurityConfig.java b/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/config/SecurityConfig.java
+--- a/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/config/SecurityConfig.java
++++ b/hello-data-sidecars/hello-data-sidecar-portal/src/main/java/ch/bedag/dap/hellodata/sidecars/portal/config/SecurityConfig.java
+@@ -26,7 +26,7 @@
+  */
+ package ch.bedag.dap.hellodata.sidecars.portal.config;
+ 
+-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
++import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+@@ -35,7 +35,7 @@
+ @Configuration
+ public class SecurityConfig {
+     @Bean
+-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
++    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+         http.securityMatcher(EndpointRequest.toAnyEndpoint());
+         http.authorizeHttpRequests(requests -> requests.anyRequest().permitAll());
+         return http.build();
+diff --git a/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/HDSidecarSftpGo.java b/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/HDSidecarSftpGo.java
+--- a/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/HDSidecarSftpGo.java
++++ b/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/HDSidecarSftpGo.java
+@@ -3,8 +3,6 @@
+ import ch.bedag.dap.hellodata.commons.nats.annotation.EnableJetStream;
+ import ch.bedag.dap.hellodata.commons.sidecars.context.HelloDataContextConfig;
+ import ch.bedag.dap.hellodata.sidecars.sftpgo.config.S3ConnectionsConfig;
+-import com.fasterxml.jackson.databind.ObjectMapper;
+-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+ import org.modelmapper.Converter;
+ import org.modelmapper.ModelMapper;
+ import org.springframework.boot.SpringApplication;
+@@ -13,7 +11,6 @@
+ import org.springframework.boot.context.properties.EnableConfigurationProperties;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.ComponentScan;
+-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+ import org.springframework.scheduling.annotation.EnableScheduling;
+ 
+ import java.time.LocalDateTime;
+@@ -31,17 +28,6 @@ public static void main(String[] args) {
+         SpringApplication.run(HDSidecarSftpGo.class, args);
+     }
+ 
+-    @Bean
+-    public Jackson2ObjectMapperBuilder objectMapperBuilder() {
+-        return new Jackson2ObjectMapperBuilder() {
+-            @Override
+-            public void configure(ObjectMapper objectMapper) {
+-                super.configure(objectMapper);
+-                objectMapper.registerModule(new JavaTimeModule());
+-            }
+-        };
+-    }
+-
+     @Bean
+     public ModelMapper modelMapper() {
+         ModelMapper mapper = new ModelMapper();
+diff --git a/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/client/invoker/ApiClient.java b/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/client/invoker/ApiClient.java
+--- a/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/client/invoker/ApiClient.java
++++ b/hello-data-sidecars/hello-data-sidecar-sftpgo/src/main/java/ch/bedag/dap/hellodata/sidecars/sftpgo/client/invoker/ApiClient.java
+@@ -29,6 +29,7 @@
+ import org.springframework.http.client.reactive.ClientHttpRequest;
+ import org.springframework.http.codec.json.Jackson2JsonDecoder;
+ import org.springframework.http.codec.json.Jackson2JsonEncoder;
++import org.springframework.lang.Nullable;
+ import org.springframework.util.CollectionUtils;
+ import org.springframework.util.LinkedMultiValueMap;
+ import org.springframework.util.MultiValueMap;
+@@ -41,7 +42,6 @@
+ import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
+ import org.springframework.web.util.UriComponentsBuilder;
+ 
+-import javax.annotation.Nullable;
+ import java.text.DateFormat;
+ import java.text.ParseException;
+ import java.time.OffsetDateTime;
+@@ -55,7 +55,7 @@ public class ApiClient extends JavaTimeFormatter {
+     private final DateFormat dateFormat;
+     private final ObjectMapper objectMapper;
+     private final HttpHeaders defaultHeaders = new HttpHeaders();
+-    private final MultiValueMap<String, String> defaultCookies = new LinkedMultiValueMap<String, String>();
++    private final MultiValueMap<String, String> defaultCookies = new LinkedMultiValueMap<>();
+     private String basePath = "/api/v2";
+     private Map<String, Authentication> authentications;
+ 
+@@ -118,8 +118,7 @@ public static WebClient.Builder buildWebClientBuilder(ObjectMapper mapper) {
+                     clientDefaultCodecsConfigurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(mapper, MediaType.APPLICATION_JSON));
+                     clientDefaultCodecsConfigurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(mapper, MediaType.APPLICATION_JSON));
+                 }).build();
+-        WebClient.Builder webClientBuilder = WebClient.builder().exchangeStrategies(strategies);
+-        return webClientBuilder;
++        return WebClient.builder().exchangeStrategies(strategies);
+     }
+ 
+     /**
+@@ -201,7 +200,7 @@ public void setBearerToken(String bearerToken) {
+                 return;
+             }
+         }
+-        throw new RuntimeException("No Bearer authentication configured!");
++        throw new RuntimeException("No Bearer authentication configured!"); //NOSONAR
+     }
+ 
+     /**
+@@ -216,7 +215,7 @@ public void setUsername(String username) {
+                 return;
+             }
+         }
+-        throw new RuntimeException("No HTTP basic authentication configured!");
++        throw new RuntimeException("No HTTP basic authentication configured!"); //NOSONAR
+     }
+ 
+     /**
+@@ -231,7 +230,7 @@ public void setPassword(String password) {
+                 return;
+             }
+         }
+-        throw new RuntimeException("No HTTP basic authentication configured!");
++        throw new RuntimeException("No HTTP basic authentication configured!");//NOSONAR
+     }
+ 
+     /**
+@@ -246,7 +245,7 @@ public void setApiKey(String apiKey) {
+                 return;
+             }
+         }
+-        throw new RuntimeException("No API key authentication configured!");
++        throw new RuntimeException("No API key authentication configured!");//NOSONAR
+     }
+ 
+     /**
+@@ -261,7 +260,7 @@ public void setApiKeyPrefix(String apiKeyPrefix) {
+                 return;
+             }
+         }
+-        throw new RuntimeException("No API key authentication configured!");
++        throw new RuntimeException("No API key authentication configured!");//NOSONAR
+     }
+ 
+     /**
+@@ -317,7 +316,7 @@ public Date parseDate(String str) {
+         try {
+             return dateFormat.parse(str);
+         } catch (ParseException e) {
+-            throw new RuntimeException(e);
++            throw new RuntimeException(e);//NOSONAR
+         }
+     }
+ 
+@@ -382,7 +381,7 @@ public String parameterToString(Object param) {
+      * @return a Map containing the String value(s) of the input parameter
+      */
+     public MultiValueMap<String, String> parameterToMultiValueMap(CollectionFormat collectionFormat, String name, Object value) {
+-        final MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
++        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+ 
+         if (name == null || name.isEmpty() || value == null) {
+             return params;
+@@ -419,7 +418,7 @@ public MultiValueMap<String, String> parameterToMultiValueMap(CollectionFormat c
+             return params;
+         }
+ 
+-        List<String> values = new ArrayList<String>();
++        List<String> values = new ArrayList<>();
+         for (Object o : valueCollection) {
+             values.add(parameterToString(o));
+         }
+@@ -596,7 +595,7 @@ private WebClient.RequestBodySpec prepareRequest(String path, HttpMethod method,
+                                                      MediaType contentType, String[] authNames) {
+         updateParamsForAuth(authNames, queryParams, headerParams, cookieParams);
+ 
+-        final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(basePath).path(path);
++        final UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(basePath).path(path);
+ 
+         String finalUri = builder.build(false).toUriString();
+         Map<String, Object> uriParams = new HashMap<>();
+@@ -645,7 +644,7 @@ private String collectionToString(Collection<?> collection) {
+ 
+     protected void init() {
+         // Setup authentications (key: authentication name, value: authentication).
+-        authentications = new HashMap<String, Authentication>();
++        authentications = new HashMap<>();
+         authentications.put("BasicAuth", new HttpBasicAuth());
+         authentications.put("BearerAuth", new HttpBearerAuth("bearer"));
+         authentications.put("APIKeyAuth", new ApiKeyAuth("header", "X-SFTPGO-API-KEY"));
+@@ -685,7 +684,7 @@ protected void init() {
+      * @param requestBuilder The current request
+      */
+     protected void addHeadersToRequest(HttpHeaders headers, WebClient.RequestBodySpec requestBuilder) {
+-        for (Entry<String, List<String>> entry : headers.entrySet()) {
++        for (Entry<String, List<String>> entry : headers.headerSet()) {
+             List<String> values = entry.getValue();
+             for (String value : values) {
+                 if (value != null) {
+diff --git a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/HDSidecarSuperset.java b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/HDSidecarSuperset.java
+--- a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/HDSidecarSuperset.java
++++ b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/HDSidecarSuperset.java
+@@ -29,15 +29,12 @@
+ import ch.bedag.dap.hellodata.commons.nats.annotation.EnableJetStream;
+ import ch.bedag.dap.hellodata.commons.sidecars.context.HelloDataContextConfig;
+ import ch.bedag.dap.hellodata.sidecars.superset.client.properties.SupersetProperties;
+-import com.fasterxml.jackson.databind.ObjectMapper;
+-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+ import org.springframework.boot.SpringApplication;
+ import org.springframework.boot.autoconfigure.SpringBootApplication;
+ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+ import org.springframework.boot.context.properties.EnableConfigurationProperties;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.ComponentScan;
+-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+ import org.springframework.scheduling.annotation.EnableScheduling;
+ import org.springframework.web.client.RestTemplate;
+ 
+@@ -58,14 +55,4 @@ public RestTemplate restTemplate() {
+         return new RestTemplate();
+     }
+ 
+-    @Bean
+-    public Jackson2ObjectMapperBuilder objectMapperBuilder() {
+-        return new Jackson2ObjectMapperBuilder() {
+-            @Override
+-            public void configure(ObjectMapper objectMapper) {
+-                super.configure(objectMapper);
+-                objectMapper.registerModule(new JavaTimeModule());
+-            }
+-        };
+-    }
+ }
+diff --git a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/client/SupersetClient.java b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/client/SupersetClient.java
+--- a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/client/SupersetClient.java
++++ b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/client/SupersetClient.java
+@@ -483,14 +483,35 @@ private void csrf() throws URISyntaxException, IOException {
+         this.csrfToken = respBody.getAsJsonObject().get("result").getAsString();
+     }
+ 
++    private static final int MAX_RETRIES_ON_RATE_LIMIT = 5;
++    private static final long INITIAL_RETRY_DELAY_MS = 1100; // just over 1 second to let the rate-limit window reset
++
+     private ApiResponse executeRequest(HttpUriRequest request) throws IOException {
++        return executeRequestWithRetry(request, 0);
++    }
++
++    private ApiResponse executeRequestWithRetry(HttpUriRequest request, int attempt) throws IOException {
+         try (CloseableHttpResponse response = client.execute(request)) {
+             int code = response.getStatusLine().getStatusCode();
+             HttpEntity entity = response.getEntity();
+             String bodyAsString = null;
+             if (entity != null) {
+                 bodyAsString = EntityUtils.toString(entity);
+             }
++            if (code == 429) {
++                if (attempt < MAX_RETRIES_ON_RATE_LIMIT) {
++                    long delayMs = INITIAL_RETRY_DELAY_MS * (1L << attempt); // exponential backoff: 1.1s, 2.2s, 4.4s, ...
++                    log.warn("Rate limited (429) on {}. Retrying in {} ms (attempt {}/{})", request.getURI(), delayMs, attempt + 1, MAX_RETRIES_ON_RATE_LIMIT);
++                    try {
++                        Thread.sleep(delayMs);
++                    } catch (InterruptedException e) {
++                        Thread.currentThread().interrupt();
++                        throw new IOException("Interrupted while waiting for rate-limit retry", e);
++                    }
++                    return executeRequestWithRetry(request, attempt + 1);
++                }
++                throw new UnexpectedResponseException(request.getURI().toString(), code, bodyAsString);
++            }
+             if (code >= 300 || code < 200) {
+                 throw new UnexpectedResponseException(request.getURI().toString(), code, bodyAsString);
+             }
+diff --git a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/config/SecurityConfig.java b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/config/SecurityConfig.java
+--- a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/config/SecurityConfig.java
++++ b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/config/SecurityConfig.java
+@@ -26,7 +26,7 @@
+  */
+ package ch.bedag.dap.hellodata.sidecars.superset.config;
+ 
+-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
++import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+@@ -35,7 +35,7 @@
+ @Configuration
+ public class SecurityConfig {
+     @Bean
+-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
++    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+         http.securityMatcher(EndpointRequest.toAnyEndpoint());
+         http.authorizeHttpRequests(requests -> requests.anyRequest().permitAll());
+         return http.build();
+diff --git a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/service/resource/RoleResourceProviderService.java b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/service/resource/RoleResourceProviderService.java
+--- a/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/service/resource/RoleResourceProviderService.java
++++ b/hello-data-sidecars/hello-data-sidecar-superset/src/main/java/ch/bedag/dap/hellodata/sidecars/superset/service/resource/RoleResourceProviderService.java
+@@ -66,11 +66,25 @@ public void publishRoles() throws URISyntaxException, IOException {
+         natsSenderService.publishMessageToJetStream(PUBLISH_ROLE_RESOURCES, roleResource);
+     }
+ 
++    private static final int BATCH_SIZE = 40; // stay well under Superset's 50 req/s rate limit
++    private static final long BATCH_PAUSE_MS = 1100; // pause between batches to let the rate-limit window reset
++
+     private List<RolePermissions> getRolePermissions() throws URISyntaxException, IOException {
+         List<RolePermissions> data = new ArrayList<>();
+         SupersetClient supersetClientInstance = supersetClientProvider.getSupersetClientInstance();
+         SupersetRolesResponse roles = supersetClientInstance.roles();
+-        roles.getResult().forEach(role -> {
++        var roleList = roles.getResult();
++        for (int i = 0; i < roleList.size(); i++) {
++            if (i > 0 && i % BATCH_SIZE == 0) {
++                log.debug("Pausing for {} ms after {} role-permission requests to avoid Superset rate limit", BATCH_PAUSE_MS, BATCH_SIZE);
++                try {
++                    Thread.sleep(BATCH_PAUSE_MS);
++                } catch (InterruptedException e) {
++                    Thread.currentThread().interrupt();
++                    throw new RuntimeException("Interrupted while throttling role-permission requests", e); //NOSONAR
++                }
++            }
++            var role = roleList.get(i);
+             try {
+                 SupersetRolePermissionsResponse supersetRolePermissionsResponse = supersetClientInstance.rolePermissions(role.getId());
+                 List<RolePermissions.PermissionNameViewMenuName> permissions = supersetRolePermissionsResponse.getResult()
+@@ -83,7 +97,7 @@ private List<RolePermissions> getRolePermissions() throws URISyntaxException, IO
+             } catch (URISyntaxException | IOException e) {
+                 throw new RuntimeException(e); //NOSONAR
+             }
+-        });
++        }
+         return data;
+     }
+ }
+diff --git a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/config/SecurityConfig.java b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/config/SecurityConfig.java
+--- a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/config/SecurityConfig.java
++++ b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/config/SecurityConfig.java
+@@ -138,10 +138,8 @@ private void configureCsrf(ServerHttpSecurity http) {
+         http.csrf(ServerHttpSecurity.CsrfSpec::disable); //cloudbeaver has it's own
+     }
+ 
+-    private void configureCors(ServerHttpSecurity http) {
+-        if (env.matchesProfiles("disable-cors")) {
+-            http.cors(ServerHttpSecurity.CorsSpec::disable);
+-        }
++    private void configureCors(ServerHttpSecurity http) {//NOSONAR
++        // CORS is disabled by default in Spring Security 7; no-op when "disable-cors" profile is active
+     }
+ 
+     private Converter<Jwt, ? extends Mono<? extends AbstractAuthenticationToken>> jwtAuthenticationConverter(CbJwtAuthenticationConverter cbJwtAuthenticationConverter) {
+diff --git a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/EnsureWebSocketHeadersGatewayFilterFactory.java b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/EnsureWebSocketHeadersGatewayFilterFactory.java
+--- a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/EnsureWebSocketHeadersGatewayFilterFactory.java
++++ b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/EnsureWebSocketHeadersGatewayFilterFactory.java
+@@ -56,7 +56,7 @@ public GatewayFilter apply(Object config) {
+                 log.debug("WebSocket route matched but Upgrade header is missing or invalid (value: '{}'), injecting Upgrade/Connection headers", upgradeHeader);
+             }
+ 
+-            log.debug("WS handshake request URI: {}, headers present: {}", exchange.getRequest().getURI(), headers.keySet());
++            log.debug("WS handshake request URI: {}, headers present: {}", exchange.getRequest().getURI(), headers.headerNames());
+ 
+             return chain.filter(
+                     exchange.mutate()
+@@ -65,7 +65,7 @@ public GatewayFilter apply(Object config) {
+                                 h.set(HttpHeaders.UPGRADE, "websocket");
+                                 h.set(HttpHeaders.CONNECTION, "Upgrade");
+                                 // Ensure Sec-WebSocket-Version is present (required by RFC 6455)
+-                                if (!h.containsKey("Sec-WebSocket-Version")) {
++                                if (!h.containsHeader("Sec-WebSocket-Version")) {
+                                     h.set("Sec-WebSocket-Version", "13");
+                                 }
+                             }))
+diff --git a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/TokenAuthenticationFilter.java b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/TokenAuthenticationFilter.java
+--- a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/TokenAuthenticationFilter.java
++++ b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/TokenAuthenticationFilter.java
+@@ -63,7 +63,7 @@ public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+                 }
+             }
+         }).build();
+-        log.debug("\tadded headers: " + new ArrayList<>(exchange.getRequest().getHeaders().entrySet()).stream().map(entry -> "\n\t" + entry.getValue() + "\n").collect(Collectors.toList()));
++        log.debug("\tadded headers: " + new ArrayList<>(exchange.getRequest().getHeaders().asMultiValueMap().entrySet()).stream().map(entry -> "\n\t" + entry.getValue() + "\n").collect(Collectors.toList()));
+         return chain.filter(exchange.mutate().request(request).build());
+     }
+ }
+diff --git a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/WebFluxLogFilter.java b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/WebFluxLogFilter.java
+--- a/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/WebFluxLogFilter.java
++++ b/hello-data-subsystems/hello-data-cloudbeaver-gateway/src/main/java/ch/bedag/dap/hellodata/cloudbeaver/gateway/filters/WebFluxLogFilter.java
+@@ -60,11 +60,11 @@ public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+                     // crash during WebSocket upgrade when headers are modified concurrently
+                     log.info("Request Headers: {}", new ArrayList<>(exchange.getRequest()
+                             .getHeaders()
+-                            .entrySet()));
++                            .asMultiValueMap().entrySet()));
+                     log.info("Response: {}", exchange.getResponse().getStatusCode());
+                     log.info("Response Headers: {}", new ArrayList<>(exchange.getResponse()
+                             .getHeaders()
+-                            .entrySet()));
++                            .asMultiValueMap().entrySet()));
+                     log.info("\n:: End Request Log ::");
+                 } catch (Exception e) {
+                     log.warn("Could not log request/response details: {}", e.getMessage());
+diff --git a/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/conf/SecurityConfig.java b/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/conf/SecurityConfig.java
+--- a/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/conf/SecurityConfig.java
++++ b/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/conf/SecurityConfig.java
+@@ -169,10 +169,8 @@ public String tokenExtractor(HttpServletRequest request) {
+         return null;
+     }
+ 
+-    private void configureCors(HttpSecurity http) throws Exception {
+-        if (env.matchesProfiles("disable-cors")) {
+-            http.cors(cors -> cors.disable());
+-        } else {
++    private void configureCors(HttpSecurity http) {
++        if (!env.matchesProfiles("disable-cors")) {
+             List<String> allowedOriginList = Arrays.stream(allowedOrigins.split(",")).toList();
+ 
+             http.cors(cors -> cors.configurationSource(request -> {
+@@ -200,7 +198,7 @@ private void configureCors(HttpSecurity http) throws Exception {
+         }
+     }
+ 
+-    private void configureCsrf(HttpSecurity http) throws Exception {
++    private void configureCsrf(HttpSecurity http) {
+         if (env.matchesProfiles("disable-csrf")) {
+             http.csrf(csrf -> csrf.disable());//NOSONAR
+         } else {
+diff --git a/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/controller/WebController.java b/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/controller/WebController.java
+--- a/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/controller/WebController.java
++++ b/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/controller/WebController.java
+@@ -32,7 +32,7 @@
+ import lombok.RequiredArgsConstructor;
+ import lombok.extern.log4j.Log4j2;
+ import org.springframework.beans.factory.annotation.Value;
+-import org.springframework.boot.web.servlet.error.ErrorController;
++import org.springframework.boot.webmvc.error.ErrorController;
+ import org.springframework.stereotype.Controller;
+ import org.springframework.web.bind.annotation.GetMapping;
+ 
+diff --git a/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/security/DocsAuthorizationManager.java b/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/security/DocsAuthorizationManager.java
+--- a/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/security/DocsAuthorizationManager.java
++++ b/hello-data-subsystems/hello-data-dbt-docs/src/main/java/ch/bedag/dap/hellodata/docs/security/DocsAuthorizationManager.java
+@@ -69,7 +69,7 @@ private static String getProjectName(HttpServletRequest request) {
+     }
+ 
+     @Override
+-    public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier, RequestAuthorizationContext context) {
++    public AuthorizationDecision authorize(Supplier<? extends Authentication> authenticationSupplier, RequestAuthorizationContext context) {
+         HttpServletRequest request = context.getRequest();
+         log.info("Request uri: {}", request.getRequestURI());
+         log.info("Request url: {}", request.getRequestURL());
+diff --git a/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/config/SecurityConfig.java b/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/config/SecurityConfig.java
+--- a/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/config/SecurityConfig.java
++++ b/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/config/SecurityConfig.java
+@@ -161,9 +161,7 @@ private void configureCsrf(ServerHttpSecurity http) {
+     }
+ 
+     private void configureCors(ServerHttpSecurity http) {
+-        if (env.matchesProfiles("disable-cors")) {
+-            http.cors(ServerHttpSecurity.CorsSpec::disable);
+-        } else {
++        if (!env.matchesProfiles("disable-cors")) {
+             List<String> allowedOriginList = Arrays.stream(allowedOrigins.split(",")).toList();
+             http.cors(cors -> cors.configurationSource(request -> {
+                 CorsConfiguration corsConfig = new CorsConfiguration();
+diff --git a/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/TokenAuthenticationFilter.java b/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/TokenAuthenticationFilter.java
+--- a/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/TokenAuthenticationFilter.java
++++ b/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/TokenAuthenticationFilter.java
+@@ -68,7 +68,7 @@ public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+ 
+         MultiValueMap<String, HttpCookie> cookies = exchange.getRequest().getCookies();
+         HttpHeaders headers = exchange.getRequest().getHeaders();
+-        boolean hasAuthHeader = headers.containsKey(SecurityConfig.AUTHORIZATION_HEADER_NAME);
++        boolean hasAuthHeader = headers.containsHeader(SecurityConfig.AUTHORIZATION_HEADER_NAME);
+         List<HttpCookie> cookie = cookies.get(SecurityConfig.ACCESS_TOKEN_COOKIE_NAME);
+         boolean hasAuthCookie = cookie != null && !cookie.isEmpty();
+ 
+@@ -85,7 +85,7 @@ public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+             }
+         }).build();
+ 
+-        log.info("\t--->Added headers: {}", new ArrayList<>(request.getHeaders().entrySet()).stream()
++        log.info("\t--->Added headers: {}", new ArrayList<>(request.getHeaders().asMultiValueMap().entrySet()).stream()
+                 .map(entry -> "\n\t" + entry.getKey() + ": " + entry.getValue() + "\n")
+                 .collect(Collectors.toList()));
+ 
+diff --git a/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/WebFluxLogFilter.java b/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/WebFluxLogFilter.java
+--- a/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/WebFluxLogFilter.java
++++ b/hello-data-subsystems/hello-data-jupyterhub-gateway/src/main/java/ch/bedag/dap/hellodata/jupyterhub/gateway/filters/WebFluxLogFilter.java
+@@ -53,17 +53,15 @@ public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+                 log.info("Ip: {}", exchange.getRequest().getRemoteAddress());
+                 log.info("Method: {}", exchange.getRequest().getMethod());
+                 log.info("Path: {}", exchange.getRequest().getURI());
+-                log.info("Request Headers: {}", exchange.getRequest()
++                log.info("Request Headers: {}", new java.util.ArrayList<>(exchange.getRequest()
+                         .getHeaders()
+-                        .entrySet()
+-                        .stream()
+-                        .toList());
++                        .asMultiValueMap()
++                        .entrySet()));
+                 log.info("Response: {}", exchange.getResponse().getStatusCode());
+-                log.info("Response Headers: {}", exchange.getResponse()
++                log.info("Response Headers: {}", new java.util.ArrayList<>(exchange.getResponse()
+                         .getHeaders()
+-                        .entrySet()
+-                        .stream()
+-                        .toList());
++                        .asMultiValueMap()
++                        .entrySet()));
+                 log.info("\n:: End Request Log ::");
+             }
+         });

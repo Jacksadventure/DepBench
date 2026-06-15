@@ -1,0 +1,29 @@
+diff --git a/graylog2-server/src/test/java/org/graylog/collectors/FleetServiceTest.java b/graylog2-server/src/test/java/org/graylog/collectors/FleetServiceTest.java
+--- a/graylog2-server/src/test/java/org/graylog/collectors/FleetServiceTest.java
++++ b/graylog2-server/src/test/java/org/graylog/collectors/FleetServiceTest.java
+@@ -209,7 +209,9 @@ void deleteFleetCascadesSourceDeletion() {
+         fleetService.delete(fleet.id());
+ 
+         assertThat(fleetService.get(fleet.id())).isEmpty();
+-        assertThat(sourceService.streamAllByFleet(fleet.id())).isEmpty();
++        try (var stream = sourceService.streamAllByFleet(fleet.id())) {
++            assertThat(stream).isEmpty();
++        }
+     }
+ 
+     @Test
+diff --git a/graylog2-server/src/test/java/org/graylog2/lookup/ServiceListenerCleanupTest.java b/graylog2-server/src/test/java/org/graylog2/lookup/ServiceListenerCleanupTest.java
+--- a/graylog2-server/src/test/java/org/graylog2/lookup/ServiceListenerCleanupTest.java
++++ b/graylog2-server/src/test/java/org/graylog2/lookup/ServiceListenerCleanupTest.java
+@@ -20,7 +20,10 @@
+ import com.google.common.util.concurrent.Service;
+ import org.graylog2.lookup.dto.CacheDto;
+ import org.graylog2.lookup.dto.DataAdapterDto;
+-import org.graylog2.plugin.lookup.*;
++import org.graylog2.plugin.lookup.FallbackAdapterConfig;
++import org.graylog2.plugin.lookup.FallbackCacheConfig;
++import org.graylog2.plugin.lookup.LookupCache;
++import org.graylog2.plugin.lookup.LookupDataAdapter;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+ import org.junit.jupiter.api.extension.ExtendWith;

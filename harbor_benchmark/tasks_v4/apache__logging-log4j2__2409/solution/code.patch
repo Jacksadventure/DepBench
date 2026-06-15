@@ -1,0 +1,278 @@
+diff --git a/.github/dependabot.yaml b/.github/dependabot.yaml
+--- a/.github/dependabot.yaml
++++ b/.github/dependabot.yaml
+@@ -158,7 +158,10 @@ updates:
+       update-types: ["version-update:semver-major"]
+     # Plexus Utils 4.x are for Maven 4.x
+     - dependency-name: "org.codehaus.plexus:plexus-utils"
+-      versions: ["4,)"]
++      versions: ["[4,)"]
++    # Don't upgrade to 3.x
++    - dependency-name: "org.apache.logging.log4j:log4j-api"
++      versions: ["[3,)"]
+ 
+ - package-ecosystem: github-actions
+   directory: "/"
+diff --git a/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/Duration.java b/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/Duration.java
+--- a/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/Duration.java
++++ b/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/Duration.java
+@@ -30,7 +30,9 @@
+  * This implementation does not support fractions or negative values.
+  *
+  * @see #parse(CharSequence)
++ * @deprecated since 2.24.0 use {@link java.time.Duration} instead.
+  */
++@Deprecated
+ public class Duration implements Serializable, Comparable<Duration> {
+     private static final long serialVersionUID = -3756810052716342061L;
+ 
+@@ -66,6 +68,13 @@ public class Duration implements Serializable, Comparable<Duration> {
+     private static final Pattern PATTERN = Pattern.compile(
+             "P?(?:([0-9]+)D)?" + "(T?(?:([0-9]+)H)?(?:([0-9]+)M)?(?:([0-9]+)?S)?)?", Pattern.CASE_INSENSITIVE);
+ 
++    /**
++     * @since 2.24.0
++     */
++    public static Duration ofMillis(final long millis) {
++        return new Duration(millis / 1000L);
++    }
++
+     /**
+      * The number of seconds in the duration.
+      */
+diff --git a/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/IfLastModified.java b/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/IfLastModified.java
+--- a/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/IfLastModified.java
++++ b/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/IfLastModified.java
+@@ -19,23 +19,25 @@
+ import java.nio.file.Path;
+ import java.nio.file.attribute.BasicFileAttributes;
+ import java.nio.file.attribute.FileTime;
++import java.time.Duration;
+ import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.List;
+ import java.util.Objects;
+ import org.apache.logging.log4j.Logger;
+ import org.apache.logging.log4j.core.Core;
+ import org.apache.logging.log4j.core.config.plugins.Plugin;
+-import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
++import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
++import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
+ import org.apache.logging.log4j.core.config.plugins.PluginElement;
+-import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+ import org.apache.logging.log4j.core.config.plugins.validation.constraints.Required;
+ import org.apache.logging.log4j.core.util.Clock;
+ import org.apache.logging.log4j.core.util.ClockFactory;
+ import org.apache.logging.log4j.status.StatusLogger;
+ 
+ /**
+  * PathCondition that accepts paths that are older than the specified duration.
++ * @since 2.5
+  */
+ @Plugin(name = "IfLastModified", category = Core.CATEGORY_NAME, printObject = true)
+ public final class IfLastModified implements PathCondition {
+@@ -50,20 +52,18 @@ private IfLastModified(final Duration age, final PathCondition[] nestedCondition
+         this.nestedConditions = PathCondition.copy(nestedConditions);
+     }
+ 
+-    public Duration getAge() {
+-        return age;
++    /**
++     * @deprecated since 2.24.0. In 3.0.0 the signature will change.
++     */
++    @Deprecated
++    public org.apache.logging.log4j.core.appender.rolling.action.Duration getAge() {
++        return org.apache.logging.log4j.core.appender.rolling.action.Duration.ofMillis(age.toMillis());
+     }
+ 
+     public List<PathCondition> getNestedConditions() {
+         return Collections.unmodifiableList(Arrays.asList(nestedConditions));
+     }
+ 
+-    /*
+-     * (non-Javadoc)
+-     *
+-     * @see org.apache.logging.log4j.core.appender.rolling.action.PathCondition#accept(java.nio.file.Path,
+-     * java.nio.file.Path, java.nio.file.attribute.BasicFileAttributes)
+-     */
+     @Override
+     public boolean accept(final Path basePath, final Path relativePath, final BasicFileAttributes attrs) {
+         final FileTime fileTime = attrs.lastModifiedTime();
+@@ -79,35 +79,62 @@ public boolean accept(final Path basePath, final Path relativePath, final BasicF
+         return result;
+     }
+ 
+-    /*
+-     * (non-Javadoc)
+-     *
+-     * @see org.apache.logging.log4j.core.appender.rolling.action.PathCondition#beforeFileTreeWalk()
+-     */
+     @Override
+     public void beforeFileTreeWalk() {
+         IfAll.beforeFileTreeWalk(nestedConditions);
+     }
+ 
+     /**
+-     * Create an IfLastModified condition.
+-     *
+-     * @param age The path age that is accepted by this condition. Must be a valid Duration.
+-     * @param nestedConditions nested conditions to evaluate if this condition accepts a path
+-     * @return An IfLastModified condition.
++     * @deprecated since 2.24.0 use {@link #newBuilder()}  instead.
+      */
+-    @PluginFactory
++    @Deprecated
+     public static IfLastModified createAgeCondition(
+-            // @formatter:off
+-            @PluginAttribute("age") @Required(message = "No age provided for IfLastModified") final Duration age,
+-            @PluginElement("PathConditions") final PathCondition... nestedConditions) {
+-        // @formatter:on
+-        return new IfLastModified(age, nestedConditions);
++            final org.apache.logging.log4j.core.appender.rolling.action.Duration age,
++            final PathCondition... pathConditions) {
++        return newBuilder()
++                .setAge(Duration.ofMillis(age.toMillis()))
++                .setNestedConditions(pathConditions)
++                .build();
+     }
+ 
+     @Override
+     public String toString() {
+         final String nested = nestedConditions.length == 0 ? "" : " AND " + Arrays.toString(nestedConditions);
+         return "IfLastModified(age=" + age + nested + ")";
+     }
++
++    /**
++     * @since 2.24.0
++     */
++    @PluginBuilderFactory
++    public static Builder newBuilder() {
++        return new Builder();
++    }
++
++    /**
++     * @since 2.24.0
++     */
++    public static final class Builder implements org.apache.logging.log4j.core.util.Builder<IfLastModified> {
++        @PluginBuilderAttribute
++        @Required(message = "No age provided for IfLastModified")
++        private org.apache.logging.log4j.core.appender.rolling.action.Duration age;
++
++        @PluginElement("nestedConditions")
++        private PathCondition[] nestedConditions;
++
++        public Builder setAge(final Duration age) {
++            this.age = org.apache.logging.log4j.core.appender.rolling.action.Duration.ofMillis(age.toMillis());
++            return this;
++        }
++
++        public Builder setNestedConditions(final PathCondition... nestedConditions) {
++            this.nestedConditions = nestedConditions;
++            return this;
++        }
++
++        @Override
++        public IfLastModified build() {
++            return isValid() ? new IfLastModified(Duration.ofMillis(age.toMillis()), nestedConditions) : null;
++        }
++    }
+ }
+diff --git a/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/package-info.java b/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/package-info.java
+--- a/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/package-info.java
++++ b/log4j-core/src/main/java/org/apache/logging/log4j/core/appender/rolling/action/package-info.java
+@@ -18,7 +18,7 @@
+  * Support classes for the Rolling File Appender.
+  */
+ @Export
+-@Version("2.20.2")
++@Version("2.24.0")
+ package org.apache.logging.log4j.core.appender.rolling.action;
+ 
+ import org.osgi.annotation.bundle.Export;
+diff --git a/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/TypeConverters.java b/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/TypeConverters.java
+--- a/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/TypeConverters.java
++++ b/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/TypeConverters.java
+@@ -36,7 +36,6 @@
+ import java.util.regex.Pattern;
+ import org.apache.logging.log4j.Level;
+ import org.apache.logging.log4j.Logger;
+-import org.apache.logging.log4j.core.appender.rolling.action.Duration;
+ import org.apache.logging.log4j.core.config.plugins.Plugin;
+ import org.apache.logging.log4j.core.util.CronExpression;
+ import org.apache.logging.log4j.status.StatusLogger;
+@@ -224,14 +223,17 @@ public Double convert(final String s) {
+     }
+ 
+     /**
+-     * Converts a {@link String} into a {@link Duration}.
++     * Converts a {@link String} into a {@link org.apache.logging.log4j.core.appender.rolling.action.Duration}.
+      * @since 2.5
++     * @deprecated since 2.24.0. A {@link java.time.Duration} converter will be available in 3.0.0.
+      */
+     @Plugin(name = "Duration", category = CATEGORY)
+-    public static class DurationConverter implements TypeConverter<Duration> {
++    @Deprecated
++    public static class DurationConverter
++            implements TypeConverter<org.apache.logging.log4j.core.appender.rolling.action.Duration> {
+         @Override
+-        public Duration convert(final String s) {
+-            return Duration.parse(s);
++        public org.apache.logging.log4j.core.appender.rolling.action.Duration convert(final String s) {
++            return org.apache.logging.log4j.core.appender.rolling.action.Duration.parse(s);
+         }
+     }
+ 
+diff --git a/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/package-info.java b/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/package-info.java
+--- a/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/package-info.java
++++ b/log4j-core/src/main/java/org/apache/logging/log4j/core/config/plugins/convert/package-info.java
+@@ -20,7 +20,7 @@
+  * attributes in plugin factory methods.
+  */
+ @Export
+-@Version("2.20.2")
++@Version("2.24.0")
+ package org.apache.logging.log4j.core.config.plugins.convert;
+ 
+ import org.osgi.annotation.bundle.Export;
+diff --git a/src/changelog/.2.x.x/deprecate_duration.xml b/src/changelog/.2.x.x/deprecate_duration.xml
+new file mode 100644
+--- /dev/null
++++ b/src/changelog/.2.x.x/deprecate_duration.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<entry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++       xmlns="http://logging.apache.org/log4j/changelog"
++       xsi:schemaLocation="http://logging.apache.org/log4j/changelog https://logging.apache.org/log4j/changelog-0.1.3.xsd"
++       type="changed">
++  <description format="asciidoc">Deprecate `org.apache.logging.log4j.core.appender.rolling.action.Duration` class for removal.</description>
++</entry>
+diff --git a/src/changelog/.2.x.x/update_org_mongodb_bson.xml b/src/changelog/.2.x.x/update_org_mongodb_bson.xml
+new file mode 100644
+--- /dev/null
++++ b/src/changelog/.2.x.x/update_org_mongodb_bson.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<entry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++       xmlns="http://logging.apache.org/log4j/changelog"
++       xsi:schemaLocation="http://logging.apache.org/log4j/changelog https://logging.apache.org/log4j/changelog-0.1.3.xsd"
++       type="updated">
++  <issue id="2409" link="https://github.com/apache/logging-log4j2/pull/2409"/>
++  <description format="asciidoc">Update `org.mongodb:bson` to version `3.12.14`</description>
++</entry>
+diff --git a/src/site/_release-notes/_2.x.x.adoc b/src/site/_release-notes/_2.x.x.adoc
+--- a/src/site/_release-notes/_2.x.x.adoc
++++ b/src/site/_release-notes/_2.x.x.adoc
+@@ -35,6 +35,7 @@ This releases contains ...
+ * Fix usage of `log4j-api` in GraalVM without additional reachability data. (https://github.com/apache/logging-log4j2/pull/1539[1539])
+ * Centralize initialization in the `Provider` class and deprecate `log4j2.loggerContextFactory` property. (https://github.com/apache/logging-log4j2/pull/2374[2374])
+ * Remove `log4j-kubernetes` lookup. User should migrate to https://github.com/fabric8io/kubernetes-client/blob/main/doc/KubernetesLog4j.md[`kubernetes-log4j`] (https://github.com/apache/logging-log4j2/pull/2412[2412])
++* Deprecate `org.apache.logging.log4j.core.appender.rolling.action.Duration` class for removal.
+ 
+ [#release-notes-2-x-x-fixed]
+ === Fixed
+@@ -55,4 +56,5 @@ This releases contains ...
+ * Update `org.apache.activemq:activemq-broker` to version `6.1.0` (https://github.com/apache/logging-log4j2/pull/2387[2387])
+ * Update `org.apache.commons:commons-compress` to version `1.26.1` (https://github.com/apache/logging-log4j2/pull/2361[2361])
+ * Update `org.awaitility:awaitility` to version `4.2.1` (https://github.com/apache/logging-log4j2/pull/2386[2386])
++* Update `org.mongodb:bson` to version `3.12.14` (https://github.com/apache/logging-log4j2/pull/2409[2409])
+ * Update `org.springframework:spring-framework-bom` to version `5.3.33` (https://github.com/apache/logging-log4j2/pull/2378[2378])

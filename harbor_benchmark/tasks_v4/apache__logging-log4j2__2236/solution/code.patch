@@ -1,0 +1,82 @@
+diff --git a/log4j-core/src/main/java/org/apache/logging/log4j/core/async/RingBufferLogEvent.java b/log4j-core/src/main/java/org/apache/logging/log4j/core/async/RingBufferLogEvent.java
+--- a/log4j-core/src/main/java/org/apache/logging/log4j/core/async/RingBufferLogEvent.java
++++ b/log4j-core/src/main/java/org/apache/logging/log4j/core/async/RingBufferLogEvent.java
+@@ -475,26 +475,23 @@ public void setNanoTime(final long nanoTime) {
+     @Override
+     public void clear() {
+         this.populated = false;
+-
+-        this.asyncLogger = null;
+-        this.loggerName = null;
+-        this.marker = null;
+-        this.fqcn = null;
+         this.level = null;
+-        this.message = null;
+-        this.messageFormat = null;
++        this.threadName = null;
++        this.loggerName = null;
++        clearMessage();
+         this.thrown = null;
+         this.thrownProxy = null;
+-        this.contextStack = null;
++        clearContextData();
++        this.marker = null;
++        this.fqcn = null;
+         this.location = null;
+-        if (contextData != null) {
+-            if (contextData.isFrozen()) { // came from CopyOnWrite thread context
+-                contextData = null;
+-            } else {
+-                contextData.clear();
+-            }
+-        }
++        this.contextStack = null;
++        this.asyncLogger = null;
++    }
+ 
++    private void clearMessage() {
++        message = null;
++        messageFormat = null;
+         // ensure that excessively long char[] arrays are not kept in memory forever
+         StringBuilders.trimToMaxSize(messageText, Constants.MAX_REUSABLE_MESSAGE_SIZE);
+ 
+@@ -503,6 +500,16 @@ public void clear() {
+         }
+     }
+ 
++    private void clearContextData() {
++        if (contextData != null) {
++            if (contextData.isFrozen()) { // came from CopyOnWrite thread context
++                contextData = null;
++            } else {
++                contextData.clear();
++            }
++        }
++    }
++
+     /**
+      * Initializes the specified {@code Log4jLogEvent.Builder} from this {@code RingBufferLogEvent}.
+      * @param builder the builder whose fields to populate
+diff --git a/src/changelog/.3.x.x/update_org_springframework_cloud_spring_cloud_context.xml b/src/changelog/.3.x.x/update_org_springframework_cloud_spring_cloud_context.xml
+new file mode 100644
+--- /dev/null
++++ b/src/changelog/.3.x.x/update_org_springframework_cloud_spring_cloud_context.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<entry xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++       xmlns="http://logging.apache.org/log4j/changelog"
++       xsi:schemaLocation="http://logging.apache.org/log4j/changelog https://logging.apache.org/log4j/changelog-0.1.3.xsd"
++       type="updated">
++  <issue id="2236" link="https://github.com/apache/logging-log4j2/pull/2236"/>
++  <description format="asciidoc">Update `org.springframework.cloud:spring-cloud-context` to version `4.1.1`</description>
++</entry>
+diff --git a/src/site/_release-notes/_3.x.x.adoc b/src/site/_release-notes/_3.x.x.adoc
+--- a/src/site/_release-notes/_3.x.x.adoc
++++ b/src/site/_release-notes/_3.x.x.adoc
+@@ -73,5 +73,6 @@ This release contains...
+ * Update `org.slf4j:slf4j-api` to version `2.0.10` (https://github.com/apache/logging-log4j2/pull/2136[2136])
+ * Update `org.springframework.boot:spring-boot-autoconfigure` to version `3.2.2` (https://github.com/apache/logging-log4j2/pull/2222[2222])
+ * Update `org.springframework.boot:spring-boot-dependencies` to version `3.2.1` (https://github.com/apache/logging-log4j2/pull/2123[2123])
++* Update `org.springframework.cloud:spring-cloud-context` to version `4.1.1` (https://github.com/apache/logging-log4j2/pull/2236[2236])
+ * Update `org.springframework:spring-framework-bom` to version `6.1.3` (https://github.com/apache/logging-log4j2/pull/2223[2223])
+ * Update `uk.org.webcompere:system-stubs-core` to version `2.1.6` (https://github.com/apache/logging-log4j2/pull/2196[2196])

@@ -1,0 +1,162 @@
+diff --git a/src/main/java/de/sldk/mc/MetricsController.java b/src/main/java/de/sldk/mc/MetricsController.java
+--- a/src/main/java/de/sldk/mc/MetricsController.java
++++ b/src/main/java/de/sldk/mc/MetricsController.java
+@@ -2,11 +2,12 @@
+ 
+ import io.prometheus.client.CollectorRegistry;
+ import io.prometheus.client.exporter.common.TextFormat;
++import jakarta.servlet.http.HttpServletRequest;
++import jakarta.servlet.http.HttpServletResponse;
++import org.eclipse.jetty.http.HttpStatus;
+ import org.eclipse.jetty.server.Request;
+ import org.eclipse.jetty.server.handler.AbstractHandler;
+ 
+-import javax.servlet.http.HttpServletRequest;
+-import javax.servlet.http.HttpServletResponse;
+ import java.io.IOException;
+ import java.util.concurrent.ExecutionException;
+ import java.util.concurrent.Future;
+@@ -22,7 +23,8 @@ public MetricsController(PrometheusExporter exporter) {
+     }
+ 
+     @Override
+-    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
++    public void handle(String target, Request request, HttpServletRequest httpServletRequest,
++            HttpServletResponse response) throws IOException {
+ 
+         if (!target.equals("/metrics")) {
+             response.sendError(HttpServletResponse.SC_NOT_FOUND);
+@@ -41,16 +43,16 @@ public void handle(String target, Request baseRequest, HttpServletRequest reques
+         try {
+             future.get();
+ 
+-            response.setStatus(HttpServletResponse.SC_OK);
++            response.setStatus(HttpStatus.OK_200);
+             response.setContentType(TextFormat.CONTENT_TYPE_004);
+ 
+             TextFormat.write004(response.getWriter(), CollectorRegistry.defaultRegistry.metricFamilySamples());
+ 
+-            baseRequest.setHandled(true);
++            request.setHandled(true);
+         } catch (InterruptedException | ExecutionException e) {
+             exporter.getLogger().log(Level.WARNING, "Failed to read server statistic: " + e.getMessage());
+             exporter.getLogger().log(Level.FINE, "Failed to read server statistic: ", e);
+-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
++            response.sendError(HttpStatus.INTERNAL_SERVER_ERROR_500);
+         }
+     }
+ }
+diff --git a/src/main/java/de/sldk/mc/MetricsServer.java b/src/main/java/de/sldk/mc/MetricsServer.java
+new file mode 100644
+--- /dev/null
++++ b/src/main/java/de/sldk/mc/MetricsServer.java
+@@ -0,0 +1,40 @@
++package de.sldk.mc;
++
++import org.eclipse.jetty.server.Server;
++import org.eclipse.jetty.server.handler.gzip.GzipHandler;
++
++import java.net.InetSocketAddress;
++
++public class MetricsServer {
++
++	private final String host;
++	private final int port;
++	private final PrometheusExporter prometheusExporter;
++
++	private Server server;
++
++	public MetricsServer(String host, int port, PrometheusExporter prometheusExporter) {
++		this.host = host;
++		this.port = port;
++		this.prometheusExporter = prometheusExporter;
++	}
++
++	public void start() throws Exception {
++		GzipHandler gzipHandler = new GzipHandler();
++		gzipHandler.setHandler(new MetricsController(prometheusExporter));
++
++		InetSocketAddress address = new InetSocketAddress(host, port);
++		server = new Server(address);
++		server.setHandler(gzipHandler);
++
++		server.start();
++	}
++
++	public void stop() throws Exception {
++		if (server == null) {
++			return;
++		}
++
++		server.stop();
++	}
++}
+diff --git a/src/main/java/de/sldk/mc/PrometheusExporter.java b/src/main/java/de/sldk/mc/PrometheusExporter.java
+--- a/src/main/java/de/sldk/mc/PrometheusExporter.java
++++ b/src/main/java/de/sldk/mc/PrometheusExporter.java
+@@ -2,16 +2,13 @@
+ 
+ import de.sldk.mc.config.PrometheusExporterConfig;
+ import org.bukkit.plugin.java.JavaPlugin;
+-import org.eclipse.jetty.server.Server;
+-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+ 
+-import java.net.InetSocketAddress;
+ import java.util.logging.Level;
+ 
+ public class PrometheusExporter extends JavaPlugin {
+ 
+     private final PrometheusExporterConfig config = new PrometheusExporterConfig(this);
+-    private Server server;
++    private MetricsServer server;
+ 
+     @Override
+     public void onEnable() {
+@@ -20,38 +17,30 @@ public void onEnable() {
+ 
+         config.enableConfiguredMetrics();
+ 
+-        serveMetrics();
++        startMetricsServer();
+     }
+ 
+-    private void serveMetrics() {
+-        int port = config.get(PrometheusExporterConfig.PORT);
++    private void startMetricsServer() {
+         String host = config.get(PrometheusExporterConfig.HOST);
++        Integer port = config.get(PrometheusExporterConfig.PORT);
+ 
+-        GzipHandler gzipHandler = new GzipHandler();
+-        gzipHandler.setHandler(new MetricsController(this));
+-
+-        InetSocketAddress address = new InetSocketAddress(host, port);
+-        server = new Server(address);
+-        server.setHandler(gzipHandler);
++		server = new MetricsServer(host, port, this);
+ 
+         try {
+             server.start();
+             getLogger().info("Started Prometheus metrics endpoint at: " + host + ":" + port);
+-
+         } catch (Exception e) {
+             getLogger().severe("Could not start embedded Jetty server");
+         }
+     }
+ 
+     @Override
+     public void onDisable() {
+-        if (server != null) {
+-            try {
+-                server.stop();
+-            } catch (Exception e) {
+-                getLogger().log(Level.WARNING, "Failed to stop metrics server gracefully: " + e.getMessage());
+-                getLogger().log(Level.FINE, "Failed to stop metrics server gracefully", e);
+-            }
++        try {
++            server.stop();
++        } catch (Exception e) {
++            getLogger().log(Level.WARNING, "Failed to stop metrics server gracefully: " + e.getMessage());
++            getLogger().log(Level.FINE, "Failed to stop metrics server gracefully", e);
+         }
+     }
+ 

@@ -1,0 +1,437 @@
+diff --git a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/reader/JsonResourceConfigReader.kt b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/reader/JsonResourceConfigReader.kt
+--- a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/reader/JsonResourceConfigReader.kt
++++ b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/reader/JsonResourceConfigReader.kt
+@@ -2,7 +2,6 @@ package org.cqfn.diktat.common.config.reader
+ 
+ import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
+ import mu.KotlinLogging
+-import org.slf4j.Logger
+ 
+ import java.io.BufferedReader
+ import java.io.IOException
+@@ -58,9 +57,6 @@ abstract class JsonResourceConfigReader<T> {
+     protected abstract fun parseResource(fileStream: BufferedReader): T
+ 
+     companion object {
+-        /**
+-         * A [Logger] that can be used
+-         */
+-        val log: Logger = KotlinLogging.loggerWithKtlintConfig(JsonResourceConfigReader::class)
++        private val log = KotlinLogging.loggerWithKtlintConfig(JsonResourceConfigReader::class)
+     }
+ }
+diff --git a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/rules/RulesConfigReader.kt b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/rules/RulesConfigReader.kt
+--- a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/rules/RulesConfigReader.kt
++++ b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/config/rules/RulesConfigReader.kt
+@@ -10,8 +10,8 @@ import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
+ 
+ import com.charleskorn.kaml.Yaml
+ import com.charleskorn.kaml.YamlConfiguration
++import mu.KLogger
+ import mu.KotlinLogging
+-import org.slf4j.Logger
+ 
+ import java.io.BufferedReader
+ import java.io.File
+@@ -111,7 +111,7 @@ open class RulesConfigReader(override val classLoader: ClassLoader) : JsonResour
+         /**
+          * A [Logger] that can be used
+          */
+-        val log: Logger = KotlinLogging.loggerWithKtlintConfig(RulesConfigReader::class)
++        val log: KLogger = KotlinLogging.loggerWithKtlintConfig(RulesConfigReader::class)
+     }
+ }
+ 
+diff --git a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt
+--- a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt
++++ b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt
+@@ -6,7 +6,6 @@ package org.cqfn.diktat.common.utils
+ 
+ import com.pinterest.ktlint.core.initKtLintKLogger
+ import mu.KotlinLogging
+-import org.slf4j.LoggerFactory
+ import kotlin.reflect.KClass
+ 
+ /**
+@@ -25,4 +24,4 @@ fun KotlinLogging.loggerWithKtlintConfig(func: () -> Unit) =
+  * @return a logger
+  */
+ fun KotlinLogging.loggerWithKtlintConfig(clazz: KClass<*>) =
+-    logger(LoggerFactory.getLogger(clazz.java)).initKtLintKLogger()
++    logger(clazz.java.name).initKtLintKLogger()
+diff --git a/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt b/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt
+--- a/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt
++++ b/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt
+@@ -9,6 +9,7 @@ import org.cqfn.diktat.ruleset.utils.*
+ 
+ import com.pinterest.ktlint.core.ast.ElementType
+ import com.pinterest.ktlint.core.ast.ElementType.CALL_EXPRESSION
++import com.pinterest.ktlint.core.ast.ElementType.DOT_QUALIFIED_EXPRESSION
+ import com.pinterest.ktlint.core.ast.ElementType.FUNCTION_LITERAL
+ import com.pinterest.ktlint.core.ast.ElementType.IDENTIFIER
+ import com.pinterest.ktlint.core.ast.ElementType.LAMBDA_EXPRESSION
+@@ -38,51 +39,53 @@ class EmptyBlock(configRules: List<RulesConfig>) : DiktatRule(
+ 
+     private fun searchNode(node: ASTNode, configuration: EmptyBlockStyleConfiguration) {
+         val newNode = node.findLBrace()?.treeParent ?: return
+-        checkEmptyBlock(newNode, configuration)
++        if (!isAllowedEmptyBlock(newNode) && newNode.isBlockEmpty()) {
++            checkEmptyBlock(newNode, configuration)
++        }
+     }
+ 
+     private fun isNewLine(node: ASTNode) =
+         node.findChildByType(WHITE_SPACE)?.text?.contains("\n") ?: false
+ 
++    private fun isAllowedEmptyBlock(node: ASTNode) = node.treeParent.isOverridden() ||
++            isAnonymousSamClass(node) ||
++            isLambdaUsedAsFunction(node) ||
++            isKotlinLogging(node)
++
+     @Suppress("UnsafeCallOnNullableType", "TOO_LONG_FUNCTION")
+     private fun checkEmptyBlock(node: ASTNode, configuration: EmptyBlockStyleConfiguration) {
+-        if (node.treeParent.isOverridden() || isAnonymousSamClass(node) || isLambdaUsedAsFunction(node)) {
+-            return
+-        }
+-        if (node.isBlockEmpty()) {
+-            if (!configuration.emptyBlockExist) {
+-                EMPTY_BLOCK_STRUCTURE_ERROR.warn(configRules, emitWarn, isFixMode, "empty blocks are forbidden unless it is function with override keyword",
+-                    node.startOffset, node)
+-            } else {
+-                node.findParentNodeWithSpecificType(ElementType.LAMBDA_ARGUMENT)?.let {
+-                    // Lambda body is always has a BLOCK -> run { } - (LBRACE, WHITE_SPACE, BLOCK "", RBRACE)
+-                    if (isNewLine(node)) {
+-                        val freeText = "do not put newlines in empty lambda"
+-                        EMPTY_BLOCK_STRUCTURE_ERROR.warnAndFix(configRules, emitWarn, isFixMode, freeText, node.startOffset, node) {
+-                            val whiteSpaceNode = node.findChildByType(WHITE_SPACE)
+-                            whiteSpaceNode?.let {
+-                                node.replaceChild(whiteSpaceNode, PsiWhiteSpaceImpl(" "))
+-                            }
++        if (!configuration.emptyBlockExist) {
++            EMPTY_BLOCK_STRUCTURE_ERROR.warn(configRules, emitWarn, isFixMode, "empty blocks are forbidden unless it is function with override keyword",
++                node.startOffset, node)
++        } else {
++            node.findParentNodeWithSpecificType(ElementType.LAMBDA_ARGUMENT)?.let {
++                // Lambda body is always has a BLOCK -> run { } - (LBRACE, WHITE_SPACE, BLOCK "", RBRACE)
++                if (isNewLine(node)) {
++                    val freeText = "do not put newlines in empty lambda"
++                    EMPTY_BLOCK_STRUCTURE_ERROR.warnAndFix(configRules, emitWarn, isFixMode, freeText, node.startOffset, node) {
++                        val whiteSpaceNode = node.findChildByType(WHITE_SPACE)
++                        whiteSpaceNode?.let {
++                            node.replaceChild(whiteSpaceNode, PsiWhiteSpaceImpl(" "))
+                         }
+                     }
+-                    return
+                 }
+-                val space = node.findChildByType(RBRACE)!!.treePrev
+-                if (configuration.emptyBlockNewline && !space.text.contains("\n")) {
+-                    EMPTY_BLOCK_STRUCTURE_ERROR.warnAndFix(configRules, emitWarn, isFixMode, "different style for empty block",
+-                        node.startOffset, node) {
+-                        if (space.elementType == WHITE_SPACE) {
+-                            (space.treeNext as LeafPsiElement).rawReplaceWithText("\n")
+-                        } else {
+-                            node.addChild(PsiWhiteSpaceImpl("\n"), space.treeNext)
+-                        }
+-                    }
+-                } else if (!configuration.emptyBlockNewline && space.text.contains("\n")) {
+-                    EMPTY_BLOCK_STRUCTURE_ERROR.warnAndFix(configRules, emitWarn, isFixMode, "different style for empty block",
+-                        node.startOffset, node) {
+-                        node.removeChild(space)
++                return
++            }
++            val space = node.findChildByType(RBRACE)!!.treePrev
++            if (configuration.emptyBlockNewline && !space.text.contains("\n")) {
++                EMPTY_BLOCK_STRUCTURE_ERROR.warnAndFix(configRules, emitWarn, isFixMode, "different style for empty block",
++                    node.startOffset, node) {
++                    if (space.elementType == WHITE_SPACE) {
++                        (space.treeNext as LeafPsiElement).rawReplaceWithText("\n")
++                    } else {
++                        node.addChild(PsiWhiteSpaceImpl("\n"), space.treeNext)
+                     }
+                 }
++            } else if (!configuration.emptyBlockNewline && space.text.contains("\n")) {
++                EMPTY_BLOCK_STRUCTURE_ERROR.warnAndFix(configRules, emitWarn, isFixMode, "different style for empty block",
++                    node.startOffset, node) {
++                    node.removeChild(space)
++                }
+             }
+         }
+     }
+@@ -118,6 +121,13 @@ class EmptyBlock(configRules: List<RulesConfig>) : DiktatRule(
+         }
+     }
+ 
++    private fun isKotlinLogging(node: ASTNode): Boolean = node.findParentNodeWithSpecificType(DOT_QUALIFIED_EXPRESSION)
++        ?.text
++        ?.replace(" ", "")
++        .let {
++            it == "KotlinLogging.logger{}"
++        }
++
+     /**
+      * [RuleConfiguration] for empty blocks formatting
+      */
+diff --git a/diktat-test-framework/src/main/java/org/cqfn/diktat/test/framework/common/StreamGobbler.java b/diktat-test-framework/src/main/java/org/cqfn/diktat/test/framework/common/StreamGobbler.java
+--- a/diktat-test-framework/src/main/java/org/cqfn/diktat/test/framework/common/StreamGobbler.java
++++ b/diktat-test-framework/src/main/java/org/cqfn/diktat/test/framework/common/StreamGobbler.java
+@@ -1,30 +1,34 @@
+ package org.cqfn.diktat.test.framework.common;
+ 
+-import org.slf4j.Logger;
+-import org.slf4j.LoggerFactory;
+-
+ import java.io.BufferedReader;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.InputStreamReader;
+ import java.nio.charset.Charset;
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.function.BiConsumer;
+ 
+ public class StreamGobbler extends Thread {
+-    private static final Logger log = LoggerFactory.getLogger(StreamGobbler.class);
+     private final InputStream inputStream;
+     private final String streamType;
++    private final BiConsumer<Exception, String> exceptionHandler;
+     private final ArrayList<String> result;
+     private volatile boolean isStopped = false;
+ 
+     /**
+      * @param inputStream the InputStream to be consumed
+-     * @param streamType  the stream type (should be OUTPUT or ERROR)
++     * @param streamType the stream type (should be OUTPUT or ERROR)
++     * @param exceptionHandler the exception handler
+      */
+-    public StreamGobbler(final InputStream inputStream, final String streamType) {
++    public StreamGobbler(
++            final InputStream inputStream,
++            final String streamType,
++            final BiConsumer<Exception, String> exceptionHandler
++    ) {
+         this.inputStream = inputStream;
+         this.streamType = streamType;
++        this.exceptionHandler = exceptionHandler;
+         this.result = new ArrayList<>();
+     }
+ 
+@@ -43,7 +47,7 @@ synchronized public void run() {
+                 this.result.add(line);
+             }
+         } catch (IOException ex) {
+-                log.error("Failed to consume and display the input stream of type " + streamType + ".", ex);
++                exceptionHandler.accept(ex, "Failed to consume and display the input stream of type " + streamType + ".");
+         } finally {
+             this.isStopped = true;
+             notify();
+@@ -55,7 +59,7 @@ synchronized public List<String> getContent() {
+                 try {
+                     wait();
+                 } catch (InterruptedException e) {
+-                    log.error("Cannot get content of output stream", e);
++                    exceptionHandler.accept(e, "Cannot get content of output stream");
+                 }
+         }
+         return this.result;
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/common/LocalCommandExecutor.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/common/LocalCommandExecutor.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/common/LocalCommandExecutor.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/common/LocalCommandExecutor.kt
+@@ -1,6 +1,7 @@
+ package org.cqfn.diktat.test.framework.common
+ 
+-import org.slf4j.LoggerFactory
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
++import mu.KotlinLogging
+ 
+ import java.io.IOException
+ 
+@@ -15,14 +16,18 @@ class LocalCommandExecutor internal constructor(private val command: String) {
+      */
+     fun executeCommand(): ExecutionResult {
+         try {
+-            log.info("Executing command: {}", command)
++            log.info { "Executing command: $command" }
+             val process = Runtime.getRuntime().exec(command)
+             process.outputStream.close()
+             val inputStream = process.inputStream
+-            val outputGobbler = StreamGobbler(inputStream, "OUTPUT")
++            val outputGobbler = StreamGobbler(inputStream, "OUTPUT") { msg, ex ->
++                log.error(ex, msg)
++            }
+             outputGobbler.start()
+             val errorStream = process.errorStream
+-            val errorGobbler = StreamGobbler(errorStream, "ERROR")
++            val errorGobbler = StreamGobbler(errorStream, "ERROR") { msg, ex ->
++                log.error(ex, msg)
++            }
+             errorGobbler.start()
+             return ExecutionResult(outputGobbler.content, errorGobbler.content)
+         } catch (ex: IOException) {
+@@ -32,6 +37,7 @@ class LocalCommandExecutor internal constructor(private val command: String) {
+     }
+ 
+     companion object {
+-        private val log = LoggerFactory.getLogger(LocalCommandExecutor::class.java)
++        @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
++        private val log = KotlinLogging.loggerWithKtlintConfig {}
+     }
+ }
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/config/TestArgumentsReader.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/config/TestArgumentsReader.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/config/TestArgumentsReader.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/config/TestArgumentsReader.kt
+@@ -2,14 +2,15 @@ package org.cqfn.diktat.test.framework.config
+ 
+ import org.cqfn.diktat.common.cli.CliArgument
+ import org.cqfn.diktat.common.config.reader.JsonResourceConfigReader
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
++import mu.KotlinLogging
+ 
+ import org.apache.commons.cli.CommandLine
+ import org.apache.commons.cli.CommandLineParser
+ import org.apache.commons.cli.DefaultParser
+ import org.apache.commons.cli.HelpFormatter
+ import org.apache.commons.cli.Options
+ import org.apache.commons.cli.ParseException
+-import org.slf4j.LoggerFactory
+ 
+ import java.io.BufferedReader
+ import java.io.IOException
+@@ -94,6 +95,7 @@ class TestArgumentsReader(
+     }
+ 
+     companion object {
+-        private val log = LoggerFactory.getLogger(TestArgumentsReader::class.java)
++        @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
++        private val log = KotlinLogging.loggerWithKtlintConfig {}
+     }
+ }
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/FileComparator.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/FileComparator.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/FileComparator.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/FileComparator.kt
+@@ -1,9 +1,10 @@
+ package org.cqfn.diktat.test.framework.processing
+ 
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
+ import io.github.petertrr.diffutils.diff
+ import io.github.petertrr.diffutils.patch.ChangeDelta
+ import io.github.petertrr.diffutils.text.DiffRowGenerator
+-import org.slf4j.LoggerFactory
++import mu.KotlinLogging
+ 
+ import java.io.File
+ import java.io.IOException
+@@ -96,7 +97,8 @@ class FileComparator(
+     }
+ 
+     companion object {
+-        private val log = LoggerFactory.getLogger(FileComparator::class.java)
++        @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
++        private val log = KotlinLogging.loggerWithKtlintConfig {}
+ 
+         /**
+          * @param file file where to write these list to, separated with newlines.
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCheckWarn.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCheckWarn.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCheckWarn.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCheckWarn.kt
+@@ -1,14 +1,16 @@
+ package org.cqfn.diktat.test.framework.processing
+ 
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
+ import org.cqfn.diktat.test.framework.config.TestConfig
+-import org.slf4j.Logger
+-import org.slf4j.LoggerFactory
++import mu.KLogger
++import mu.KotlinLogging
+ 
+ /**
+  * [TestCompare] that uses stderr as tests output stream
+  */
+ class TestCheckWarn : TestCompare() {
+-    @Suppress("MISSING_KDOC_CLASS_ELEMENTS") override val log: Logger = LoggerFactory.getLogger(TestCheckWarn::class.java)
++    @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR", "MISSING_KDOC_CLASS_ELEMENTS")
++    override val log: KLogger = KotlinLogging.loggerWithKtlintConfig {}
+ 
+     @Suppress(
+         "UnusedPrivateMember",
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestComparatorUnit.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestComparatorUnit.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestComparatorUnit.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestComparatorUnit.kt
+@@ -1,8 +1,7 @@
+ package org.cqfn.diktat.test.framework.processing
+ 
+-import org.slf4j.Logger
+-import org.slf4j.LoggerFactory
+-
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
++import mu.KotlinLogging
+ import java.io.IOException
+ import java.nio.file.Path
+ import java.nio.file.Paths
+@@ -115,7 +114,8 @@ class TestComparatorUnit(
+     }
+ 
+     private companion object {
+-        private val log: Logger = LoggerFactory.getLogger(TestComparatorUnit::class.java)
++        @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
++        private val log = KotlinLogging.loggerWithKtlintConfig {}
+ 
+         /**
+          * @param file the file whose content is to be read.
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCompare.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCompare.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCompare.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestCompare.kt
+@@ -1,13 +1,14 @@
+ package org.cqfn.diktat.test.framework.processing
+ 
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
+ import org.cqfn.diktat.test.framework.common.ExecutionResult
+ import org.cqfn.diktat.test.framework.common.TestBase
+ import org.cqfn.diktat.test.framework.config.TestConfig
+ import org.cqfn.diktat.test.framework.config.TestFrameworkProperties
++import mu.KLogger
++import mu.KotlinLogging
+ 
+ import org.apache.commons.io.FileUtils
+-import org.slf4j.Logger
+-import org.slf4j.LoggerFactory
+ 
+ import java.io.File
+ 
+@@ -16,7 +17,8 @@ import java.io.File
+  */
+ @Suppress("ForbiddenComment")
+ open class TestCompare : TestBase {
+-    @Suppress("MISSING_KDOC_CLASS_ELEMENTS") protected open val log: Logger = LoggerFactory.getLogger(TestCompare::class.java)
++    @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR", "MISSING_KDOC_CLASS_ELEMENTS")
++    protected open val log: KLogger = KotlinLogging.loggerWithKtlintConfig {}
+     private lateinit var expectedResult: File
+ 
+     // testResultFile will be used if and only if --in-place option will be used
+diff --git a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestProcessingFactory.kt b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestProcessingFactory.kt
+--- a/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestProcessingFactory.kt
++++ b/diktat-test-framework/src/main/kotlin/org/cqfn/diktat/test/framework/processing/TestProcessingFactory.kt
+@@ -1,12 +1,12 @@
+ package org.cqfn.diktat.test.framework.processing
+ 
++import org.cqfn.diktat.common.utils.loggerWithKtlintConfig
+ import org.cqfn.diktat.test.framework.common.TestBase
+ import org.cqfn.diktat.test.framework.config.TestArgumentsReader
+ import org.cqfn.diktat.test.framework.config.TestConfig
+ import org.cqfn.diktat.test.framework.config.TestConfig.ExecutionType
+ import org.cqfn.diktat.test.framework.config.TestConfigReader
+-
+-import org.slf4j.LoggerFactory
++import mu.KotlinLogging
+ 
+ import java.io.File
+ import java.io.IOException
+@@ -90,7 +90,8 @@ class TestProcessingFactory(private val argReader: TestArgumentsReader) {
+     }
+ 
+     companion object {
+-        private val log = LoggerFactory.getLogger(TestProcessingFactory::class.java)
++        @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
++        private val log = KotlinLogging.loggerWithKtlintConfig {}
+         private const val STATUS_FIVE = 5
+         private const val STATUS_THREE = 3
+     }
