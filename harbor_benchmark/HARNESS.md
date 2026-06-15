@@ -136,18 +136,15 @@ WORKDIR /app
 RUN git clone https://github.com/peopledatalabs/peopledatalabs-python.git . \
  && git checkout 6007ee833b4df462a839e58e1095d7ae144a0d21
 
-# Apply dependency upgrade patch (manifest only — test.patch is hidden from agent
-# and applied by the verifier just before grading).
+# v4-no-manifest-preapply: keep the dependency upgrade patch visible but do not
+# apply it during image build.
 COPY patches/manifest.patch /tmp/manifest.patch
-RUN git apply /tmp/manifest.patch \
- || (echo "WARN: manifest patch failed, trying with --3way" \
-      && git apply --3way /tmp/manifest.patch || true)
 
 WORKDIR /app
 RUN pip install pytest && pip install -e .
 ```
 
-> The base `image` and the install-`RUN` lines come from the per-row fields `image` + `dockerfile` in `pass_dataset_clean.parquet`. Everything before "WORKDIR + RUN install" is the same boilerplate across all 258 tasks.
+> The base `image` and the install-`RUN` lines come from the per-row fields `image` + `dockerfile` in the source dataset. Under v4, those install commands run on the base checkout during image build, and `solution/solve.sh` replays the relevant post-manifest setup after applying `manifest.patch` for oracle/sanity runs.
 
 ### 3.3 `instruction.md` (agent-visible)
 
@@ -161,9 +158,9 @@ The dependency **`black`** has been upgraded from version **22.12.0** to **23.3.
 project's manifest/lock files. This upgrade introduces breaking changes that cause test
 failures.
 
-The dependency upgrade (manifest/lock file changes) has already been applied. Your job is
-to **fix the source code** so that the upgraded project's test suite passes against the
-new version of the dependency.
+You must perform the dependency upgrade yourself, end-to-end. Update the project's
+manifest and lock files to apply the dependency bump, then adapt the source code so that
+the upgraded project's test suite passes against the new version of the dependency.
 
 ## Working Directory
 
@@ -194,7 +191,9 @@ including the upstream release notes / changelog. ...
 set -euo pipefail
 cd /app
 
-# Apply the code fix patch (skip if empty)
+git apply /tmp/manifest.patch || git apply --3way /tmp/manifest.patch
+pip install pytest && pip install -e .
+
 if [ -s /solution/code.patch ]; then
     git apply /solution/code.patch || git apply --3way /solution/code.patch
 else
@@ -407,6 +406,8 @@ TOTAL :           45    109  154   29.2%
 - **Ecosystem mix**: npm/yarn 145 · Maven/Java 74 · Go 35 · Cargo/Rust 23 · Python 20.
 - **Metadata schemas**: 143 tasks use `schema_version = "1.1"` and 154 tasks use legacy `version = "1.0"`.
 - **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 297 rows.
+- **No-preapply audit**: a 2026-06-15 rerun dry start exposed 27 residual Dockerfiles that still applied `manifest.patch` from alternate paths (`/app/manifest.patch`, `/benchmark/manifest.patch`, `.harbor_manifest.patch`, or `/app/.harbor/manifest.patch`) during image build. These were converted so Dockerfiles only copy `manifest.patch` to `/tmp/manifest.patch`; their oracle `solve.sh` now applies the manifest patch and replays the original post-manifest setup commands before `code.patch`.
+- **Current static validation**: 297 task dirs · `manifest_preapply=0` · `empty_test_patch=0` · `missing_manifest_copy=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
 - **Cargo update**: the current Cargo oracle Tier-A set has 17 cases. `tasks_v4` already had `oxidecomputer__dropshot__580` and `regexident__cargo-modules__122`; fifteen additional Cargo Tier-A directories were added on 2026-06-15. The newly repaired Cargo A cases preserve their verified harness settings:
   - `Stranger6667__jsonschema__825`: `rust:1.86-bullseye`, subdir `crates/jsonschema`, `git submodule update --init --recursive && cargo fetch`, `cargo test --no-fail-fast --all-features`
   - `omjadas__hudsucker__88`: `rust:1.88-bullseye`, `cargo test --lib --no-run --no-default-features --features rcgen-ca,rustls-client`
