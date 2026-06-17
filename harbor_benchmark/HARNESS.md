@@ -15,14 +15,12 @@ This document captures the **current Harbor harness and dataset state** so we ca
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Build phase (Dockerfile)                                                   │
-│  ─────────────────────────                                                  │
-│  1. FROM <ecosystem-base-image>                                             │
-│  2. apt-get install git patch                                               │
-│  3. WORKDIR /app                                                            │
-│  4. git clone <repo>.git . && git checkout <base_sha>                       │
-│  5. optional project bootstrap/cache commands on the base checkout          │
-│  6. keep dependency-upgrade manifest patch outside the agent image          │
+│  Runtime phase (prebuilt image)                                             │
+│  ──────────────────────────────                                             │
+│  1. task.toml points Harbor at docker_image                                 │
+│  2. force_build=false makes Harbor use docker-compose-prebuilt.yaml         │
+│  3. environment/docker-compose.yaml is only a placeholder for validation    │
+│  4. dependency-upgrade manifest patch stays outside the agent image         │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -125,22 +123,15 @@ storage_mb = 20480
 gpus = 0
 ```
 
-### 3.2 `environment/Dockerfile`
+### 3.2 `environment/docker-compose.yaml`
 
-```dockerfile
-FROM python:3.11-bullseye
-
-RUN apt-get update && apt-get install -y git patch && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-RUN git clone https://github.com/peopledatalabs/peopledatalabs-python.git . \
- && git checkout 6007ee833b4df462a839e58e1095d7ae144a0d21
-
-WORKDIR /app
-RUN pip install pytest && pip install -e .
+```yaml
+# Prebuilt-image placeholder. Harbor uses task.toml [environment].docker_image
+# when force_build=false; do not add build instructions here.
+services: {}
 ```
 
-> The base `image` and the install-`RUN` lines come from the per-row fields `image` + `dockerfile` in the source dataset. Under v4, those install commands run on the base checkout during image build. The dependency-upgrade manifest patch is not copied into the agent-visible image; a duplicate lives at `solution/manifest.patch` so `solution/solve.sh` can apply it for oracle/sanity runs before replaying the relevant post-manifest setup.
+> The historical Dockerfiles were removed after publishing the strict prebuilt images to avoid confusion. Each task now keeps a minimal compose placeholder because Harbor's Docker environment validation requires either a Dockerfile or a task compose file. The actual runtime image comes from `[environment].docker_image` in `task.toml` when job configs set `force_build=false`. The dependency-upgrade manifest patch is not copied into the agent-visible image; a duplicate lives at `solution/manifest.patch` so `solution/solve.sh` can apply it for oracle/sanity runs before replaying the relevant post-manifest setup.
 
 ### 3.3 `instruction.md` (agent-visible)
 
@@ -402,8 +393,8 @@ TOTAL :           45    109  154   29.2%
 - **Ecosystem mix**: npm/yarn 145 · Maven/Java 74 · Go 35 · Cargo/Rust 23 · Python 20.
 - **Metadata schemas**: 143 tasks use `schema_version = "1.1"` and 154 tasks use legacy `version = "1.0"`.
 - **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 297 rows.
-- **No-preapply audit**: a 2026-06-15 rerun dry start exposed 27 residual Dockerfiles that still applied `manifest.patch` from alternate paths (`/app/manifest.patch`, `/benchmark/manifest.patch`, `.harbor_manifest.patch`, or `/app/.harbor/manifest.patch`) during image build. These were first converted to copy-only behavior, then the image-visible copy was removed entirely: Dockerfiles no longer reference `manifest.patch`, and oracle `solve.sh` applies `solution/manifest.patch` before replaying the original post-manifest setup commands and `code.patch`.
-- **Current static validation**: 297 task dirs · `manifest_preapply=0` · `image_manifest_refs=0` · `solution_manifest_copies=297` · `empty_test_patch=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
+- **No-preapply audit**: a 2026-06-15 rerun dry start exposed 27 residual Dockerfiles that still applied `manifest.patch` from alternate paths (`/app/manifest.patch`, `/benchmark/manifest.patch`, `.harbor_manifest.patch`, or `/app/.harbor/manifest.patch`) during image build. These were first converted to copy-only behavior, then the image-visible copy was removed entirely. The final v4 task layout removes Dockerfiles altogether, relies on prebuilt `docker_image` entries, and has oracle `solve.sh` apply `solution/manifest.patch` before replaying the original post-manifest setup commands and `code.patch`.
+- **Current static validation**: 297 task dirs · `docker_image=297` · `environment_dockerfiles=0` · `compose_placeholders=297` · `solution_manifest_copies=297` · `empty_test_patch=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
 - **Cargo update**: the current Cargo oracle Tier-A set has 17 cases. `tasks_v4` already had `oxidecomputer__dropshot__580` and `regexident__cargo-modules__122`; fifteen additional Cargo Tier-A directories were added on 2026-06-15. The newly repaired Cargo A cases preserve their verified harness settings:
   - `Stranger6667__jsonschema__825`: `rust:1.86-bullseye`, subdir `crates/jsonschema`, `git submodule update --init --recursive && cargo fetch`, `cargo test --no-fail-fast --all-features`
   - `omjadas__hudsucker__88`: `rust:1.88-bullseye`, `cargo test --lib --no-run --no-default-features --features rcgen-ca,rustls-client`
