@@ -12,7 +12,5 @@ RUN apt-get update && apt-get install -y git patch curl ca-certificates && rm -r
 WORKDIR /app
 RUN git clone https://github.com/apache/logging-log4j2.git . && git checkout 56c384864f7305f4bbf0aa9d9c766bd4d87b6a3f
 
-# v3-no-manifest-preapply: bring manifest.patch into the image but do NOT apply it
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app

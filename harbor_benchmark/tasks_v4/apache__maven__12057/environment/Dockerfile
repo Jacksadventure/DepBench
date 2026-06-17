@@ -12,7 +12,5 @@ RUN apt-get update && apt-get install -y git patch curl ca-certificates && rm -r
 WORKDIR /app
 RUN git clone https://github.com/apache/maven.git . && git checkout e2f84736be1bf8cbd2377579742ae547d6bf5b2c
 
-# v3-no-manifest-preapply: bring manifest.patch into the image but do NOT apply it
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app

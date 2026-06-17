@@ -6,8 +6,6 @@ RUN apt-get update && apt-get install -y git patch ca-certificates && rm -rf /va
 WORKDIR /app
 RUN git clone https://github.com/mozilla/sccache.git . && git checkout 9bd1b623b9f4c2e35abe651d9091fc0b4c1644ce
 
-# v3-no-manifest-preapply: bring the patch INTO the image but do NOT apply it.
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app
 RUN cargo fetch

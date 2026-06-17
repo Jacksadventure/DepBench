@@ -12,7 +12,5 @@ RUN apt-get update && apt-get install -y git patch curl ca-certificates && rm -r
 WORKDIR /app
 RUN git clone https://github.com/onthegomap/planetiler.git . && git checkout 6b5b84c14225c52e9bf65c8e8a460e1dfa552eec
 
-# v3-no-manifest-preapply: bring manifest.patch into the image but do NOT apply it
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app

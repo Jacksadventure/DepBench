@@ -6,8 +6,6 @@ RUN apt-get update && apt-get install -y git patch ca-certificates && rm -rf /va
 WORKDIR /app
 RUN git clone https://github.com/oxidecomputer/dropshot.git . && git checkout 64bd7ba0401d37f81cf2d0d4874cd73c353281b9
 
-# v3-no-manifest-preapply: bring the patch INTO the image but do NOT apply it.
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app
 RUN cargo fetch

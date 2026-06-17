@@ -12,7 +12,5 @@ RUN apt-get update && apt-get install -y git patch curl ca-certificates && rm -r
 WORKDIR /app
 RUN git clone https://github.com/jenkinsci/warnings-ng-plugin.git . && git checkout 200a4ffbb7496cfd2e83e57420ed7219e67ce0c5
 
-# v3-no-manifest-preapply: bring manifest.patch into the image but do NOT apply it
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app

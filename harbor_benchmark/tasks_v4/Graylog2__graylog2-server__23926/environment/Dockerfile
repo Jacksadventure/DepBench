@@ -12,7 +12,5 @@ RUN apt-get update && apt-get install -y git patch curl ca-certificates && rm -r
 WORKDIR /app
 RUN git clone https://github.com/Graylog2/graylog2-server.git . && git checkout 9e442a84b58aee9e749f2fdc19601f77b8989d99
 
-# v3-no-manifest-preapply: bring manifest.patch into the image but do NOT apply it
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app

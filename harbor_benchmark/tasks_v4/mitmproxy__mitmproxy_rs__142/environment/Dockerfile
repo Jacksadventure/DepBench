@@ -6,8 +6,6 @@ RUN apt-get update && apt-get install -y git patch ca-certificates && rm -rf /va
 WORKDIR /app
 RUN git clone https://github.com/mitmproxy/mitmproxy_rs.git . && git checkout 8ecc53cfe441a2f7445cf8e96bf08eec8a3b333e
 
-# v3-no-manifest-preapply: bring the patch INTO the image but do NOT apply it.
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app
 RUN cargo fetch

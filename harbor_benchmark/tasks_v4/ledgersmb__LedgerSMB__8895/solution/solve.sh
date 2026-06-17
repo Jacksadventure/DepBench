@@ -16,10 +16,10 @@ if [ -s /harbor/environment/patches/manifest.patch ]; then
     _apply_patch /harbor/environment/patches/manifest.patch
 elif [ -s /environment/patches/manifest.patch ]; then
     _apply_patch /environment/patches/manifest.patch
-elif [ -s /tmp/manifest.patch ]; then
-    _apply_patch /tmp/manifest.patch
+elif [ -s /solution/manifest.patch ]; then
+    _apply_patch /solution/manifest.patch
 else
-    echo 'manifest.patch not found at /harbor/environment/patches/manifest.patch, /environment/patches/manifest.patch, or /tmp/manifest.patch; skipping' >&2
+    echo 'manifest.patch not found at /harbor/environment/patches/manifest.patch, /environment/patches/manifest.patch, or /solution/manifest.patch; skipping' >&2
 fi
 
 # Replay any install/setup commands that used to run after the manifest patch was baked into the image.

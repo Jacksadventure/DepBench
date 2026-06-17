@@ -6,8 +6,6 @@ RUN apt-get update && apt-get install -y git patch && rm -rf /var/lib/apt/lists/
 WORKDIR /app
 RUN git clone https://github.com/decaporg/decap-cms.git . && git checkout 9662331c517d02d3d79540ff019a0f39e3f202ce
 
-# v3-no-manifest-preapply: bring manifest.patch into the image but do NOT apply it
-COPY patches/manifest.patch /tmp/manifest.patch
 
 WORKDIR /app
 RUN corepack enable && yarn install --ignore-engines --ignore-scripts || yarn install --ignore-scripts

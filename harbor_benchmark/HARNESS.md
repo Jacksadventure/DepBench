@@ -21,8 +21,8 @@ This document captures the **current Harbor harness and dataset state** so we ca
 │  2. apt-get install git patch                                               │
 │  3. WORKDIR /app                                                            │
 │  4. git clone <repo>.git . && git checkout <base_sha>                       │
-│  5. COPY patches/manifest.patch into the image but do NOT apply it          │
-│  6. optional project bootstrap/cache commands on the base checkout          │
+│  5. optional project bootstrap/cache commands on the base checkout          │
+│  6. keep dependency-upgrade manifest patch outside the agent image          │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -136,15 +136,11 @@ WORKDIR /app
 RUN git clone https://github.com/peopledatalabs/peopledatalabs-python.git . \
  && git checkout 6007ee833b4df462a839e58e1095d7ae144a0d21
 
-# v4-no-manifest-preapply: keep the dependency upgrade patch visible but do not
-# apply it during image build.
-COPY patches/manifest.patch /tmp/manifest.patch
-
 WORKDIR /app
 RUN pip install pytest && pip install -e .
 ```
 
-> The base `image` and the install-`RUN` lines come from the per-row fields `image` + `dockerfile` in the source dataset. Under v4, those install commands run on the base checkout during image build, and `solution/solve.sh` replays the relevant post-manifest setup after applying `manifest.patch` for oracle/sanity runs.
+> The base `image` and the install-`RUN` lines come from the per-row fields `image` + `dockerfile` in the source dataset. Under v4, those install commands run on the base checkout during image build. The dependency-upgrade manifest patch is not copied into the agent-visible image; a duplicate lives at `solution/manifest.patch` so `solution/solve.sh` can apply it for oracle/sanity runs before replaying the relevant post-manifest setup.
 
 ### 3.3 `instruction.md` (agent-visible)
 
@@ -406,8 +402,8 @@ TOTAL :           45    109  154   29.2%
 - **Ecosystem mix**: npm/yarn 145 · Maven/Java 74 · Go 35 · Cargo/Rust 23 · Python 20.
 - **Metadata schemas**: 143 tasks use `schema_version = "1.1"` and 154 tasks use legacy `version = "1.0"`.
 - **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 297 rows.
-- **No-preapply audit**: a 2026-06-15 rerun dry start exposed 27 residual Dockerfiles that still applied `manifest.patch` from alternate paths (`/app/manifest.patch`, `/benchmark/manifest.patch`, `.harbor_manifest.patch`, or `/app/.harbor/manifest.patch`) during image build. These were converted so Dockerfiles only copy `manifest.patch` to `/tmp/manifest.patch`; their oracle `solve.sh` now applies the manifest patch and replays the original post-manifest setup commands before `code.patch`.
-- **Current static validation**: 297 task dirs · `manifest_preapply=0` · `empty_test_patch=0` · `missing_manifest_copy=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
+- **No-preapply audit**: a 2026-06-15 rerun dry start exposed 27 residual Dockerfiles that still applied `manifest.patch` from alternate paths (`/app/manifest.patch`, `/benchmark/manifest.patch`, `.harbor_manifest.patch`, or `/app/.harbor/manifest.patch`) during image build. These were first converted to copy-only behavior, then the image-visible copy was removed entirely: Dockerfiles no longer reference `manifest.patch`, and oracle `solve.sh` applies `solution/manifest.patch` before replaying the original post-manifest setup commands and `code.patch`.
+- **Current static validation**: 297 task dirs · `manifest_preapply=0` · `image_manifest_refs=0` · `solution_manifest_copies=297` · `empty_test_patch=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
 - **Cargo update**: the current Cargo oracle Tier-A set has 17 cases. `tasks_v4` already had `oxidecomputer__dropshot__580` and `regexident__cargo-modules__122`; fifteen additional Cargo Tier-A directories were added on 2026-06-15. The newly repaired Cargo A cases preserve their verified harness settings:
   - `Stranger6667__jsonschema__825`: `rust:1.86-bullseye`, subdir `crates/jsonschema`, `git submodule update --init --recursive && cargo fetch`, `cargo test --no-fail-fast --all-features`
   - `omjadas__hudsucker__88`: `rust:1.88-bullseye`, `cargo test --lib --no-run --no-default-features --features rcgen-ca,rustls-client`

@@ -32,7 +32,7 @@ _apply_patch_if_needed() {
 _apply_manifest_patch() {
     local patch_file
     for patch_file in \
-        /tmp/manifest.patch \
+        /solution/manifest.patch \
         /harbor/environment/patches/manifest.patch \
         /environment/patches/manifest.patch \
         /benchmark/manifest.patch \
