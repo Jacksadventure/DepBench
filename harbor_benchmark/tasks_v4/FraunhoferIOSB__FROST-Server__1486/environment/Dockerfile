@@ -10,7 +10,10 @@ ENV CI=true \
 RUN apt-get update && apt-get install -y git patch curl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-RUN git clone https://github.com/FraunhoferIOSB/FROST-Server.git . && git checkout 4600234c9166c54497d9c1a9cae952755e05fbd6
+RUN git init . \
+ && git remote add origin https://github.com/FraunhoferIOSB/FROST-Server.git \
+ && git fetch --depth=1 origin 4600234c9166c54497d9c1a9cae952755e05fbd6 \
+ && git checkout FETCH_HEAD
 
 
 WORKDIR /app
