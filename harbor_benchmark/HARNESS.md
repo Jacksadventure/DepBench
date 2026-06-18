@@ -1,10 +1,10 @@
 # Harbor Harness — depbot dependency-upgrade benchmark
 
 > Snapshot taken: **2026-06-15 03:00 UTC**
-> Current dataset source of truth: **`harbor_benchmark/tasks_v4/` = 297 tasks**
-> Current ecosystem mix: **npm/yarn 145 · Maven/Java 74 · Go 35 · Cargo/Rust 23 · Python 20**
-> Task metadata schemas: **143 `schema_version = "1.1"` tasks · 154 legacy `version = "1.0"` tasks**
-> Index file: **`harbor_benchmark/task_summary.json` = 297 rows**, regenerated from `tasks_v4` on 2026-06-15
+> Current dataset source of truth: **`harbor_benchmark/tasks_v4/` = 228 tasks**
+> Current ecosystem mix: **npm/yarn 95 · Maven/Java 67 · Go 31 · Cargo/Rust 22 · Python 13**
+> Task metadata schemas: **106 `schema_version = "1.1"` tasks · 122 legacy `version = "1.0"` tasks**
+> Index file: **`harbor_benchmark/task_summary.json` = 228 rows**, regenerated from `tasks_v4` on 2026-06-18
 > Stale parquet note: **`pass_dataset_v4.parquet` still has 218 rows** and is not the authoritative v4 source until rebuilt.
 
 This document captures the **current Harbor harness and dataset state** so we can A/B different settings later. Variant log is at the bottom — append a new revision when settings change.
@@ -27,11 +27,11 @@ This document captures the **current Harbor harness and dataset state** so we ca
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Agent phase (timeout 1800s)                                                │
 │  ────────────────────────                                                   │
-│  Container starts. Agent (copilot-cli) is given:                            │
+│  Container starts. Agent is given:                                          │
 │    • /app  ← repo at base_sha                                               │
-│    • /tmp/manifest.patch and/or /harbor/environment/patches/manifest.patch  │
-│    • /app/instruction.md                                                    │
+│    • instruction text as the agent prompt                                   │
 │  Agent does NOT see:                                                        │
+│    • manifest.patch (dependency patch; oracle-only)                         │
 │    • code.patch (oracle solution)                                           │
 │    • test.patch (canonical post-upgrade tests)                              │
 │  Agent performs the dependency upgrade, edits /app source files, and exits. │
@@ -52,7 +52,7 @@ This document captures the **current Harbor harness and dataset state** so we ca
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Key invariant: the agent is graded against a **fixed test.patch**. Even if it modified the working tree, the verifier overlays test.patch right before running tests, so the oracle test set is identical across every trial. Under the v3/v4 no-manifest-preapply setup, the dependency manifest patch is available to the agent but is not baked into `/app`; the agent must perform the upgrade itself.
+Key invariant: the agent is graded against a **fixed test.patch**. Even if it modified the working tree, the verifier overlays test.patch right before running tests, so the oracle test set is identical across every trial. Under the current prebuilt-image setup, the dependency manifest patch is not baked into `/app` and is not visible to the agent; the agent must infer and perform the upgrade from the instruction.
 
 ---
 
@@ -63,10 +63,11 @@ harbor_benchmark/tasks_v4/<folder>/
 ├── instruction.md                      # what the agent sees
 ├── task.toml                           # metadata + timeouts + resources
 ├── environment/
-│   ├── Dockerfile                      # build phase
+│   ├── docker-compose.yaml             # placeholder; runtime uses docker_image
 │   └── patches/
-│       └── manifest.patch              # dep upgrade (visible, not pre-applied)
+│       └── manifest.patch              # dep upgrade source copy (not agent-visible)
 ├── solution/                           # oracle, hidden from agent
+│   ├── manifest.patch                  # dep upgrade patch copied for oracle use
 │   ├── solve.sh                        # applies manifest.patch, then code.patch
 │   └── code.patch                      # gold source-code fix (may be empty)
 └── tests/                              # uploaded only at verify phase
@@ -75,17 +76,17 @@ harbor_benchmark/tasks_v4/<folder>/
     └── test.patch                      # canonical post-upgrade tests (hidden)
 ```
 
-Current `tasks_v4` contains **297 tasks**:
+Current `tasks_v4` contains **228 tasks**:
 
 | Ecosystem | Tasks |
 |---|---:|
-| npm/yarn | 145 |
-| Maven/Java | 74 |
-| Go | 35 |
-| Cargo/Rust | 23 |
-| Python | 20 |
+| npm/yarn | 95 |
+| Maven/Java | 67 |
+| Go | 31 |
+| Cargo/Rust | 22 |
+| Python | 13 |
 
-The Cargo/Rust subset includes all **17 current Cargo oracle Tier-A** cases from `/Data2/v-zijianluo/bump/data/benchmark/_github_cargo_crawl/oracle/dataset/cargo_level1_oracle_tier_a.jsonl`; two were already present and fifteen were added on 2026-06-15. The Cargo oracle source distribution at this snapshot is **A=17 / B=15 / C=297** over 329 results.
+The Cargo/Rust subset was pruned with the rest of the dataset after the non-witness audit. The original 297-task snapshot included all 17 Cargo oracle Tier-A cases; the current clean/pruned snapshot keeps 22 Cargo/Rust tasks total.
 
 ---
 
@@ -288,7 +289,7 @@ For the 175 rescued tasks, `code.patch` and `test.patch` have been stripped of d
     {"name": "copilot-cli"}              // default model = whatever copilot-cli ships
   ],
   "datasets": [
-    {"path": "/Data2/v-zijianluo/depbot/harbor_benchmark/tasks_v4"}   // all 297 v4 tasks
+    {"path": "/Data2/v-zijianluo/depbot/harbor_benchmark/tasks_v4"}   // current pruned v4 tasks
   ]
 }
 ```
@@ -386,15 +387,16 @@ TOTAL :           45    109  154   29.2%
 
 ## 8. Variant log (append on each new setting)
 
-### v4 dataset snapshot — 297 tasks in `tasks_v4` (2026-06-15)
+### v4 dataset snapshot — 228 tasks in `tasks_v4` (2026-06-18)
 
 - **Current authoritative dataset path**: `harbor_benchmark/tasks_v4/`.
-- **Task count**: **297** task directories, all with `task.toml`.
-- **Ecosystem mix**: npm/yarn 145 · Maven/Java 74 · Go 35 · Cargo/Rust 23 · Python 20.
-- **Metadata schemas**: 143 tasks use `schema_version = "1.1"` and 154 tasks use legacy `version = "1.0"`.
-- **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 297 rows.
+- **Task count**: **228** task directories, all with `task.toml`.
+- **Ecosystem mix**: npm/yarn 95 · Maven/Java 67 · Go 31 · Cargo/Rust 22 · Python 13.
+- **Metadata schemas**: 106 tasks use `schema_version = "1.1"` and 122 tasks use legacy `version = "1.0"`.
+- **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 228 rows.
+- **Non-witness pruning**: 69 tasks were removed from the 297-task snapshot after blind file-level review of the 92 non-clean audit cases. The retained set is 205 clean `WITNESSES_BREAKING_CHANGE` cases plus 14 `KEEP` and 9 `DYNAMIC` cases from `clean_set_pruning_recommendations_2026-06-18`.
 - **No-preapply audit**: a 2026-06-15 rerun dry start exposed 27 residual Dockerfiles that still applied `manifest.patch` from alternate paths (`/app/manifest.patch`, `/benchmark/manifest.patch`, `.harbor_manifest.patch`, or `/app/.harbor/manifest.patch`) during image build. These were first converted to copy-only behavior, then the image-visible copy was removed entirely. The final v4 task layout removes Dockerfiles altogether, relies on prebuilt `docker_image` entries, and has oracle `solve.sh` apply `solution/manifest.patch` before replaying the original post-manifest setup commands and `code.patch`.
-- **Current static validation**: 297 task dirs · `docker_image=297` · `environment_dockerfiles=0` · `compose_placeholders=297` · `solution_manifest_copies=297` · `empty_test_patch=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
+- **Current static validation**: 228 task dirs · `docker_image=228` · `environment_dockerfiles=0` · `compose_placeholders=228` · `solution_manifest_copies=228` · `empty_test_patch=0` · `non_exec_scripts=0` · `solve_syntax_errors=0`.
 - **Cargo update**: the current Cargo oracle Tier-A set has 17 cases. `tasks_v4` already had `oxidecomputer__dropshot__580` and `regexident__cargo-modules__122`; fifteen additional Cargo Tier-A directories were added on 2026-06-15. The newly repaired Cargo A cases preserve their verified harness settings:
   - `Stranger6667__jsonschema__825`: `rust:1.86-bullseye`, subdir `crates/jsonschema`, `git submodule update --init --recursive && cargo fetch`, `cargo test --no-fail-fast --all-features`
   - `omjadas__hudsucker__88`: `rust:1.88-bullseye`, `cargo test --lib --no-run --no-default-features --features rcgen-ca,rustls-client`
