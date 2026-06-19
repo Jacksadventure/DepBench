@@ -1,10 +1,10 @@
 # Harbor Harness — depbot dependency-upgrade benchmark
 
-> Snapshot taken: **2026-06-15 03:00 UTC**
-> Current dataset source of truth: **`harbor_benchmark/tasks_v4/` = 228 tasks**
-> Current ecosystem mix: **npm/yarn 95 · Maven/Java 67 · Go 31 · Cargo/Rust 22 · Python 13**
-> Task metadata schemas: **106 `schema_version = "1.1"` tasks · 122 legacy `version = "1.0"` tasks**
-> Index file: **`harbor_benchmark/task_summary.json` = 228 rows**, regenerated from `tasks_v4` on 2026-06-18
+> Snapshot taken: **2026-06-19 15:45 UTC**
+> Current dataset source of truth: **`harbor_benchmark/tasks_v4/` = 205 tasks**
+> Current ecosystem mix: **npm/yarn 79 · Maven/Java 66 · Go 28 · Cargo/Rust 20 · Python 12**
+> Task metadata schemas: **96 `schema_version = "1.1"` tasks · 109 legacy `version = "1.0"` tasks**
+> Index file: **`harbor_benchmark/task_summary.json` = 205 rows**, regenerated from `tasks_v4` on 2026-06-19
 > Stale parquet note: **`pass_dataset_v4.parquet` still has 218 rows** and is not the authoritative v4 source until rebuilt.
 
 This document captures the **current Harbor harness and dataset state** so we can A/B different settings later. Variant log is at the bottom — append a new revision when settings change.
@@ -76,17 +76,17 @@ harbor_benchmark/tasks_v4/<folder>/
     └── test.patch                      # canonical post-upgrade tests (hidden)
 ```
 
-Current `tasks_v4` contains **228 tasks**:
+Current `tasks_v4` contains **205 tasks**:
 
 | Ecosystem | Tasks |
 |---|---:|
-| npm/yarn | 95 |
-| Maven/Java | 67 |
-| Go | 31 |
-| Cargo/Rust | 22 |
-| Python | 13 |
+| npm/yarn | 79 |
+| Maven/Java | 66 |
+| Go | 28 |
+| Cargo/Rust | 20 |
+| Python | 12 |
 
-The Cargo/Rust subset was pruned with the rest of the dataset after the non-witness audit. The original 297-task snapshot included all 17 Cargo oracle Tier-A cases; the current clean/pruned snapshot keeps 22 Cargo/Rust tasks total.
+The Cargo/Rust subset was pruned with the rest of the dataset after the non-witness audit. The original 297-task snapshot included all 17 Cargo oracle Tier-A cases; the current clean/pruned snapshot keeps 20 Cargo/Rust tasks total.
 
 ---
 
@@ -386,6 +386,16 @@ TOTAL :           45    109  154   29.2%
 ---
 
 ## 8. Variant log (append on each new setting)
+
+### v4 clean witnessed snapshot — 205 tasks in `tasks_v4` (2026-06-19)
+
+- **Current authoritative dataset path**: `harbor_benchmark/tasks_v4/`.
+- **Task count**: **205** task directories, all with `task.toml`.
+- **Ecosystem mix**: npm/yarn 79 · Maven/Java 66 · Go 28 · Cargo/Rust 20 · Python 12.
+- **Metadata schemas**: 96 tasks use `schema_version = "1.1"` and 109 tasks use legacy `version = "1.0"`.
+- **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 205 rows.
+- **Drop-list removal**: removed the remaining 23 non-clean current tasks from the 228-task snapshot. The retained set now matches the 2026-06-18 static-audit `WITNESSES_BREAKING_CHANGE` intersection with the current task tree.
+- **Current static validation**: 205 task dirs · `task_summary.json=205` · drop-list directories absent from `tasks_v4`.
 
 ### v4 dataset snapshot — 228 tasks in `tasks_v4` (2026-06-18)
 
