@@ -387,6 +387,13 @@ TOTAL :           45    109  154   29.2%
 
 ## 8. Variant log (append on each new setting)
 
+### v4 clean witnessed frozen-run policy — 205 tasks (2026-06-22)
+
+- **Benchmark baseline remains**: the 2026-06-19 clean witnessed `tasks_v4` snapshot with **205** tasks.
+- **Launch policy**: multi-hour Harbor runs must target a **frozen dataset snapshot path** (for example, a detached worktree or immutable copied tree), not the mutable working-tree path `harbor_benchmark/tasks_v4/`.
+- **Reason**: a 2026-06-22 OpenCode Gemini rerun launched against the old 228-task mutable path became invalid after the branch moved `tasks_v4` to the pruned 205-task snapshot mid-run, which later caused `FileNotFoundError` on removed task directories.
+- **Comparison policy**: the 228-task Gemini Copilot/OpenCode artifacts are historical postmortem evidence only. Fresh benchmark comparisons should use the frozen clean205 baseline.
+
 ### v4 clean witnessed snapshot — 205 tasks in `tasks_v4` (2026-06-19)
 
 - **Current authoritative dataset path**: `harbor_benchmark/tasks_v4/`.
