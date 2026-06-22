@@ -1,0 +1,116 @@
+diff --git a/docs/docs_test.go b/docs/docs_test.go
+--- a/docs/docs_test.go
++++ b/docs/docs_test.go
+@@ -6,46 +6,46 @@ import (
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/assert"
+-	"github.com/urfave/cli/v2"
++	"github.com/urfave/cli/v3"
+ )
+ 
+-func testApp() *cli.App {
+-	app := &cli.App{
++func testApp() *cli.Command {
++	app := &cli.Command{
+ 		Name:        "test",
+ 		Description: "test description",
+ 		Flags: []cli.Flag{
+-			&cli.Int64Flag{
++			&cli.IntFlag{
+ 				Name:     "dummy-flag-int",
+ 				Usage:    "dummy int flag desc",
+-				EnvVars:  []string{"PLUGIN_DUMMY_FLAG_INT"},
++				Sources:  cli.EnvVars("PLUGIN_DUMMY_FLAG_INT"),
+ 				Value:    10,
+ 				Required: true,
+ 			},
+ 			&cli.StringFlag{
+ 				Name:     "dummy-flag",
+ 				Usage:    "Dummy flag desc.",
+-				EnvVars:  []string{"PLUGIN_DUMMY_FLAG"},
++				Sources:  cli.EnvVars("PLUGIN_DUMMY_FLAG"),
+ 				Value:    "test",
+ 				Required: true,
+ 			},
+ 			&cli.StringFlag{
+ 				Name:    "simpe-flag",
+-				EnvVars: []string{"PLUGIN_X_SIMPLE_FLAG"},
++				Sources: cli.EnvVars("PLUGIN_X_SIMPLE_FLAG"),
+ 			},
+ 			&cli.StringFlag{
+ 				Name:    "other.flag",
+ 				Usage:   "other flag with desc",
+-				EnvVars: []string{"PLUGIN_Z_OTHER_FLAG"},
++				Sources: cli.EnvVars("PLUGIN_Z_OTHER_FLAG"),
+ 			},
+ 			&cli.StringSliceFlag{
+ 				Name:    "slice.flag",
+ 				Usage:   "slice flag",
+-				EnvVars: []string{"PLUGIN_SLICE_FLAG"},
++				Sources: cli.EnvVars("PLUGIN_SLICE_FLAG"),
+ 			},
+ 			&cli.StringFlag{
+ 				Name:    "hidden.flag",
+ 				Usage:   "hidden flag",
+-				EnvVars: []string{"HIDDEN_FLAG", "PLUGIN_HIDDEN_FLAG"},
++				Sources: cli.EnvVars("HIDDEN_FLAG", "PLUGIN_HIDDEN_FLAG"),
+ 			},
+ 		},
+ 	}
+@@ -69,7 +69,7 @@ func testFileContent(t *testing.T, file string) string {
+ func TestToMarkdownFull(t *testing.T) {
+ 	tests := []struct {
+ 		name string
+-		app  *cli.App
++		app  *cli.Command
+ 		want string
+ 	}{
+ 		{
+@@ -91,13 +91,13 @@ func TestToMarkdownFull(t *testing.T) {
+ func TestToData(t *testing.T) {
+ 	tests := []struct {
+ 		name string
+-		app  *cli.App
++		app  *cli.Command
+ 		want *CliTemplate
+ 	}{
+ 		{
+-			"normal branch",
+-			testApp(),
+-			&CliTemplate{
++			name: "normal branch",
++			app:  testApp(),
++			want: &CliTemplate{
+ 				Name:        "test",
+ 				Description: "test description",
+ 				GlobalArgs: []*PluginArg{
+diff --git a/plugin/commit_test.go b/plugin/commit_test.go
+--- a/plugin/commit_test.go
++++ b/plugin/commit_test.go
+@@ -5,7 +5,7 @@ import (
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/assert"
+-	"github.com/urfave/cli/v2"
++	"github.com/urfave/cli/v3"
+ )
+ 
+ func Test_currFromContext(t *testing.T) {
+@@ -61,13 +61,13 @@ func Test_currFromContext(t *testing.T) {
+ 
+ 		t.Run(tt.name, func(t *testing.T) {
+ 			got := New(options)
+-			got.App.Action = func(ctx *cli.Context) error {
+-				got.Metadata = MetadataFromContext(ctx)
++			got.App.Action = func(_ context.Context, cmd *cli.Command) error {
++				got.Metadata = MetadataFromContext(cmd)
+ 
+ 				return nil
+ 			}
+ 
+-			_ = got.App.Run([]string{"dummy"})
++			_ = got.App.Run(t.Context(), []string{"dummy"})
+ 
+ 			assert.Equal(t, got.Metadata.Curr.Message, tt.want["message"])
+ 			assert.Equal(t, got.Metadata.Curr.Title, tt.want["title"])

@@ -1,0 +1,131 @@
+diff --git a/cmd/vela-docker/build_test.go b/cmd/vela-docker/build_test.go
+--- a/cmd/vela-docker/build_test.go
++++ b/cmd/vela-docker/build_test.go
+@@ -55,7 +55,8 @@ func TestDocker_Build_Command(t *testing.T) {
+ 
+ 	//nolint:gosec // this functionality is not exploitable the way
+ 	// the plugin accepts configuration
+-	want := exec.Command(
++	want := exec.CommandContext(
++		t.Context(),
+ 		_docker,
+ 		buildAction,
+ 		fmt.Sprintf("--add-host %s", b.AddHosts[0]),
+@@ -96,7 +97,7 @@ func TestDocker_Build_Command(t *testing.T) {
+ 		".",
+ 	)
+ 
+-	got := b.Command()
++	got := b.Command(t.Context())
+ 	if !strings.EqualFold(got.String(), want.String()) {
+ 		t.Errorf("Command is %v, want %v", got, want)
+ 	}
+@@ -109,7 +110,7 @@ func TestDocker_Build_Exec_Error(t *testing.T) {
+ 		Label: &Label{},
+ 	}
+ 
+-	err := b.Exec()
++	err := b.Exec(t.Context())
+ 	if err == nil {
+ 		t.Errorf("Exec should have returned err")
+ 	}
+diff --git a/cmd/vela-docker/command_test.go b/cmd/vela-docker/command_test.go
+--- a/cmd/vela-docker/command_test.go
++++ b/cmd/vela-docker/command_test.go
+@@ -4,13 +4,12 @@ package main
+ 
+ import (
+ 	"os/exec"
+-	"reflect"
+ 	"testing"
+ )
+ 
+ func TestDocker_execCmd(t *testing.T) {
+ 	// setup types
+-	e := exec.Command("echo", "hello")
++	e := exec.CommandContext(t.Context(), "echo", "hello")
+ 
+ 	err := execCmd(e)
+ 	if err != nil {
+@@ -20,14 +19,15 @@ func TestDocker_execCmd(t *testing.T) {
+ 
+ func TestDocker_versionCmd(t *testing.T) {
+ 	// setup types
+-	want := exec.Command(
++	want := exec.CommandContext(
++		t.Context(),
+ 		_docker,
+ 		"version",
+ 	)
+ 
+-	got := versionCmd()
++	got := versionCmd(t.Context())
+ 
+-	if !reflect.DeepEqual(got, want) {
++	if got.String() != want.String() {
+ 		t.Errorf("versionCmd is %v, want %v", got, want)
+ 	}
+ }
+diff --git a/cmd/vela-docker/daemon_test.go b/cmd/vela-docker/daemon_test.go
+--- a/cmd/vela-docker/daemon_test.go
++++ b/cmd/vela-docker/daemon_test.go
+@@ -30,7 +30,8 @@ func TestDocker_Daemon_Command(t *testing.T) {
+ 
+ 	//nolint:gosec // this functionality is not exploitable the way
+ 	// the plugin accepts configuration
+-	want := exec.Command(
++	want := exec.CommandContext(
++		t.Context(),
+ 		_dockerd,
+ 		"--data-root=/var/lib/docker",
+ 		"--host=unix:///var/run/docker.sock",
+@@ -47,7 +48,7 @@ func TestDocker_Daemon_Command(t *testing.T) {
+ 		fmt.Sprintf("--storage-opt %s", d.Storage.Opts[0]),
+ 	)
+ 
+-	got := d.Command()
++	got := d.Command(t.Context())
+ 	if !strings.EqualFold(got.String(), want.String()) {
+ 		t.Errorf("Command is %v, want %v", got, want)
+ 	}
+diff --git a/cmd/vela-docker/push_test.go b/cmd/vela-docker/push_test.go
+--- a/cmd/vela-docker/push_test.go
++++ b/cmd/vela-docker/push_test.go
+@@ -14,13 +14,14 @@ func TestDocker_Push_Command(t *testing.T) {
+ 		DisableContentTrust: true,
+ 	}
+ 
+-	want := exec.Command(
++	want := exec.CommandContext(
++		t.Context(),
+ 		_docker,
+ 		pushAction,
+ 		"--disable-content-trust ",
+ 	)
+ 
+-	got := p.Command()
++	got := p.Command(t.Context())
+ 	if !strings.EqualFold(got.String(), want.String()) {
+ 		t.Errorf("Command is %v, want %v", got, want)
+ 	}
+@@ -30,7 +31,7 @@ func TestDocker_Push_Exec_Error(t *testing.T) {
+ 	// setup types
+ 	p := &Push{}
+ 
+-	err := p.Exec()
++	err := p.Exec(t.Context())
+ 	if err == nil {
+ 		t.Errorf("Exec should have returned err")
+ 	}
+diff --git a/cmd/vela-docker/registry_test.go b/cmd/vela-docker/registry_test.go
+--- a/cmd/vela-docker/registry_test.go
++++ b/cmd/vela-docker/registry_test.go
+@@ -36,7 +36,7 @@ func TestDocker_Registry_Login(t *testing.T) {
+ 
+ 	// run tests
+ 	for _, test := range tests {
+-		err := test.registry.Login()
++		err := test.registry.Login(t.Context())
+ 
+ 		if test.failure {
+ 			if err == nil {

@@ -1,0 +1,82 @@
+diff --git a/pkg/github/helper_test.go b/pkg/github/helper_test.go
+--- a/pkg/github/helper_test.go
++++ b/pkg/github/helper_test.go
+@@ -109,14 +109,12 @@ func mockResponse(t *testing.T, code int, body interface{}) http.HandlerFunc {
+ }
+ 
+ // createMCPRequest is a helper function to create a MCP request with the given arguments.
+-func createMCPRequest(args map[string]interface{}) mcp.CallToolRequest {
++func createMCPRequest(args map[string]any) mcp.CallToolRequest {
+ 	return mcp.CallToolRequest{
+ 		Params: struct {
+-			Name      string                 `json:"name"`
+-			Arguments map[string]interface{} `json:"arguments,omitempty"`
+-			Meta      *struct {
+-				ProgressToken mcp.ProgressToken `json:"progressToken,omitempty"`
+-			} `json:"_meta,omitempty"`
++			Name      string         `json:"name"`
++			Arguments map[string]any `json:"arguments,omitempty"`
++			Meta      *mcp.Meta      `json:"_meta,omitempty"`
+ 		}{
+ 			Arguments: args,
+ 		},
+diff --git a/pkg/github/issues_test.go b/pkg/github/issues_test.go
+--- a/pkg/github/issues_test.go
++++ b/pkg/github/issues_test.go
+@@ -9,7 +9,6 @@ import (
+ 
+ 	"github.com/github/github-mcp-server/pkg/translations"
+ 	"github.com/google/go-github/v69/github"
+-	"github.com/mark3labs/mcp-go/mcp"
+ 	"github.com/migueleliasweb/go-github-mock/src/mock"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+@@ -188,17 +187,7 @@ func Test_AddIssueComment(t *testing.T) {
+ 			_, handler := AddIssueComment(stubGetClientFn(client), translations.NullTranslationHelper)
+ 
+ 			// Create call request
+-			request := mcp.CallToolRequest{
+-				Params: struct {
+-					Name      string                 `json:"name"`
+-					Arguments map[string]interface{} `json:"arguments,omitempty"`
+-					Meta      *struct {
+-						ProgressToken mcp.ProgressToken `json:"progressToken,omitempty"`
+-					} `json:"_meta,omitempty"`
+-				}{
+-					Arguments: tc.requestArgs,
+-				},
+-			}
++			request := createMCPRequest(tc.requestArgs)
+ 
+ 			// Call handler
+ 			result, err := handler(context.Background(), request)
+diff --git a/pkg/github/repositories_test.go b/pkg/github/repositories_test.go
+--- a/pkg/github/repositories_test.go
++++ b/pkg/github/repositories_test.go
+@@ -9,7 +9,6 @@ import (
+ 
+ 	"github.com/github/github-mcp-server/pkg/translations"
+ 	"github.com/google/go-github/v69/github"
+-	"github.com/mark3labs/mcp-go/mcp"
+ 	"github.com/migueleliasweb/go-github-mock/src/mock"
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+@@ -135,17 +134,7 @@ func Test_GetFileContents(t *testing.T) {
+ 			_, handler := GetFileContents(stubGetClientFn(client), translations.NullTranslationHelper)
+ 
+ 			// Create call request
+-			request := mcp.CallToolRequest{
+-				Params: struct {
+-					Name      string                 `json:"name"`
+-					Arguments map[string]interface{} `json:"arguments,omitempty"`
+-					Meta      *struct {
+-						ProgressToken mcp.ProgressToken `json:"progressToken,omitempty"`
+-					} `json:"_meta,omitempty"`
+-				}{
+-					Arguments: tc.requestArgs,
+-				},
+-			}
++			request := createMCPRequest(tc.requestArgs)
+ 
+ 			// Call handler
+ 			result, err := handler(context.Background(), request)

@@ -1,0 +1,85 @@
+diff --git a/cmd/tov/main.go b/cmd/tov/main.go
+--- a/cmd/tov/main.go
++++ b/cmd/tov/main.go
+@@ -6,7 +6,7 @@ import (
+ 	"os"
+ 	"os/exec"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
++	tea "charm.land/bubbletea/v2"
+ 
+ 	"github.com/magcho/tmux-overview/internal/config"
+ 	"github.com/magcho/tmux-overview/internal/hook"
+@@ -197,7 +197,7 @@ func runTUI() {
+ 	store := state.NewStore(cfg.Hook.StateDir)
+ 	model := tui.NewModel(client, store, cfg)
+ 
+-	p := tea.NewProgram(model, tea.WithAltScreen())
++	p := tea.NewProgram(model)
+ 	finalModel, err := p.Run()
+ 	if err != nil {
+ 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+diff --git a/internal/tui/keys.go b/internal/tui/keys.go
+--- a/internal/tui/keys.go
++++ b/internal/tui/keys.go
+@@ -1,6 +1,6 @@
+ package tui
+ 
+-import tea "github.com/charmbracelet/bubbletea"
++import tea "charm.land/bubbletea/v2"
+ 
+ type keyAction int
+ 
+diff --git a/internal/tui/model.go b/internal/tui/model.go
+--- a/internal/tui/model.go
++++ b/internal/tui/model.go
+@@ -3,7 +3,7 @@ package tui
+ import (
+ 	"time"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
++	tea "charm.land/bubbletea/v2"
+ 
+ 	"github.com/magcho/tmux-overview/internal/config"
+ 	"github.com/magcho/tmux-overview/internal/state"
+diff --git a/internal/tui/update.go b/internal/tui/update.go
+--- a/internal/tui/update.go
++++ b/internal/tui/update.go
+@@ -3,7 +3,7 @@ package tui
+ import (
+ 	"time"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
++	tea "charm.land/bubbletea/v2"
+ )
+ 
+ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+diff --git a/internal/tui/view.go b/internal/tui/view.go
+--- a/internal/tui/view.go
++++ b/internal/tui/view.go
+@@ -5,7 +5,8 @@ import (
+ 	"strings"
+ 	"time"
+ 
+-	"github.com/charmbracelet/lipgloss"
++	tea "charm.land/bubbletea/v2"
++	"charm.land/lipgloss/v2"
+ 	"github.com/charmbracelet/x/ansi"
+ 	"github.com/magcho/tmux-overview/internal/gitutil"
+ 	"github.com/magcho/tmux-overview/internal/tmux"
+@@ -74,7 +75,14 @@ var (
+ 
+ const borderOverhead = 2 // top + bottom border lines
+ 
+-func (m Model) View() string {
++func (m Model) View() tea.View {
++	view := tea.View{}
++	view.SetContent(m.viewContent())
++	view.AltScreen = true
++	return view
++}
++
++func (m Model) viewContent() string {
+ 	if m.quitting {
+ 		return ""
+ 	}

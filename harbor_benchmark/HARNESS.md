@@ -1,10 +1,10 @@
 # Harbor Harness — depbot dependency-upgrade benchmark
 
-> Snapshot taken: **2026-06-19 15:45 UTC**
-> Current dataset source of truth: **`harbor_benchmark/tasks_v4/` = 205 tasks**
-> Current ecosystem mix: **npm/yarn 79 · Maven/Java 66 · Go 28 · Cargo/Rust 20 · Python 12**
-> Task metadata schemas: **96 `schema_version = "1.1"` tasks · 109 legacy `version = "1.0"` tasks**
-> Index file: **`harbor_benchmark/task_summary.json` = 205 rows**, regenerated from `tasks_v4` on 2026-06-19
+> Snapshot taken: **2026-06-22 15:50 UTC**
+> Current dataset source of truth: **`harbor_benchmark/tasks_v4/` = 257 tasks**
+> Current ecosystem mix: **npm/yarn 79 · Maven/Java 66 · Go 79 · Cargo/Rust 21 · Python 12**
+> Task metadata schemas: **148 `schema_version = "1.1"` tasks · 109 legacy `version = "1.0"` tasks**
+> Index file: **`harbor_benchmark/task_summary.json` = 257 rows**, regenerated from `tasks_v4` on 2026-06-22
 > Stale parquet note: **`pass_dataset_v4.parquet` still has 218 rows** and is not the authoritative v4 source until rebuilt.
 
 This document captures the **current Harbor harness and dataset state** so we can A/B different settings later. Variant log is at the bottom — append a new revision when settings change.
@@ -76,14 +76,14 @@ harbor_benchmark/tasks_v4/<folder>/
     └── test.patch                      # canonical post-upgrade tests (hidden)
 ```
 
-Current `tasks_v4` contains **205 tasks**:
+Current `tasks_v4` contains **257 tasks**:
 
 | Ecosystem | Tasks |
 |---|---:|
 | npm/yarn | 79 |
 | Maven/Java | 66 |
-| Go | 28 |
-| Cargo/Rust | 20 |
+| Go | 79 |
+| Cargo/Rust | 21 |
 | Python | 12 |
 
 The Cargo/Rust subset was pruned with the rest of the dataset after the non-witness audit. The original 297-task snapshot included all 17 Cargo oracle Tier-A cases; the current clean/pruned snapshot keeps 20 Cargo/Rust tasks total.
@@ -403,6 +403,16 @@ TOTAL :           45    109  154   29.2%
 - **Index**: `harbor_benchmark/task_summary.json` regenerated from `tasks_v4` with 205 rows.
 - **Drop-list removal**: removed the remaining 23 non-clean current tasks from the 228-task snapshot. The retained set now matches the 2026-06-18 static-audit `WITNESSES_BREAKING_CHANGE` intersection with the current task tree.
 - **Current static validation**: 205 task dirs · `task_summary.json=205` · drop-list directories absent from `tasks_v4`.
+
+
+### v4 with-test addition — 52 tasks imported (2026-06-22)
+
+- Added **52** dependency-upgrade tasks from the with-test small pool after v4 oracle validation passed.
+- The import split upstream repair patches into v4 layout: production hunks in `solution/code.patch`, repository test hunks in hidden `tests/test.patch`, and manifest hunks in both `environment/patches/manifest.patch` and `solution/manifest.patch`.
+- Rebuilt and pushed v4 prebuilt images as `idk233333/depbench-task-images:v4test-<task>`, with static verification that no manifest patch leaked into the image.
+- Oracle validation job: `harbor_jobs/oracle_v4_with_tests_small_59_20260622__1505-00` — **52 pass / 7 fail / 0 exceptions**. The failed 7 and one unavailable PR (`FollowTheProcess__metrics__50`) were not imported.
+- Current `tasks_v4` count after import: **257**. Ecosystem mix: npm/yarn 79 · Maven/Java 66 · Go 79 · Cargo/Rust 21 · Python 12.
+- Import report: `harbor_benchmark/reports/with_tests_v4_import_20260622.json`.
 
 ### v4 dataset snapshot — 228 tasks in `tasks_v4` (2026-06-18)
 

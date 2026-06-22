@@ -1,0 +1,97 @@
+diff --git a/.github/workflows/main.yml b/.github/workflows/main.yml
+--- a/.github/workflows/main.yml
++++ b/.github/workflows/main.yml
+@@ -18,7 +18,7 @@ jobs:
+   test:
+     strategy:
+       matrix:
+-        go-version: [1.22.x]
++        go-version: [1.24.x]
+         os: [ubuntu-latest]
+     runs-on: ${{ matrix.os }}
+ 
+diff --git a/.github/workflows/publish-chart.yaml b/.github/workflows/publish-chart.yaml
+--- a/.github/workflows/publish-chart.yaml
++++ b/.github/workflows/publish-chart.yaml
+@@ -14,7 +14,7 @@ jobs:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Harden Runner
+-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
++        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+         with:
+           egress-policy: audit
+ 
+diff --git a/.github/workflows/release.yaml b/.github/workflows/release.yaml
+--- a/.github/workflows/release.yaml
++++ b/.github/workflows/release.yaml
+@@ -36,14 +36,14 @@ jobs:
+           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+           restore-keys: |
+             ${{ runner.os }}-go-
+-      - uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+-      - uses: anchore/sbom-action/download-syft@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.18.0
++      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
++      - uses: anchore/sbom-action/download-syft@9246b90769f852b3a8921f330c59e0b3f439d6e9 # v0.20.1
+ 
+       - name: Set Up Docker Buildx
+         uses: docker/setup-buildx-action@v3
+ 
+       - name: Set up Cosign
+-        uses: sigstore/cosign-installer@v3.8.2
++        uses: sigstore/cosign-installer@v3.9.1
+ 
+       - name: Login to Registry
+         uses: docker/login-action@v3
+diff --git a/.golangci.yaml b/.golangci.yaml
+--- a/.golangci.yaml
++++ b/.golangci.yaml
+@@ -613,7 +613,6 @@ linters:
+     - errname
+     - errorlint
+     - exhaustive
+-    - exportloopref
+     - forcetypeassert
+     - funlen
+     - gci
+@@ -647,7 +646,6 @@ linters:
+     - predeclared
+     - promlinter
+     - staticcheck
+-    - tenv
+     - thelper
+     - tparallel
+     - unconvert
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -1,4 +1,4 @@
+-GOLANGCI_VERSION = 1.62.0
++GOLANGCI_VERSION = 1.64.8
+ HELM_DOCS_VERSION = 1.14.2
+ LICENCES_IGNORE_LIST = $(shell cat licenses/licenses-ignore-list.txt)
+ 
+diff --git a/internal/repository/rrset_repository.go b/internal/repository/rrset_repository.go
+--- a/internal/repository/rrset_repository.go
++++ b/internal/repository/rrset_repository.go
+@@ -95,7 +95,7 @@ func (r *rrSetRepository) CreateRRSet(
+ 		Comment: rrSet.Comment,
+ 		Name:    rrSet.Name,
+ 		Ttl:     rrSet.Ttl,
+-		Type:    rrSet.Type,
++		Type:    stackitdnsclient.CreateRecordSetPayloadGetTypeAttributeType(rrSet.Type),
+ 		Records: &records,
+ 	}
+ 	_, err := r.apiClient.CreateRecordSet(ctx, r.projectId, r.zoneId).CreateRecordSetPayload(payload).Execute()
+diff --git a/internal/resolver/resolver.go b/internal/resolver/resolver.go
+--- a/internal/resolver/resolver.go
++++ b/internal/resolver/resolver.go
+@@ -197,7 +197,7 @@ func (s *stackitDnsProviderResolver) createRRSet(
+ 			},
+ 		},
+ 		Ttl:  &initResolverRes.acmeTxtDefaultTTL,
+-		Type: &rrSetType,
++		Type: stackitdnsclient.RecordSetGetTypeAttributeType(&rrSetType),
+ 	}
+ 
+ 	s.logger.Info("Creating RRSet", zap.String("rrSet", fmt.Sprintf("%+v", rrSet)))

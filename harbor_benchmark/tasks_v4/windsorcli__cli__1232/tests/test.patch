@@ -1,0 +1,358 @@
+diff --git a/pkg/services/dns_service_test.go b/pkg/services/dns_service_test.go
+--- a/pkg/services/dns_service_test.go
++++ b/pkg/services/dns_service_test.go
+@@ -6,7 +6,7 @@ import (
+ 	"strings"
+ 	"testing"
+ 
+-	"github.com/compose-spec/compose-go/types"
++	"github.com/compose-spec/compose-go/v2/types"
+ 	"github.com/windsorcli/cli/pkg/config"
+ 	"github.com/windsorcli/cli/pkg/di"
+ )
+@@ -222,8 +222,8 @@ func TestDNSService_GetComposeConfig(t *testing.T) {
+ 		if len(cfg.Services) != 1 {
+ 			t.Errorf("Expected 1 service, got %d", len(cfg.Services))
+ 		}
+-		if cfg.Services[0].Name != "dns" {
+-			t.Errorf("Expected service name to be 'dns', got %s", cfg.Services[0].Name)
++		if service, exists := cfg.Services["dns"]; !exists || service.Name != "dns" {
++			t.Errorf("Expected service with name 'dns', got %+v", cfg.Services)
+ 		}
+ 	})
+ 
+@@ -249,14 +249,27 @@ func TestDNSService_GetComposeConfig(t *testing.T) {
+ 		if len(cfg.Services) != 1 {
+ 			t.Errorf("Expected 1 service, got %d", len(cfg.Services))
+ 		}
+-		if len(cfg.Services[0].Ports) != 2 {
+-			t.Errorf("Expected 2 ports, got %d", len(cfg.Services[0].Ports))
++
++		// Get the DNS service from the map
++		var dnsService types.ServiceConfig
++		var found bool
++		for _, svc := range cfg.Services {
++			dnsService = svc
++			found = true
++			break
++		}
++		if !found {
++			t.Fatalf("No service found in Services map")
++		}
++
++		if len(dnsService.Ports) != 2 {
++			t.Errorf("Expected 2 ports, got %d", len(dnsService.Ports))
+ 		}
+-		if cfg.Services[0].Ports[0].Published != "53" || cfg.Services[0].Ports[0].Protocol != "tcp" {
+-			t.Errorf("Expected port 53 with protocol tcp, got port %s with protocol %s", cfg.Services[0].Ports[0].Published, cfg.Services[0].Ports[0].Protocol)
++		if dnsService.Ports[0].Published != "53" || dnsService.Ports[0].Protocol != "tcp" {
++			t.Errorf("Expected port 53 with protocol tcp, got port %s with protocol %s", dnsService.Ports[0].Published, dnsService.Ports[0].Protocol)
+ 		}
+-		if cfg.Services[0].Ports[1].Published != "53" || cfg.Services[0].Ports[1].Protocol != "udp" {
+-			t.Errorf("Expected port 53 with protocol udp, got port %s with protocol %s", cfg.Services[0].Ports[1].Published, cfg.Services[0].Ports[1].Protocol)
++		if dnsService.Ports[1].Published != "53" || dnsService.Ports[1].Protocol != "udp" {
++			t.Errorf("Expected port 53 with protocol udp, got port %s with protocol %s", dnsService.Ports[1].Published, dnsService.Ports[1].Protocol)
+ 		}
+ 	})
+ }
+@@ -401,8 +414,8 @@ func TestDNSService_WriteConfig(t *testing.T) {
+ 		}
+ 		mockService.GetComposeConfigFunc = func() (*types.Config, error) {
+ 			return &types.Config{
+-				Services: []types.ServiceConfig{
+-					{Name: "test-service"},
++				Services: types.Services{
++					"test-service": {Name: "test-service"},
+ 				},
+ 			}, nil
+ 		}
+@@ -454,8 +467,8 @@ func TestDNSService_WriteConfig(t *testing.T) {
+ 		}
+ 		mockService.GetComposeConfigFunc = func() (*types.Config, error) {
+ 			return &types.Config{
+-				Services: []types.ServiceConfig{
+-					{Name: "test-service"},
++				Services: types.Services{
++					"test-service": {Name: "test-service"},
+ 				},
+ 			}, nil
+ 		}
+@@ -519,8 +532,8 @@ func TestDNSService_WriteConfig(t *testing.T) {
+ 		}
+ 		mockServiceNoName.GetComposeConfigFunc = func() (*types.Config, error) {
+ 			return &types.Config{
+-				Services: []types.ServiceConfig{
+-					{Name: ""},
++				Services: types.Services{
++					"": {Name: ""},
+ 				},
+ 			}, nil
+ 		}
+@@ -535,8 +548,8 @@ func TestDNSService_WriteConfig(t *testing.T) {
+ 		}
+ 		mockServiceNoAddress.GetComposeConfigFunc = func() (*types.Config, error) {
+ 			return &types.Config{
+-				Services: []types.ServiceConfig{
+-					{Name: "test-service"},
++				Services: types.Services{
++					"test-service": {Name: "test-service"},
+ 				},
+ 			}, nil
+ 		}
+diff --git a/pkg/services/localstack_service_test.go b/pkg/services/localstack_service_test.go
+--- a/pkg/services/localstack_service_test.go
++++ b/pkg/services/localstack_service_test.go
+@@ -51,7 +51,10 @@ func TestLocalstackService_GetComposeConfig(t *testing.T) {
+ 			t.Fatalf("expected non-nil composeConfig with services, got %v", composeConfig)
+ 		}
+ 
+-		composeService := composeConfig.Services[0]
++		composeService, exists := composeConfig.Services["aws"]
++		if !exists {
++			t.Fatalf("expected service 'aws' to exist in compose config")
++		}
+ 		if composeService.Name != "aws" {
+ 			t.Errorf("expected service name 'aws', got %v", composeService.Name)
+ 		}
+@@ -93,7 +96,10 @@ func TestLocalstackService_GetComposeConfig(t *testing.T) {
+ 			t.Fatalf("expected non-nil composeConfig with services, got %v", composeConfig)
+ 		}
+ 
+-		composeService := composeConfig.Services[0]
++		composeService, exists := composeConfig.Services["aws"]
++		if !exists {
++			t.Fatalf("expected service 'aws' to exist in compose config")
++		}
+ 		if len(composeService.Secrets) == 0 || composeService.Secrets[0].Source != "LOCALSTACK_AUTH_TOKEN" {
+ 			t.Errorf("expected service to have LOCALSTACK_AUTH_TOKEN secret, got %v", composeService.Secrets)
+ 		}
+diff --git a/pkg/services/mock_service_test.go b/pkg/services/mock_service_test.go
+--- a/pkg/services/mock_service_test.go
++++ b/pkg/services/mock_service_test.go
+@@ -3,7 +3,7 @@ package services
+ import (
+ 	"testing"
+ 
+-	"github.com/compose-spec/compose-go/types"
++	"github.com/compose-spec/compose-go/v2/types"
+ )
+ 
+ // The MockServiceTest provides test coverage for the MockService implementation.
+diff --git a/pkg/services/registry_service_test.go b/pkg/services/registry_service_test.go
+--- a/pkg/services/registry_service_test.go
++++ b/pkg/services/registry_service_test.go
+@@ -6,7 +6,7 @@ import (
+ 	"strings"
+ 	"testing"
+ 
+-	"github.com/compose-spec/compose-go/types"
++	"github.com/compose-spec/compose-go/v2/types"
+ 	"github.com/windsorcli/cli/api/v1alpha1"
+ 	"github.com/windsorcli/cli/api/v1alpha1/docker"
+ 	"github.com/windsorcli/cli/pkg/config"
+diff --git a/pkg/services/talos_service_test.go b/pkg/services/talos_service_test.go
+--- a/pkg/services/talos_service_test.go
++++ b/pkg/services/talos_service_test.go
+@@ -965,7 +965,10 @@ func TestTalosService_GetComposeConfig(t *testing.T) {
+ 		}
+ 
+ 		// And the service should have the correct configuration
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
+ 		if serviceConfig.Name != "controlplane1" {
+ 			t.Errorf("expected service name controlplane1, got %s", serviceConfig.Name)
+ 		}
+@@ -1034,7 +1037,10 @@ func TestTalosService_GetComposeConfig(t *testing.T) {
+ 		}
+ 
+ 		// And the service should have the correct configuration
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["worker1"]
++		if !exists {
++			t.Fatalf("expected service 'worker1' to exist in compose config")
++		}
+ 		if serviceConfig.Name != "worker1" {
+ 			t.Errorf("expected service name worker1, got %s", serviceConfig.Name)
+ 		}
+@@ -1072,8 +1078,12 @@ func TestTalosService_GetComposeConfig(t *testing.T) {
+ 		}
+ 
+ 		// And the config should use the custom image
+-		if config.Services[0].Image != customImage {
+-			t.Errorf("expected image %s, got %s", customImage, config.Services[0].Image)
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
++		if serviceConfig.Image != customImage {
++			t.Errorf("expected image %s, got %s", customImage, serviceConfig.Image)
+ 		}
+ 	})
+ 
+@@ -1099,7 +1109,10 @@ func TestTalosService_GetComposeConfig(t *testing.T) {
+ 		}
+ 
+ 		// And the config should have the custom volumes
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
+ 		for _, expectedVolume := range volumes {
+ 			found := false
+ 			for _, volume := range serviceConfig.Volumes {
+@@ -1206,8 +1219,12 @@ contexts:
+ 		}
+ 
+ 		// And the node-specific image should be used
+-		if config.Services[0].Image != "node-specific:latest" {
+-			t.Errorf("expected node-specific image, got %s", config.Services[0].Image)
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
++		if serviceConfig.Image != "node-specific:latest" {
++			t.Errorf("expected node-specific image, got %s", serviceConfig.Image)
+ 		}
+ 	})
+ 
+@@ -1233,7 +1250,10 @@ contexts:
+ 		}
+ 
+ 		// And the custom volumes should be included
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
+ 		for _, expectedVolume := range customVolumes {
+ 			found := false
+ 			for _, volume := range serviceConfig.Volumes {
+@@ -1308,8 +1328,12 @@ contexts:
+ 		}
+ 
+ 		// And the service should have the correct name
+-		if cfg.Services[0].Name != "worker1" {
+-			t.Errorf("expected service name 'worker1', got '%s'", cfg.Services[0].Name)
++		serviceConfig, exists := cfg.Services["worker1"]
++		if !exists {
++			t.Fatalf("expected service 'worker1' to exist in compose config")
++		}
++		if serviceConfig.Name != "worker1" {
++			t.Errorf("expected service name 'worker1', got '%s'", serviceConfig.Name)
+ 		}
+ 	})
+ 
+@@ -1340,7 +1364,10 @@ contexts:
+ 		}
+ 
+ 		// And the ports should be configured correctly
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
+ 		if len(serviceConfig.Ports) != 4 { // 2 custom ports + default API port + kubernetes port
+ 			t.Errorf("expected 4 ports, got %d", len(serviceConfig.Ports))
+ 		}
+@@ -1497,7 +1524,10 @@ contexts:
+ 		}
+ 
+ 		// And the volume config should use the original paths with variables
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
+ 		for _, expectedVolume := range volumes {
+ 			found := false
+ 			for _, volume := range serviceConfig.Volumes {
+@@ -1538,7 +1568,10 @@ contexts:
+ 		}
+ 
+ 		// And the control plane should have the custom CPU and RAM settings
+-		serviceConfig := config.Services[0]
++		serviceConfig, exists := config.Services["controlplane1"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane1' to exist in compose config")
++		}
+ 		expectedSKU := fmt.Sprintf("%dCPU-%dRAM", customCPU, customRAM*1024)
+ 		if serviceConfig.Environment["TALOSSKU"] == nil {
+ 			t.Error("expected TALOSSKU environment variable")
+@@ -1568,7 +1601,10 @@ contexts:
+ 		}
+ 
+ 		// And the worker should have the custom CPU and RAM settings
+-		serviceConfig = config.Services[0]
++		serviceConfig, exists = config.Services["worker1"]
++		if !exists {
++			t.Fatalf("expected service 'worker1' to exist in compose config")
++		}
+ 		expectedSKU = fmt.Sprintf("%dCPU-%dRAM", customWorkerCPU, customWorkerRAM*1024)
+ 		if serviceConfig.Environment["TALOSSKU"] == nil {
+ 			t.Error("expected TALOSSKU environment variable")
+@@ -1622,20 +1658,24 @@ contexts:
+ 		}
+ 
+ 		// And the service name should fall back to "controlplane"
+-		if config.Services[0].Name != "controlplane" {
+-			t.Errorf("expected service name 'controlplane', got %s", config.Services[0].Name)
++		serviceConfig, exists := config.Services["controlplane"]
++		if !exists {
++			t.Fatalf("expected service 'controlplane' to exist in compose config")
++		}
++		if serviceConfig.Name != "controlplane" {
++			t.Errorf("expected service name 'controlplane', got %s", serviceConfig.Name)
+ 		}
+ 
+ 		// And the container name should use the fallback name with context prefix
+ 		expectedContainerName := "controlplane.test"
+-		if config.Services[0].ContainerName != expectedContainerName {
+-			t.Errorf("expected container name %s, got %s", expectedContainerName, config.Services[0].ContainerName)
++		if serviceConfig.ContainerName != expectedContainerName {
++			t.Errorf("expected container name %s, got %s", expectedContainerName, serviceConfig.ContainerName)
+ 		}
+ 
+ 		// And the volumes should use the fallback name
+ 		expectedVolumeName := "controlplane_system_state"
+ 		found := false
+-		for _, volume := range config.Services[0].Volumes {
++		for _, volume := range serviceConfig.Volumes {
+ 			if volume.Source == expectedVolumeName {
+ 				found = true
+ 				break
+diff --git a/pkg/virt/docker_virt_test.go b/pkg/virt/docker_virt_test.go
+--- a/pkg/virt/docker_virt_test.go
++++ b/pkg/virt/docker_virt_test.go
+@@ -12,7 +12,7 @@ import (
+ 	"strings"
+ 	"testing"
+ 
+-	"github.com/compose-spec/compose-go/types"
++	"github.com/compose-spec/compose-go/v2/types"
+ 	"github.com/windsorcli/cli/pkg/di"
+ 	"github.com/windsorcli/cli/pkg/services"
+ )
+@@ -111,8 +111,8 @@ contexts:
+ 	// Set up mock service config
+ 	mocks.Service.GetComposeConfigFunc = func() (*types.Config, error) {
+ 		return &types.Config{
+-			Services: []types.ServiceConfig{
+-				{
++			Services: types.Services{
++				"service1": {
+ 					Name: "service1",
+ 					Labels: map[string]string{
+ 						"role":                       "test",
+@@ -124,7 +124,7 @@ contexts:
+ 						},
+ 					},
+ 				},
+-				{
++				"service2": {
+ 					Name: "service2",
+ 					Labels: map[string]string{
+ 						"role":                       "test",

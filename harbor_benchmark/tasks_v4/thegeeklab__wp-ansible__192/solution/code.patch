@@ -1,0 +1,432 @@
+diff --git a/ansible/ansible.go b/ansible/ansible.go
+--- a/ansible/ansible.go
++++ b/ansible/ansible.go
+@@ -9,8 +9,7 @@ import (
+ 	"strings"
+ 
+ 	"github.com/rs/zerolog/log"
+-	plugin_exec "github.com/thegeeklab/wp-plugin-go/v4/exec"
+-	"github.com/urfave/cli/v2"
++	plugin_exec "github.com/thegeeklab/wp-plugin-go/v6/exec"
+ )
+ 
+ const (
+@@ -25,14 +24,14 @@ var ErrAnsiblePlaybookNotFound = errors.New("no playbook found")
+ 
+ type Ansible struct {
+ 	GalaxyRequirements string
+-	Inventories        cli.StringSlice
+-	Playbooks          cli.StringSlice
++	Inventories        []string
++	Playbooks          []string
+ 	Limit              string
+ 	SkipTags           string
+ 	StartAtTask        string
+ 	Tags               string
+-	ExtraVars          cli.StringSlice
+-	ModulePath         cli.StringSlice
++	ExtraVars          []string
++	ModulePath         []string
+ 	Check              bool
+ 	Diff               bool
+ 	FlushCache         bool
+@@ -75,7 +74,7 @@ func (a *Ansible) Version() *plugin_exec.Cmd {
+ func (a *Ansible) GetPlaybooks() error {
+ 	var playbooks []string
+ 
+-	for _, pb := range a.Playbooks.Value() {
++	for _, pb := range a.Playbooks {
+ 		files, err := filepath.Glob(pb)
+ 		if err != nil {
+ 			playbooks = append(playbooks, pb)
+@@ -87,12 +86,12 @@ func (a *Ansible) GetPlaybooks() error {
+ 	}
+ 
+ 	if len(playbooks) == 0 {
+-		log.Debug().Strs("patterns", a.Playbooks.Value()).Msg("no playbooks found")
++		log.Debug().Strs("patterns", a.Playbooks).Msg("no playbooks found")
+ 
+ 		return ErrAnsiblePlaybookNotFound
+ 	}
+ 
+-	a.Playbooks = *cli.NewStringSlice(playbooks...)
++	a.Playbooks = append(a.Playbooks, playbooks...)
+ 
+ 	return nil
+ }
+@@ -123,12 +122,12 @@ func (a *Ansible) GalaxyInstall() *plugin_exec.Cmd {
+ func (a *Ansible) Play() *plugin_exec.Cmd {
+ 	args := make([]string, 0)
+ 
+-	for _, inventory := range a.Inventories.Value() {
++	for _, inventory := range a.Inventories {
+ 		args = append(args, "--inventory", inventory)
+ 	}
+ 
+-	if len(a.ModulePath.Value()) > 0 {
+-		args = append(args, "--module-path", strings.Join(a.ModulePath.Value(), ":"))
++	if len(a.ModulePath) > 0 {
++		args = append(args, "--module-path", strings.Join(a.ModulePath, ":"))
+ 	}
+ 
+ 	if a.VaultID != "" {
+@@ -139,13 +138,13 @@ func (a *Ansible) Play() *plugin_exec.Cmd {
+ 		args = append(args, "--vault-password-file", a.VaultPasswordFile)
+ 	}
+ 
+-	for _, v := range a.ExtraVars.Value() {
++	for _, v := range a.ExtraVars {
+ 		args = append(args, "--extra-vars", v)
+ 	}
+ 
+ 	if a.ListHosts {
+ 		args = append(args, "--list-hosts")
+-		args = append(args, a.Playbooks.Value()...)
++		args = append(args, a.Playbooks...)
+ 
+ 		cmd := plugin_exec.Command(ansiblePlaybookBin, args...)
+ 		cmd.Stdout = os.Stdout
+@@ -156,7 +155,7 @@ func (a *Ansible) Play() *plugin_exec.Cmd {
+ 
+ 	if a.SyntaxCheck {
+ 		args = append(args, "--syntax-check")
+-		args = append(args, a.Playbooks.Value()...)
++		args = append(args, a.Playbooks...)
+ 
+ 		cmd := plugin_exec.Command(ansiblePlaybookBin, args...)
+ 		cmd.Stdout = os.Stdout
+@@ -257,7 +256,7 @@ func (a *Ansible) Play() *plugin_exec.Cmd {
+ 		args = append(args, fmt.Sprintf("-%s", strings.Repeat("v", a.Verbose)))
+ 	}
+ 
+-	args = append(args, a.Playbooks.Value()...)
++	args = append(args, a.Playbooks...)
+ 
+ 	cmd := plugin_exec.Command(ansiblePlaybookBin, args...)
+ 	cmd.Stdout = os.Stdout
+diff --git a/internal/docs/main.go b/internal/docs/main.go
+--- a/internal/docs/main.go
++++ b/internal/docs/main.go
+@@ -10,8 +10,8 @@ import (
+ 	"time"
+ 
+ 	"github.com/thegeeklab/wp-ansible/plugin"
+-	plugin_docs "github.com/thegeeklab/wp-plugin-go/v4/docs"
+-	plugin_template "github.com/thegeeklab/wp-plugin-go/v4/template"
++	plugin_docs "github.com/thegeeklab/wp-plugin-go/v6/docs"
++	plugin_template "github.com/thegeeklab/wp-plugin-go/v6/template"
+ )
+ 
+ func main() {
+diff --git a/plugin/impl.go b/plugin/impl.go
+--- a/plugin/impl.go
++++ b/plugin/impl.go
+@@ -5,8 +5,8 @@ import (
+ 	"fmt"
+ 	"os"
+ 
+-	plugin_exec "github.com/thegeeklab/wp-plugin-go/v4/exec"
+-	plugin_file "github.com/thegeeklab/wp-plugin-go/v4/file"
++	plugin_exec "github.com/thegeeklab/wp-plugin-go/v6/exec"
++	plugin_file "github.com/thegeeklab/wp-plugin-go/v6/file"
+ )
+ 
+ func (p *Plugin) run(_ context.Context) error {
+diff --git a/plugin/plugin.go b/plugin/plugin.go
+--- a/plugin/plugin.go
++++ b/plugin/plugin.go
+@@ -4,8 +4,9 @@ import (
+ 	"fmt"
+ 
+ 	"github.com/thegeeklab/wp-ansible/ansible"
+-	plugin_base "github.com/thegeeklab/wp-plugin-go/v4/plugin"
+-	"github.com/urfave/cli/v2"
++	plugin_cli "github.com/thegeeklab/wp-plugin-go/v6/cli"
++	plugin_base "github.com/thegeeklab/wp-plugin-go/v6/plugin"
++	"github.com/urfave/cli/v3"
+ )
+ 
+ //go:generate go run ../internal/docs/main.go -output=../docs/data/data-raw.yaml
+@@ -60,234 +61,234 @@ func Flags(settings *Settings, category string) []cli.Flag {
+ 		&cli.StringFlag{
+ 			Name:        "python-requirements",
+ 			Usage:       "path to python requirements file",
+-			EnvVars:     []string{"PLUGIN_PYTHON_REQUIREMENTS"},
++			Sources:     cli.EnvVars("PLUGIN_PYTHON_REQUIREMENTS"),
+ 			Destination: &settings.PythonRequirements,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "galaxy-requirements",
+ 			Usage:       "path to galaxy requirements file",
+-			EnvVars:     []string{"PLUGIN_GALAXY_REQUIREMENTS"},
++			Sources:     cli.EnvVars("PLUGIN_GALAXY_REQUIREMENTS"),
+ 			Destination: &settings.Ansible.GalaxyRequirements,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "inventory",
+ 			Usage:       "path to inventory file",
+-			EnvVars:     []string{"PLUGIN_INVENTORY", "PLUGIN_INVENTORIES"},
++			Sources:     cli.EnvVars("PLUGIN_INVENTORY", "PLUGIN_INVENTORIES"),
+ 			Required:    true,
+ 			Destination: &settings.Ansible.Inventories,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "playbook",
+ 			Usage:       "list of playbooks to apply",
+-			EnvVars:     []string{"PLUGIN_PLAYBOOK", "PLUGIN_PLAYBOOKS"},
++			Sources:     cli.EnvVars("PLUGIN_PLAYBOOK", "PLUGIN_PLAYBOOKS"),
+ 			Required:    true,
+ 			Destination: &settings.Ansible.Playbooks,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "limit",
+ 			Usage:       "limit selected hosts to an additional pattern",
+-			EnvVars:     []string{"PLUGIN_LIMIT"},
++			Sources:     cli.EnvVars("PLUGIN_LIMIT"),
+ 			Destination: &settings.Ansible.Limit,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "skip-tags",
+ 			Usage:       "only run plays and tasks whose tags do not match",
+-			EnvVars:     []string{"PLUGIN_SKIP_TAGS"},
++			Sources:     cli.EnvVars("PLUGIN_SKIP_TAGS"),
+ 			Destination: &settings.Ansible.SkipTags,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "start-at-task",
+ 			Usage:       "start the playbook at the task matching this name",
+-			EnvVars:     []string{"PLUGIN_START_AT_TASK"},
++			Sources:     cli.EnvVars("PLUGIN_START_AT_TASK"),
+ 			Destination: &settings.Ansible.StartAtTask,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "tags",
+ 			Usage:       "only run plays and tasks tagged with these values",
+-			EnvVars:     []string{"PLUGIN_TAGS"},
++			Sources:     cli.EnvVars("PLUGIN_TAGS"),
+ 			Destination: &settings.Ansible.Tags,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "extra-vars",
+ 			Usage:       "set additional variables as `key=value`",
+-			EnvVars:     []string{"PLUGIN_EXTRA_VARS", "ANSIBLE_EXTRA_VARS"},
++			Sources:     cli.EnvVars("PLUGIN_EXTRA_VARS", "ANSIBLE_EXTRA_VARS"),
+ 			Destination: &settings.Ansible.ExtraVars,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "module-path",
+ 			Usage:       "prepend paths to module library",
+-			EnvVars:     []string{"PLUGIN_MODULE_PATH"},
++			Sources:     cli.EnvVars("PLUGIN_MODULE_PATH"),
+ 			Destination: &settings.Ansible.ModulePath,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "check",
+ 			Usage:       "run a check, do not apply any changes",
+-			EnvVars:     []string{"PLUGIN_CHECK"},
++			Sources:     cli.EnvVars("PLUGIN_CHECK"),
+ 			Destination: &settings.Ansible.Check,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "diff",
+ 			Usage:       "show the differences, may print secrets",
+-			EnvVars:     []string{"PLUGIN_DIFF"},
++			Sources:     cli.EnvVars("PLUGIN_DIFF"),
+ 			Destination: &settings.Ansible.Diff,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "flush-cache",
+ 			Usage:       "clear the fact cache for every host in inventory",
+-			EnvVars:     []string{"PLUGIN_FLUSH_CACHE"},
++			Sources:     cli.EnvVars("PLUGIN_FLUSH_CACHE"),
+ 			Destination: &settings.Ansible.FlushCache,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "force-handlers",
+ 			Usage:       "run handlers even if a task fails",
+-			EnvVars:     []string{"PLUGIN_FORCE_HANDLERS"},
++			Sources:     cli.EnvVars("PLUGIN_FORCE_HANDLERS"),
+ 			Destination: &settings.Ansible.ForceHandlers,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "list-hosts",
+ 			Usage:       "outputs a list of matching hosts",
+-			EnvVars:     []string{"PLUGIN_LIST_HOSTS"},
++			Sources:     cli.EnvVars("PLUGIN_LIST_HOSTS"),
+ 			Destination: &settings.Ansible.ListHosts,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "list-tags",
+ 			Usage:       "list all available tags",
+-			EnvVars:     []string{"PLUGIN_LIST_TAGS"},
++			Sources:     cli.EnvVars("PLUGIN_LIST_TAGS"),
+ 			Destination: &settings.Ansible.ListTags,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "list-tasks",
+ 			Usage:       "list all tasks that would be executed",
+-			EnvVars:     []string{"PLUGIN_LIST_TASKS"},
++			Sources:     cli.EnvVars("PLUGIN_LIST_TASKS"),
+ 			Destination: &settings.Ansible.ListTasks,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "syntax-check",
+ 			Usage:       "perform a syntax check on the playbook",
+-			EnvVars:     []string{"PLUGIN_SYNTAX_CHECK"},
++			Sources:     cli.EnvVars("PLUGIN_SYNTAX_CHECK"),
+ 			Destination: &settings.Ansible.SyntaxCheck,
+ 			Category:    category,
+ 		},
+-		&cli.IntFlag{
++		&plugin_cli.IntFlag{
+ 			Name:        "forks",
+ 			Usage:       "specify number of parallel processes to use",
+-			EnvVars:     []string{"PLUGIN_FORKS"},
++			Sources:     cli.EnvVars("PLUGIN_FORKS"),
+ 			Value:       ansible.AnsibleForksDefault,
+ 			Destination: &settings.Ansible.Forks,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "vault-id",
+ 			Usage:       "the vault identity to use",
+-			EnvVars:     []string{"PLUGIN_VAULT_ID", "ANSIBLE_VAULT_ID"},
++			Sources:     cli.EnvVars("PLUGIN_VAULT_ID", "ANSIBLE_VAULT_ID"),
+ 			Destination: &settings.Ansible.VaultID,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "vault-password",
+ 			Usage:       "the vault password to use",
+-			EnvVars:     []string{"PLUGIN_VAULT_PASSWORD", "ANSIBLE_VAULT_PASSWORD"},
++			Sources:     cli.EnvVars("PLUGIN_VAULT_PASSWORD", "ANSIBLE_VAULT_PASSWORD"),
+ 			Destination: &settings.VaultPassword,
+ 			Category:    category,
+ 		},
+-		&cli.IntFlag{
++		&plugin_cli.IntFlag{
+ 			Name:        "verbose",
+ 			Usage:       "level of verbosity, 0 up to 4",
+-			EnvVars:     []string{"PLUGIN_VERBOSE"},
++			Sources:     cli.EnvVars("PLUGIN_VERBOSE"),
+ 			Destination: &settings.Ansible.Verbose,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "private-key",
+ 			Usage:       "SSH private key used to authenticate the connection",
+-			EnvVars:     []string{"PLUGIN_PRIVATE_KEY", "ANSIBLE_PRIVATE_KEY"},
++			Sources:     cli.EnvVars("PLUGIN_PRIVATE_KEY", "ANSIBLE_PRIVATE_KEY"),
+ 			Destination: &settings.PrivateKey,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "user",
+ 			Usage:       "connect as this user",
+-			EnvVars:     []string{"PLUGIN_USER", "ANSIBLE_USER"},
++			Sources:     cli.EnvVars("PLUGIN_USER", "ANSIBLE_USER"),
+ 			Destination: &settings.Ansible.User,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "connection",
+ 			Usage:       "connection type to use",
+-			EnvVars:     []string{"PLUGIN_CONNECTION"},
++			Sources:     cli.EnvVars("PLUGIN_CONNECTION"),
+ 			Destination: &settings.Ansible.Connection,
+ 			Category:    category,
+ 		},
+-		&cli.IntFlag{
++		&plugin_cli.IntFlag{
+ 			Name:        "timeout",
+ 			Usage:       "override the connection timeout in seconds",
+-			EnvVars:     []string{"PLUGIN_TIMEOUT"},
++			Sources:     cli.EnvVars("PLUGIN_TIMEOUT"),
+ 			Destination: &settings.Ansible.Timeout,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "ssh-common-args",
+ 			Usage:       "specify common arguments to pass to SFTP, SCP and SSH connections",
+-			EnvVars:     []string{"PLUGIN_SSH_COMMON_ARGS"},
++			Sources:     cli.EnvVars("PLUGIN_SSH_COMMON_ARGS"),
+ 			Destination: &settings.Ansible.SSHCommonArgs,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "sftp-extra-args",
+ 			Usage:       "specify extra arguments to pass to SFTP connections only",
+-			EnvVars:     []string{"PLUGIN_SFTP_EXTRA_ARGS"},
++			Sources:     cli.EnvVars("PLUGIN_SFTP_EXTRA_ARGS"),
+ 			Destination: &settings.Ansible.SFTPExtraArgs,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "scp-extra-args",
+ 			Usage:       "specify extra arguments to pass to SCP connections only",
+-			EnvVars:     []string{"PLUGIN_SCP_EXTRA_ARGS"},
++			Sources:     cli.EnvVars("PLUGIN_SCP_EXTRA_ARGS"),
+ 			Destination: &settings.Ansible.SCPExtraArgs,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "ssh-extra-args",
+ 			Usage:       "specify extra arguments to pass to SSH connections only",
+-			EnvVars:     []string{"PLUGIN_SSH_EXTRA_ARGS"},
++			Sources:     cli.EnvVars("PLUGIN_SSH_EXTRA_ARGS"),
+ 			Destination: &settings.Ansible.SSHExtraArgs,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "become",
+ 			Usage:       "enable privilege escalation",
+-			EnvVars:     []string{"PLUGIN_BECOME"},
++			Sources:     cli.EnvVars("PLUGIN_BECOME"),
+ 			Destination: &settings.Ansible.Become,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "become-method",
+ 			Usage:       "privilege escalation method to use",
+-			EnvVars:     []string{"PLUGIN_BECOME_METHOD", "ANSIBLE_BECOME_METHOD"},
++			Sources:     cli.EnvVars("PLUGIN_BECOME_METHOD", "ANSIBLE_BECOME_METHOD"),
+ 			Destination: &settings.Ansible.BecomeMethod,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "become-user",
+ 			Usage:       "privilege escalation user to use",
+-			EnvVars:     []string{"PLUGIN_BECOME_USER", "ANSIBLE_BECOME_USER"},
++			Sources:     cli.EnvVars("PLUGIN_BECOME_USER", "ANSIBLE_BECOME_USER"),
+ 			Destination: &settings.Ansible.BecomeUser,
+ 			Category:    category,
+ 		},
+diff --git a/plugin/util.go b/plugin/util.go
+--- a/plugin/util.go
++++ b/plugin/util.go
+@@ -3,7 +3,7 @@ package plugin
+ import (
+ 	"os"
+ 
+-	plugin_exec "github.com/thegeeklab/wp-plugin-go/v4/exec"
++	plugin_exec "github.com/thegeeklab/wp-plugin-go/v6/exec"
+ )
+ 
+ const pipBin = "/usr/local/bin/pip"

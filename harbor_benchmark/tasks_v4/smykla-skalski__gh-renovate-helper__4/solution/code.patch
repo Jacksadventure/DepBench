@@ -1,0 +1,202 @@
+diff --git a/internal/tui/app.go b/internal/tui/app.go
+--- a/internal/tui/app.go
++++ b/internal/tui/app.go
+@@ -4,11 +4,11 @@ import (
+ 	"fmt"
+ 	"time"
+ 
+-	"github.com/charmbracelet/bubbles/key"
+-	"github.com/charmbracelet/bubbles/spinner"
+-	"github.com/charmbracelet/bubbles/textinput"
+-	tea "github.com/charmbracelet/bubbletea"
+-	"github.com/charmbracelet/lipgloss"
++	"charm.land/bubbles/v2/key"
++	"charm.land/bubbles/v2/spinner"
++	"charm.land/bubbles/v2/textinput"
++	tea "charm.land/bubbletea/v2"
++	"charm.land/lipgloss/v2"
+ 
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/config"
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/github"
+@@ -79,7 +79,6 @@ func (m Model) Init() tea.Cmd {
+ 	return tea.Batch(
+ 		fetchPRsCmd(m.client, m.cfg),
+ 		m.spinner.Tick,
+-		tea.SetWindowTitle("gh-renovate-tracker"),
+ 	)
+ }
+ 
+@@ -236,11 +235,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+ 		if pr, ok := m.list.Selected(); ok {
+ 			ti := textinput.New()
+ 			ti.Placeholder = "label name..."
+-			ti.Focus()
++			blinkCmd := ti.Focus()
+ 			m.labelInput = ti
+ 			m.labelPR = pr
+ 			m.current = viewLabel
+-			return m, ti.Cursor.BlinkCmd()
++			return m, blinkCmd
+ 		}
+ 		return m, nil
+ 
+@@ -293,7 +292,7 @@ func (m Model) handleLabelInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+ 	return m, cmd
+ }
+ 
+-func (m Model) View() string {
++func (m Model) View() tea.View {
+ 	var body string
+ 	switch m.current {
+ 	case viewDetail:
+@@ -309,7 +308,12 @@ func (m Model) View() string {
+ 	}
+ 
+ 	status := m.renderStatus()
+-	return lipgloss.JoinVertical(lipgloss.Left, body, status)
++	content := lipgloss.JoinVertical(lipgloss.Left, body, status)
++	v := tea.NewView(content)
++	v.WindowTitle = "gh-renovate-tracker"
++	v.AltScreen = true
++	v.MouseMode = tea.MouseModeCellMotion
++	return v
+ }
+ 
+ func (m Model) renderStatus() string {
+diff --git a/internal/tui/browser.go b/internal/tui/browser.go
+--- a/internal/tui/browser.go
++++ b/internal/tui/browser.go
+@@ -5,7 +5,7 @@ import (
+ 	"os/exec"
+ 	"runtime"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
++	tea "charm.land/bubbletea/v2"
+ )
+ 
+ func openBrowserCmd(url string) tea.Cmd {
+diff --git a/internal/tui/commands.go b/internal/tui/commands.go
+--- a/internal/tui/commands.go
++++ b/internal/tui/commands.go
+@@ -5,7 +5,7 @@ import (
+ 	"strconv"
+ 	"strings"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
++	tea "charm.land/bubbletea/v2"
+ 
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/config"
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/github"
+diff --git a/internal/tui/detail/model.go b/internal/tui/detail/model.go
+--- a/internal/tui/detail/model.go
++++ b/internal/tui/detail/model.go
+@@ -4,8 +4,8 @@ import (
+ 	"fmt"
+ 	"strings"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
+-	"github.com/charmbracelet/lipgloss"
++	tea "charm.land/bubbletea/v2"
++	"charm.land/lipgloss/v2"
+ 
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/github"
+ )
+diff --git a/internal/tui/detail/styles.go b/internal/tui/detail/styles.go
+--- a/internal/tui/detail/styles.go
++++ b/internal/tui/detail/styles.go
+@@ -1,6 +1,6 @@
+ package detail
+ 
+-import "github.com/charmbracelet/lipgloss"
++import "charm.land/lipgloss/v2"
+ 
+ var (
+ 	styleReady   = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+diff --git a/internal/tui/filter/model.go b/internal/tui/filter/model.go
+--- a/internal/tui/filter/model.go
++++ b/internal/tui/filter/model.go
+@@ -1,8 +1,8 @@
+ package filter
+ 
+ import (
+-	"github.com/charmbracelet/bubbles/textinput"
+-	tea "github.com/charmbracelet/bubbletea"
++	"charm.land/bubbles/v2/textinput"
++	tea "charm.land/bubbletea/v2"
+ )
+ 
+ // Model is the filter text input overlay.
+diff --git a/internal/tui/help/model.go b/internal/tui/help/model.go
+--- a/internal/tui/help/model.go
++++ b/internal/tui/help/model.go
+@@ -1,6 +1,6 @@
+ package help
+ 
+-import "github.com/charmbracelet/lipgloss"
++import "charm.land/lipgloss/v2"
+ 
+ // Model is the help overlay.
+ type Model struct{}
+diff --git a/internal/tui/keys.go b/internal/tui/keys.go
+--- a/internal/tui/keys.go
++++ b/internal/tui/keys.go
+@@ -1,6 +1,6 @@
+ package tui
+ 
+-import "github.com/charmbracelet/bubbles/key"
++import "charm.land/bubbles/v2/key"
+ 
+ type keyMap struct {
+ 	Up         key.Binding
+diff --git a/internal/tui/list/model.go b/internal/tui/list/model.go
+--- a/internal/tui/list/model.go
++++ b/internal/tui/list/model.go
+@@ -5,9 +5,9 @@ import (
+ 	"strings"
+ 	"time"
+ 
+-	"github.com/charmbracelet/bubbles/key"
+-	tea "github.com/charmbracelet/bubbletea"
+-	"github.com/charmbracelet/lipgloss"
++	"charm.land/bubbles/v2/key"
++	tea "charm.land/bubbletea/v2"
++	"charm.land/lipgloss/v2"
+ 
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/github"
+ )
+diff --git a/internal/tui/list/styles.go b/internal/tui/list/styles.go
+--- a/internal/tui/list/styles.go
++++ b/internal/tui/list/styles.go
+@@ -1,6 +1,6 @@
+ package list
+ 
+-import "github.com/charmbracelet/lipgloss"
++import "charm.land/lipgloss/v2"
+ 
+ var (
+ 	styleReady     = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+diff --git a/main.go b/main.go
+--- a/main.go
++++ b/main.go
+@@ -6,7 +6,7 @@ import (
+ 	"os"
+ 	"strings"
+ 
+-	tea "github.com/charmbracelet/bubbletea"
++	tea "charm.land/bubbletea/v2"
+ 
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/config"
+ 	"github.com/klaudiush/gh-renovate-tracker/internal/github"
+@@ -65,11 +65,7 @@ func main() {
+ 		return
+ 	}
+ 
+-	p := tea.NewProgram(
+-		tui.New(client, cfg),
+-		tea.WithAltScreen(),
+-		tea.WithMouseCellMotion(),
+-	)
++	p := tea.NewProgram(tui.New(client, cfg))
+ 	if _, err := p.Run(); err != nil {
+ 		fmt.Fprintf(os.Stderr, "tui error: %v\n", err)
+ 		os.Exit(1)

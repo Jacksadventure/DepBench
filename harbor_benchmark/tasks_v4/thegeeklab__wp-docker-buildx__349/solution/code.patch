@@ -1,0 +1,752 @@
+diff --git a/docker/daemon.go b/docker/daemon.go
+--- a/docker/daemon.go
++++ b/docker/daemon.go
+@@ -3,29 +3,28 @@ package docker
+ import (
+ 	"os"
+ 
+-	plugin_exec "github.com/thegeeklab/wp-plugin-go/v4/exec"
+-	"github.com/urfave/cli/v2"
++	plugin_exec "github.com/thegeeklab/wp-plugin-go/v6/exec"
+ )
+ 
+ const dockerdBin = "/usr/local/bin/dockerd"
+ 
+ // Daemon defines Docker daemon parameters.
+ type Daemon struct {
+-	Registry             string          // Docker registry
+-	Mirror               string          // Docker registry mirror
+-	Insecure             bool            // Docker daemon enable insecure registries
+-	StorageDriver        string          // Docker daemon storage driver
+-	StoragePath          string          // Docker daemon storage path
+-	Disabled             bool            // DOcker daemon is disabled (already running)
+-	Debug                bool            // Docker daemon started in debug mode
+-	Bip                  string          // Docker daemon network bridge IP address
+-	DNS                  cli.StringSlice // Docker daemon dns server
+-	DNSSearch            cli.StringSlice // Docker daemon dns search domain
+-	MTU                  string          // Docker daemon mtu setting
+-	IPv6                 bool            // Docker daemon IPv6 networking
+-	Experimental         bool            // Docker daemon enable experimental mode
+-	BuildkitConfigFile   string          // Docker buildkit config file
+-	MaxConcurrentUploads string          // Docker daemon max concurrent uploads
++	Registry             string   // Docker registry
++	Mirror               string   // Docker registry mirror
++	Insecure             bool     // Docker daemon enable insecure registries
++	StorageDriver        string   // Docker daemon storage driver
++	StoragePath          string   // Docker daemon storage path
++	Disabled             bool     // DOcker daemon is disabled (already running)
++	Debug                bool     // Docker daemon started in debug mode
++	Bip                  string   // Docker daemon network bridge IP address
++	DNS                  []string // Docker daemon dns server
++	DNSSearch            []string // Docker daemon dns search domain
++	MTU                  string   // Docker daemon mtu setting
++	IPv6                 bool     // Docker daemon IPv6 networking
++	Experimental         bool     // Docker daemon enable experimental mode
++	BuildkitConfigFile   string   // Docker buildkit config file
++	MaxConcurrentUploads string   // Docker daemon max concurrent uploads
+ }
+ 
+ // helper function to create the docker daemon command.
+@@ -55,11 +54,11 @@ func (d *Daemon) Start() *plugin_exec.Cmd {
+ 		args = append(args, "--bip", d.Bip)
+ 	}
+ 
+-	for _, dns := range d.DNS.Value() {
++	for _, dns := range d.DNS {
+ 		args = append(args, "--dns", dns)
+ 	}
+ 
+-	for _, dnsSearch := range d.DNSSearch.Value() {
++	for _, dnsSearch := range d.DNSSearch {
+ 		args = append(args, "--dns-search", dnsSearch)
+ 	}
+ 
+diff --git a/docker/docker.go b/docker/docker.go
+--- a/docker/docker.go
++++ b/docker/docker.go
+@@ -6,8 +6,7 @@ import (
+ 	"os"
+ 	"strings"
+ 
+-	plugin_exec "github.com/thegeeklab/wp-plugin-go/v4/exec"
+-	"github.com/urfave/cli/v2"
++	plugin_exec "github.com/thegeeklab/wp-plugin-go/v6/exec"
+ )
+ 
+ const dockerBin = "/usr/local/bin/docker"
+@@ -29,23 +28,23 @@ type Build struct {
+ 	Context       string            // Docker build context
+ 	TagsAuto      bool              // Docker build auto tag
+ 	TagsSuffix    string            // Docker build tags with suffix
+-	Tags          cli.StringSlice   // Docker build tags
+-	ExtraTags     cli.StringSlice   // Docker build tags including registry
+-	Platforms     cli.StringSlice   // Docker build target platforms
++	Tags          []string          // Docker build tags
++	ExtraTags     []string          // Docker build tags including registry
++	Platforms     []string          // Docker build target platforms
+ 	Args          map[string]string // Docker build args
+-	ArgsEnv       cli.StringSlice   // Docker build args from env
++	ArgsEnv       []string          // Docker build args from env
+ 	Target        string            // Docker build target
+ 	Pull          bool              // Docker build pull
+ 	CacheFrom     []string          // Docker build cache-from
+ 	CacheTo       string            // Docker build cache-to
+ 	Compress      bool              // Docker build compress
+ 	Repo          string            // Docker build repository
+ 	NoCache       bool              // Docker build no-cache
+-	AddHost       cli.StringSlice   // Docker build add-host
++	AddHost       []string          // Docker build add-host
+ 	Quiet         bool              // Docker build quiet
+ 	Output        string            // Docker build output folder
+-	NamedContext  cli.StringSlice   // Docker build named context
+-	Labels        cli.StringSlice   // Docker build labels
++	NamedContext  []string          // Docker build named context
++	Labels        []string          // Docker build labels
+ 	LabelsAuto    bool              // Docker build labels auto
+ 	Provenance    string            // Docker build provenance attestation
+ 	SBOM          string            // Docker build sbom attestation
+@@ -109,7 +108,7 @@ func (b *Build) Run(env []string) *plugin_exec.Cmd {
+ 	maps.Copy(b.Args, defaultBuildArgs)
+ 
+ 	args = append(args, b.Context)
+-	if !b.Dryrun && b.Output == "" && len(b.Tags.Value()) > 0 {
++	if !b.Dryrun && b.Output == "" && len(b.Tags) > 0 {
+ 		args = append(args, "--push")
+ 	}
+ 
+@@ -133,15 +132,15 @@ func (b *Build) Run(env []string) *plugin_exec.Cmd {
+ 		args = append(args, "--cache-to", b.CacheTo)
+ 	}
+ 
+-	for _, arg := range b.ArgsEnv.Value() {
++	for _, arg := range b.ArgsEnv {
+ 		b.addArgFromEnv(arg)
+ 	}
+ 
+ 	for key, value := range b.Args {
+ 		args = append(args, "--build-arg", fmt.Sprintf("%s=%s", key, value))
+ 	}
+ 
+-	for _, host := range b.AddHost.Value() {
++	for _, host := range b.AddHost {
+ 		args = append(args, "--add-host", host)
+ 	}
+ 
+@@ -157,23 +156,23 @@ func (b *Build) Run(env []string) *plugin_exec.Cmd {
+ 		args = append(args, "--output", b.Output)
+ 	}
+ 
+-	for _, arg := range b.NamedContext.Value() {
++	for _, arg := range b.NamedContext {
+ 		args = append(args, "--build-context", arg)
+ 	}
+ 
+-	if len(b.Platforms.Value()) > 0 {
+-		args = append(args, "--platform", strings.Join(b.Platforms.Value(), ","))
++	if len(b.Platforms) > 0 {
++		args = append(args, "--platform", strings.Join(b.Platforms, ","))
+ 	}
+ 
+-	for _, arg := range b.Tags.Value() {
++	for _, arg := range b.Tags {
+ 		args = append(args, "-t", fmt.Sprintf("%s:%s", b.Repo, arg))
+ 	}
+ 
+-	for _, arg := range b.ExtraTags.Value() {
++	for _, arg := range b.ExtraTags {
+ 		args = append(args, "-t", arg)
+ 	}
+ 
+-	for _, arg := range b.Labels.Value() {
++	for _, arg := range b.Labels {
+ 		args = append(args, "--label", arg)
+ 	}
+ 
+diff --git a/internal/docs/main.go b/internal/docs/main.go
+--- a/internal/docs/main.go
++++ b/internal/docs/main.go
+@@ -10,8 +10,8 @@ import (
+ 	"time"
+ 
+ 	"github.com/thegeeklab/wp-docker-buildx/plugin"
+-	plugin_docs "github.com/thegeeklab/wp-plugin-go/v4/docs"
+-	plugin_template "github.com/thegeeklab/wp-plugin-go/v4/template"
++	plugin_docs "github.com/thegeeklab/wp-plugin-go/v6/docs"
++	plugin_template "github.com/thegeeklab/wp-plugin-go/v6/template"
+ )
+ 
+ func main() {
+diff --git a/plugin/impl.go b/plugin/impl.go
+--- a/plugin/impl.go
++++ b/plugin/impl.go
+@@ -11,12 +11,10 @@ import (
+ 	"github.com/cenkalti/backoff/v5"
+ 	"github.com/rs/zerolog/log"
+ 	"github.com/thegeeklab/wp-docker-buildx/docker"
+-	plugin_exec "github.com/thegeeklab/wp-plugin-go/v4/exec"
+-	plugin_file "github.com/thegeeklab/wp-plugin-go/v4/file"
+-	plugin_tag "github.com/thegeeklab/wp-plugin-go/v4/tag"
+-	plugin_types "github.com/thegeeklab/wp-plugin-go/v4/types"
+-	plugin_util "github.com/thegeeklab/wp-plugin-go/v4/util"
+-	"github.com/urfave/cli/v2"
++	plugin_exec "github.com/thegeeklab/wp-plugin-go/v6/exec"
++	plugin_file "github.com/thegeeklab/wp-plugin-go/v6/file"
++	plugin_tag "github.com/thegeeklab/wp-plugin-go/v6/tag"
++	plugin_util "github.com/thegeeklab/wp-plugin-go/v6/util"
+ )
+ 
+ var ErrTypeAssertionFailed = errors.New("type assertion failed")
+@@ -29,10 +27,6 @@ const (
+ )
+ 
+ func (p *Plugin) run(ctx context.Context) error {
+-	if err := p.FlagsFromContext(); err != nil {
+-		return fmt.Errorf("validation failed: %w", err)
+-	}
+-
+ 	if err := p.Validate(); err != nil {
+ 		return fmt.Errorf("validation failed: %w", err)
+ 	}
+@@ -46,6 +40,8 @@ func (p *Plugin) run(ctx context.Context) error {
+ 
+ // Validate handles the settings validation of the plugin.
+ func (p *Plugin) Validate() error {
++	var err error
++
+ 	p.Settings.Build.Time = time.Now().Format(time.RFC3339)
+ 	p.Settings.Build.Branch = p.Metadata.Repository.Branch
+ 	p.Settings.Build.Ref = p.Metadata.Curr.Ref
+@@ -57,16 +53,14 @@ func (p *Plugin) Validate() error {
+ 			p.Settings.Build.Ref,
+ 			p.Settings.Build.Branch,
+ 		) {
+-			tag, err := plugin_tag.SemverTagSuffix(
++			p.Settings.Build.Tags, err = plugin_tag.SemverTagSuffix(
+ 				p.Settings.Build.Ref,
+ 				p.Settings.Build.TagsSuffix,
+ 				true,
+ 			)
+ 			if err != nil {
+ 				return fmt.Errorf("cannot generate tags from %s, invalid semantic version: %w", p.Settings.Build.Ref, err)
+ 			}
+-
+-			p.Settings.Build.Tags = *cli.NewStringSlice(tag...)
+ 		} else {
+ 			log.Info().Msgf("skip auto-tagging for %s, not on default branch or tag", p.Settings.Build.Ref)
+ 
+@@ -75,15 +69,13 @@ func (p *Plugin) Validate() error {
+ 	}
+ 
+ 	if p.Settings.Build.LabelsAuto {
+-		p.Settings.Build.Labels = *cli.NewStringSlice(p.GenerateLabels()...)
++		p.Settings.Build.Labels = p.GenerateLabels()
+ 	}
+ 
+ 	return nil
+ }
+ 
+ // Execute provides the implementation of the plugin.
+-//
+-//nolint:gocognit
+ func (p *Plugin) Execute(ctx context.Context) error {
+ 	var err error
+ 
+@@ -94,7 +86,7 @@ func (p *Plugin) Execute(ctx context.Context) error {
+ 	//nolint: nestif
+ 	if !p.Settings.Daemon.Disabled {
+ 		// If no custom DNS value set start internal DNS server
+-		if len(p.Settings.Daemon.DNS.Value()) == 0 {
++		if len(p.Settings.Daemon.DNS) == 0 {
+ 			ip, err := GetContainerIP()
+ 			if err != nil {
+ 				log.Warn().Msgf("error detecting IP address: %v", err)
+@@ -108,9 +100,7 @@ func (p *Plugin) Execute(ctx context.Context) error {
+ 					_ = cmd.Run()
+ 				}()
+ 
+-				if err := p.Settings.Daemon.DNS.Set(ip); err != nil {
+-					return fmt.Errorf("error setting daemon dns: %w", err)
+-				}
++				p.Settings.Daemon.DNS = append(p.Settings.Daemon.DNS, ip)
+ 			}
+ 		}
+ 
+@@ -207,31 +197,3 @@ func (p *Plugin) Execute(ctx context.Context) error {
+ 
+ 	return nil
+ }
+-
+-func (p *Plugin) FlagsFromContext() error {
+-	cacheFrom, ok := p.Context.Generic("cache-from").(*plugin_types.StringSliceFlag)
+-	if !ok {
+-		return fmt.Errorf("%w: failed to read cache-from input", ErrTypeAssertionFailed)
+-	}
+-
+-	p.Settings.Build.CacheFrom = cacheFrom.Get()
+-
+-	secrets, ok := p.Context.Generic("secrets").(*plugin_types.StringSliceFlag)
+-	if !ok {
+-		return fmt.Errorf("%w: failed to read secrets input", ErrTypeAssertionFailed)
+-	}
+-
+-	p.Settings.Build.Secrets = secrets.Get()
+-
+-	args, ok := p.Context.Generic("args").(*plugin_types.StringMapFlag)
+-	if !ok {
+-		return fmt.Errorf("%w: failed to read args input", ErrTypeAssertionFailed)
+-	}
+-
+-	p.Settings.Build.Args = args.Get()
+-	if p.Settings.Build.Args == nil {
+-		p.Settings.Build.Args = make(map[string]string)
+-	}
+-
+-	return nil
+-}
+diff --git a/plugin/plugin.go b/plugin/plugin.go
+--- a/plugin/plugin.go
++++ b/plugin/plugin.go
+@@ -4,9 +4,9 @@ import (
+ 	"fmt"
+ 
+ 	"github.com/thegeeklab/wp-docker-buildx/docker"
+-	plugin_base "github.com/thegeeklab/wp-plugin-go/v4/plugin"
+-	plugin_types "github.com/thegeeklab/wp-plugin-go/v4/types"
+-	"github.com/urfave/cli/v2"
++	plugin_cli "github.com/thegeeklab/wp-plugin-go/v6/cli"
++	plugin_base "github.com/thegeeklab/wp-plugin-go/v6/plugin"
++	"github.com/urfave/cli/v3"
+ )
+ 
+ //go:generate go run ../internal/docs/main.go -output=../docs/data/data-raw.yaml
+@@ -65,315 +65,328 @@ func Flags(settings *Settings, category string) []cli.Flag {
+ 	return []cli.Flag{
+ 		&cli.BoolFlag{
+ 			Name:        "dry-run",
+-			EnvVars:     []string{"PLUGIN_DRY_RUN"},
++			Sources:     cli.EnvVars("PLUGIN_DRY_RUN"),
+ 			Usage:       "disable docker push",
+ 			Destination: &settings.Build.Dryrun,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.mirror",
+-			EnvVars:     []string{"PLUGIN_MIRROR", "DOCKER_PLUGIN_MIRROR"},
++			Sources:     cli.EnvVars("PLUGIN_MIRROR", "DOCKER_PLUGIN_MIRROR"),
+ 			Usage:       "registry mirror to pull images",
+ 			Destination: &settings.Daemon.Mirror,
+ 			DefaultText: "$DOCKER_PLUGIN_MIRROR",
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.storage-driver",
+-			EnvVars:     []string{"PLUGIN_STORAGE_DRIVER"},
++			Sources:     cli.EnvVars("PLUGIN_STORAGE_DRIVER"),
+ 			Usage:       "docker daemon storage driver",
+ 			Destination: &settings.Daemon.StorageDriver,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.storage-path",
+-			EnvVars:     []string{"PLUGIN_STORAGE_PATH"},
++			Sources:     cli.EnvVars("PLUGIN_STORAGE_PATH"),
+ 			Usage:       "docker daemon storage path",
+ 			Value:       "/var/lib/docker",
+ 			Destination: &settings.Daemon.StoragePath,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.bip",
+-			EnvVars:     []string{"PLUGIN_BIP"},
++			Sources:     cli.EnvVars("PLUGIN_BIP"),
+ 			Usage:       "allow the docker daemon to bride IP address",
+ 			Destination: &settings.Daemon.Bip,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.mtu",
+-			EnvVars:     []string{"PLUGIN_MTU"},
++			Sources:     cli.EnvVars("PLUGIN_MTU"),
+ 			Usage:       "docker daemon custom MTU setting",
+ 			Destination: &settings.Daemon.MTU,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "daemon.dns",
+-			EnvVars:     []string{"PLUGIN_CUSTOM_DNS"},
++			Sources:     cli.EnvVars("PLUGIN_CUSTOM_DNS"),
+ 			Usage:       "custom docker daemon DNS server",
+ 			Destination: &settings.Daemon.DNS,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "daemon.dns-search",
+-			EnvVars:     []string{"PLUGIN_CUSTOM_DNS_SEARCH"},
++			Sources:     cli.EnvVars("PLUGIN_CUSTOM_DNS_SEARCH"),
+ 			Usage:       "custom docker daemon DNS search domain",
+ 			Destination: &settings.Daemon.DNSSearch,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "daemon.insecure",
+-			EnvVars:     []string{"PLUGIN_INSECURE"},
++			Sources:     cli.EnvVars("PLUGIN_INSECURE"),
+ 			Usage:       "allow the docker daemon to use insecure registries",
+ 			Value:       false,
+ 			Destination: &settings.Daemon.Insecure,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "daemon.ipv6",
+-			EnvVars:     []string{"PLUGIN_IPV6"},
++			Sources:     cli.EnvVars("PLUGIN_IPV6"),
+ 			Usage:       "enable docker daemon IPv6 support",
+ 			Value:       false,
+ 			Destination: &settings.Daemon.IPv6,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "daemon.experimental",
+-			EnvVars:     []string{"PLUGIN_EXPERIMENTAL"},
++			Sources:     cli.EnvVars("PLUGIN_EXPERIMENTAL"),
+ 			Usage:       "enable docker daemon experimental mode",
+ 			Value:       false,
+ 			Destination: &settings.Daemon.Experimental,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "daemon.debug",
+-			EnvVars:     []string{"PLUGIN_DEBUG"},
++			Sources:     cli.EnvVars("PLUGIN_DEBUG"),
+ 			Usage:       "enable verbose debug mode for the docker daemon",
+ 			Value:       false,
+ 			Destination: &settings.Daemon.Debug,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "daemon.off",
+-			EnvVars:     []string{"PLUGIN_DAEMON_OFF"},
++			Sources:     cli.EnvVars("PLUGIN_DAEMON_OFF"),
+ 			Usage:       "disable the startup of the docker daemon",
+ 			Value:       false,
+ 			Destination: &settings.Daemon.Disabled,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.buildkit-config",
+-			EnvVars:     []string{"PLUGIN_BUILDKIT_CONFIG"},
++			Sources:     cli.EnvVars("PLUGIN_BUILDKIT_CONFIG"),
+ 			Usage:       "content of the docker buildkit toml config",
+ 			Destination: &settings.BuildkitConfig,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "daemon.max-concurrent-uploads",
+-			EnvVars:     []string{"PLUGIN_MAX_CONCURRENT_UPLOADS"},
++			Sources:     cli.EnvVars("PLUGIN_MAX_CONCURRENT_UPLOADS"),
+ 			Usage:       "max concurrent uploads for each push",
+ 			Destination: &settings.Daemon.MaxConcurrentUploads,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "containerfile",
+-			EnvVars:     []string{"PLUGIN_CONTAINERFILE"},
++			Sources:     cli.EnvVars("PLUGIN_CONTAINERFILE"),
+ 			Usage:       "containerfile to use for the image build",
+ 			Value:       "Containerfile",
+ 			Destination: &settings.Build.Containerfile,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "context",
+-			EnvVars:     []string{"PLUGIN_CONTEXT"},
++			Sources:     cli.EnvVars("PLUGIN_CONTEXT"),
+ 			Usage:       "path of the build context",
+ 			Value:       ".",
+ 			Destination: &settings.Build.Context,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "named-context",
+-			EnvVars:     []string{"PLUGIN_NAMED_CONTEXT"},
++			Sources:     cli.EnvVars("PLUGIN_NAMED_CONTEXT"),
+ 			Usage:       "additional named build context",
+ 			Destination: &settings.Build.NamedContext,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+-			Name:        "tags",
+-			EnvVars:     []string{"PLUGIN_TAGS", "PLUGIN_TAG"},
++			Name: "tags",
++			Sources: cli.ValueSourceChain{
++				Chain: []cli.ValueSource{
++					cli.EnvVar("PLUGIN_TAGS"),
++					cli.EnvVar("PLUGIN_TAG"),
++					cli.File(".tags"),
++				},
++			},
+ 			Usage:       "repository tags to use for the image",
+-			FilePath:    ".tags",
+ 			Destination: &settings.Build.Tags,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "tags.auto",
+-			EnvVars:     []string{"PLUGIN_AUTO_TAG", "PLUGIN_DEFAULT_TAGS"},
++			Sources:     cli.EnvVars("PLUGIN_AUTO_TAG", "PLUGIN_DEFAULT_TAGS"),
+ 			Usage:       "generate tag names automatically based on git branch and git tag",
+ 			Value:       false,
+ 			Destination: &settings.Build.TagsAuto,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "tags.suffix",
+-			EnvVars:     []string{"PLUGIN_AUTO_TAG_SUFFIX", "PLUGIN_DEFAULT_SUFFIX"},
++			Sources:     cli.EnvVars("PLUGIN_AUTO_TAG_SUFFIX", "PLUGIN_DEFAULT_SUFFIX"),
+ 			Usage:       "generate tag names with the given suffix",
+ 			Destination: &settings.Build.TagsSuffix,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+-			Name:        "extra.tags",
+-			EnvVars:     []string{"PLUGIN_EXTRA_TAGS"},
++			Name: "extra.tags",
++			Sources: cli.ValueSourceChain{
++				Chain: []cli.ValueSource{
++					cli.EnvVar("PLUGIN_EXTRA_TAGS"),
++					cli.File(".extratags"),
++				},
++			},
+ 			Usage:       "additional tags to use for the image including registry",
+-			FilePath:    ".extratags",
+ 			Destination: &settings.Build.ExtraTags,
+ 			Category:    category,
+ 		},
+-		&cli.GenericFlag{
+-			Name:     "args",
+-			EnvVars:  []string{"PLUGIN_BUILD_ARGS"},
+-			Usage:    "custom build arguments for the build",
+-			Value:    &plugin_types.StringMapFlag{},
+-			Category: category,
++		&plugin_cli.StringMapFlag{
++			Name:        "args",
++			Sources:     cli.EnvVars("PLUGIN_BUILD_ARGS"),
++			Usage:       "custom build arguments for the build",
++			Destination: &settings.Build.Args,
++			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "args-from-env",
+-			EnvVars:     []string{"PLUGIN_BUILD_ARGS_FROM_ENV"},
++			Sources:     cli.EnvVars("PLUGIN_BUILD_ARGS_FROM_ENV"),
+ 			Usage:       "forward environment variables as custom arguments to the build",
+ 			Destination: &settings.Build.ArgsEnv,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "quiet",
+-			EnvVars:     []string{"PLUGIN_QUIET"},
++			Sources:     cli.EnvVars("PLUGIN_QUIET"),
+ 			Usage:       "enable suppression of the build output",
+ 			Value:       false,
+ 			Destination: &settings.Build.Quiet,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "output",
+-			EnvVars:     []string{"PLUGIN_OUTPUT"},
++			Sources:     cli.EnvVars("PLUGIN_OUTPUT"),
+ 			Usage:       "export action for the build result",
+ 			Destination: &settings.Build.Output,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "target",
+-			EnvVars:     []string{"PLUGIN_TARGET"},
++			Sources:     cli.EnvVars("PLUGIN_TARGET"),
+ 			Usage:       "build target to use",
+ 			Destination: &settings.Build.Target,
+ 			Category:    category,
+ 		},
+-		&cli.GenericFlag{
+-			Name:     "cache-from",
+-			EnvVars:  []string{"PLUGIN_CACHE_FROM"},
+-			Usage:    "images to consider as cache sources",
+-			Value:    &plugin_types.StringSliceFlag{},
++		&plugin_cli.StringSliceFlag{
++			Name:        "cache-from",
++			Sources:     cli.EnvVars("PLUGIN_CACHE_FROM"),
++			Usage:       "images to consider as cache sources",
++			Destination: &settings.Build.CacheFrom,
++			Config: plugin_cli.StringSliceConfig{
++				Delimiter:    ",",
++				EscapeString: "\\",
++			},
+ 			Category: category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "cache-to",
+-			EnvVars:     []string{"PLUGIN_CACHE_TO"},
++			Sources:     cli.EnvVars("PLUGIN_CACHE_TO"),
+ 			Usage:       "cache destination for the build cache",
+ 			Destination: &settings.Build.CacheTo,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "pull-image",
+-			EnvVars:     []string{"PLUGIN_PULL_IMAGE"},
++			Sources:     cli.EnvVars("PLUGIN_PULL_IMAGE"),
+ 			Usage:       "enforce to pull base image at build time",
+ 			Value:       true,
+ 			Destination: &settings.Build.Pull,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "compress",
+-			EnvVars:     []string{"PLUGIN_COMPRESS"},
++			Sources:     cli.EnvVars("PLUGIN_COMPRESS"),
+ 			Usage:       "enable compression of the build context using gzip",
+ 			Value:       false,
+ 			Destination: &settings.Build.Compress,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "repo",
+-			EnvVars:     []string{"PLUGIN_REPO"},
++			Sources:     cli.EnvVars("PLUGIN_REPO"),
+ 			Usage:       "repository name for the image",
+ 			Destination: &settings.Build.Repo,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "docker.registry",
+-			EnvVars:     []string{"PLUGIN_REGISTRY", "DOCKER_REGISTRY"},
++			Sources:     cli.EnvVars("PLUGIN_REGISTRY", "DOCKER_REGISTRY"),
+ 			Usage:       "docker registry to authenticate with",
+ 			Value:       "https://index.docker.io/v1/",
+ 			Destination: &settings.Registry.Address,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "docker.username",
+-			EnvVars:     []string{"PLUGIN_USERNAME", "DOCKER_USERNAME"},
++			Sources:     cli.EnvVars("PLUGIN_USERNAME", "DOCKER_USERNAME"),
+ 			Usage:       "username for registry authentication",
+ 			Destination: &settings.Registry.Username,
+ 			DefaultText: "$DOCKER_USERNAME",
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "docker.password",
+-			EnvVars:     []string{"PLUGIN_PASSWORD", "DOCKER_PASSWORD"},
++			Sources:     cli.EnvVars("PLUGIN_PASSWORD", "DOCKER_PASSWORD"),
+ 			Usage:       "password for registry authentication",
+ 			Destination: &settings.Registry.Password,
+ 			DefaultText: "$DOCKER_PASSWORD",
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "docker.email",
+-			EnvVars:     []string{"PLUGIN_EMAIL", "DOCKER_EMAIL"},
++			Sources:     cli.EnvVars("PLUGIN_EMAIL", "DOCKER_EMAIL"),
+ 			Usage:       "email address for registry authentication",
+ 			Destination: &settings.Registry.Email,
+ 			DefaultText: "$DOCKER_EMAIL",
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "registry.config",
+-			EnvVars:     []string{"PLUGIN_REGISTRY_CONFIG", "DOCKER_REGISTRY_CONFIG"},
++			Sources:     cli.EnvVars("PLUGIN_REGISTRY_CONFIG", "DOCKER_REGISTRY_CONFIG"),
+ 			Usage:       "content of the registry credentials store file",
+ 			Destination: &settings.Registry.Config,
+ 			DefaultText: "$DOCKER_REGISTRY_CONFIG",
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "no-cache",
+-			EnvVars:     []string{"PLUGIN_NO_CACHE"},
++			Sources:     cli.EnvVars("PLUGIN_NO_CACHE"),
+ 			Usage:       "disable the usage of cached intermediate containers",
+ 			Value:       false,
+ 			Destination: &settings.Build.NoCache,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "add-host",
+-			EnvVars:     []string{"PLUGIN_ADD_HOST"},
++			Sources:     cli.EnvVars("PLUGIN_ADD_HOST"),
+ 			Usage:       "additional `host:ip` mapping",
+ 			Destination: &settings.Build.AddHost,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "platforms",
+-			EnvVars:     []string{"PLUGIN_PLATFORMS"},
++			Sources:     cli.EnvVars("PLUGIN_PLATFORMS"),
+ 			Usage:       "target platform for build",
+ 			Destination: &settings.Build.Platforms,
+ 			Category:    category,
+ 		},
+ 		&cli.StringSliceFlag{
+ 			Name:        "labels",
+-			EnvVars:     []string{"PLUGIN_LABELS"},
++			Sources:     cli.EnvVars("PLUGIN_LABELS"),
+ 			Usage:       "labels to add to image",
+ 			Destination: &settings.Build.Labels,
+ 			Category:    category,
+ 		},
+ 		&cli.BoolFlag{
+ 			Name:        "labels.auto",
+-			EnvVars:     []string{"PLUGIN_AUTO_LABEL", "PLUGIN_DEFAULT_LABELS"},
++			Sources:     cli.EnvVars("PLUGIN_AUTO_LABEL", "PLUGIN_DEFAULT_LABELS"),
+ 			Usage:       "generates labels automatically based on git repository information",
+ 			Value:       false,
+ 			Destination: &settings.Build.LabelsAuto,
+@@ -382,23 +395,27 @@ func Flags(settings *Settings, category string) []cli.Flag {
+ 
+ 		&cli.StringFlag{
+ 			Name:        "provenance",
+-			EnvVars:     []string{"PLUGIN_PROVENANCE"},
++			Sources:     cli.EnvVars("PLUGIN_PROVENANCE"),
+ 			Usage:       "generates provenance attestation for the build",
+ 			Destination: &settings.Build.Provenance,
+ 			Category:    category,
+ 		},
+ 		&cli.StringFlag{
+ 			Name:        "sbom",
+-			EnvVars:     []string{"PLUGIN_SBOM"},
++			Sources:     cli.EnvVars("PLUGIN_SBOM"),
+ 			Usage:       "generates SBOM attestation for the build",
+ 			Destination: &settings.Build.SBOM,
+ 			Category:    category,
+ 		},
+-		&cli.GenericFlag{
+-			Name:     "secrets",
+-			EnvVars:  []string{"PLUGIN_SECRETS"},
+-			Usage:    "exposes secrets to the build",
+-			Value:    &plugin_types.StringSliceFlag{},
++		&plugin_cli.StringSliceFlag{
++			Name:        "secrets",
++			Sources:     cli.EnvVars("PLUGIN_SECRETS"),
++			Usage:       "exposes secrets to the build",
++			Destination: &settings.Build.Secrets,
++			Config: plugin_cli.StringSliceConfig{
++				Delimiter:    ",",
++				EscapeString: "\\",
++			},
+ 			Category: category,
+ 		},
+ 	}
+diff --git a/plugin/util.go b/plugin/util.go
+--- a/plugin/util.go
++++ b/plugin/util.go
+@@ -51,7 +51,7 @@ func (p *Plugin) GenerateLabels() []string {
+ 	l = append(l, fmt.Sprintf("org.opencontainers.image.created=%s", p.Settings.Build.Time))
+ 
+ 	if p.Settings != nil {
+-		if tags := p.Settings.Build.Tags.Value(); len(tags) > 0 {
++		if tags := p.Settings.Build.Tags; len(tags) > 0 {
+ 			l = append(l, fmt.Sprintf("org.opencontainers.image.version=%s", tags[len(tags)-1]))
+ 		}
+ 	}
