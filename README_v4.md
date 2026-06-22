@@ -10,7 +10,6 @@ This README is the compact reference for the **current v4 benchmark baseline**, 
 - **Current benchmark baseline:** **205 clean witnessed tasks**
 - **Index file:** `harbor_benchmark/task_summary.json`
 - **Harness spec:** `harbor_benchmark/HARNESS.md`
-- **Important launch rule:** long-running Harbor jobs should use a **frozen snapshot path**, not the mutable working-tree dataset path.
 
 ## What a task contains
 
@@ -65,14 +64,14 @@ The tables below follow the numbers already documented in checked-in result file
 
 | Agent | Model | Snapshot | Current state | Notes | Source |
 |---|---|---|---|---|---|
-| OpenCode | Gemini 3.5 Flash | clean205 frozen | **22 completed / 22 exception-marked / 6 running / 177 pending**, mean reward **0.273** | Frozen-snapshot launch is valid, but current finished trials are all `AgentTimeoutError`; some still pass verifier | `harbor_jobs/opencode_gemini35flash_clean205_frozen_conc6_2026-06-22__03-11-12/result.json` |
+| OpenCode | Gemini 3.5 Flash | clean205 | **22 completed / 22 exception-marked / 6 running / 177 pending**, mean reward **0.273** | Current finished trials are all `AgentTimeoutError`; some still pass verifier | `harbor_jobs/opencode_gemini35flash_clean205_frozen_conc6_2026-06-22__03-11-12/result.json` |
+
 ## Recommended comparison baseline
 
 For any new v4 comparison table, use:
 
 1. the **205-task clean witnessed snapshot**
-2. a **frozen dataset snapshot path** for long-running runs
-3. clearly labeled agent/model pairs
+2. clearly labeled agent/model pairs
 
 The most meaningful completed clean205 comparison already documented in-repo is:
 
