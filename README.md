@@ -53,18 +53,18 @@ The tables below follow the numbers already documented in checked-in result file
 
 #### Final / intended comparison runs
 
-| Agent | Model | Snapshot | Result | Notes | Source |
-|---|---|---|---|---|---|
-| Copilot CLI | GPT-5.5 | clean205 | **91 pass / 111 fail / 3 no reward** over 205 task results; **45.0%** over 202 reward-bearing tasks | Final aggregate merged across 3 job segments | `conversations/260619-benchmark-runs/142134-copilot-gpt55-complete.md` |
-| Codex | GPT-5.5 | clean205 | **98 pass / 107 fail** over 205 reward-bearing tasks; approx **47.8%** pass rate | 1 reward-bearing task from initial launch + 204-task clean resume | `harbor_jobs/codex_cloudgpt_gpt55_clean205_nopreapply_conc5_2026-06-19__15-16-03/result.json`, `harbor_jobs/codex_cloudgpt_gpt55_clean205_resume204_clean_conc5_2026-06-21__04-12-00/result.json`, `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md` |
-| OpenCode | GPT-5.5 | clean205 | **92 pass / 113 fail** over 205 reward-bearing tasks; approx **44.9%** pass rate | 1 reward-bearing task from initial launch + 204-task resume after Codex | `harbor_jobs/opencode_cloudgpt_gpt55_clean205_nopreapply_conc5_2026-06-19__15-16-03/result.json`, `harbor_jobs/opencode_gpt55_clean205_resume_after_codex_conc5_2026-06-21/result.json`, `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md` |
-| Claude Code | GPT-5.5 | clean205 | **No valid benchmark result** | Blocked by auth (`Not logged in`) on both attempted launches | `conversations/260619-benchmark-runs/153200-copilot-gpt55-clean205-launch.md` |
+| Agent | Model | Snapshot | Mean reward | Source |
+|---|---|---|---:|---|
+| Copilot CLI | GPT-5.5 | clean205 | **0.450** | `conversations/260619-benchmark-runs/142134-copilot-gpt55-complete.md` |
+| Codex | GPT-5.5 | clean205 | **0.478** | `harbor_jobs/codex_cloudgpt_gpt55_clean205_nopreapply_conc5_2026-06-19__15-16-03/result.json`, `harbor_jobs/codex_cloudgpt_gpt55_clean205_resume204_clean_conc5_2026-06-21__04-12-00/result.json`, `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md` |
+| OpenCode | GPT-5.5 | clean205 | **0.449** | `harbor_jobs/opencode_cloudgpt_gpt55_clean205_nopreapply_conc5_2026-06-19__15-16-03/result.json`, `harbor_jobs/opencode_gpt55_clean205_resume_after_codex_conc5_2026-06-21/result.json`, `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md` |
+| Claude Code | GPT-5.5 | clean205 | — | `conversations/260619-benchmark-runs/153200-copilot-gpt55-clean205-launch.md` |
 
 #### Current in-progress clean205 run
 
-| Agent | Model | Snapshot | Current state | Notes | Source |
-|---|---|---|---|---|---|
-| OpenCode | Gemini 3.5 Flash | clean205 | **22 completed / 22 exception-marked / 6 running / 177 pending**, mean reward **0.273** | Current finished trials are all `AgentTimeoutError`; some still pass verifier | `harbor_jobs/opencode_gemini35flash_clean205_frozen_conc6_2026-06-22__03-11-12/result.json` |
+| Agent | Model | Snapshot | Mean reward | Source |
+|---|---|---|---:|---|
+| OpenCode | Gemini 3.5 Flash | clean205 | **0.273** | `harbor_jobs/opencode_gemini35flash_clean205_frozen_conc6_2026-06-22__03-11-12/result.json` |
 
 ## Recommended comparison baseline
 
@@ -75,11 +75,11 @@ For any new v4 comparison table, use:
 
 The most meaningful completed clean205 comparison already documented in-repo is:
 
-| Agent | Model | Valid clean205 result |
-|---|---|
-| Copilot CLI | GPT-5.5 | 91 / 202 reward-bearing passes = **45.0%** |
-| Codex | GPT-5.5 | 98 / 205 passes = **47.8%** |
-| OpenCode | GPT-5.5 | 92 / 205 passes = **44.9%** |
+| Agent | Model | Mean reward |
+|---|---|---:|
+| Copilot CLI | GPT-5.5 | **0.450** |
+| Codex | GPT-5.5 | **0.478** |
+| OpenCode | GPT-5.5 | **0.449** |
 
 ## Source map
 
