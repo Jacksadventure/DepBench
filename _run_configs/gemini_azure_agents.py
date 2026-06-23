@@ -175,10 +175,25 @@ class ClaudeCodeAzureGemini(_AzureGeminiMixin, ClaudeCode):
         self._extra_env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = model
         self._extra_env["CLAUDE_CODE_SUBAGENT_MODEL"] = model
 
-        env_keys = ("ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL")
+        env_keys = (
+            "ANTHROPIC_BASE_URL",
+            "ANTHROPIC_API_KEY",
+            "ANTHROPIC_AUTH_TOKEN",
+            "ANTHROPIC_MODEL",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+            "CLAUDE_CODE_SUBAGENT_MODEL",
+        )
         original_env = {key: os.environ.get(key) for key in env_keys}
         os.environ["ANTHROPIC_BASE_URL"] = base_url
+        os.environ["ANTHROPIC_API_KEY"] = token
+        os.environ["ANTHROPIC_AUTH_TOKEN"] = token
         os.environ["ANTHROPIC_MODEL"] = model
+        os.environ["ANTHROPIC_DEFAULT_SONNET_MODEL"] = model
+        os.environ["ANTHROPIC_DEFAULT_OPUS_MODEL"] = model
+        os.environ["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = model
+        os.environ["CLAUDE_CODE_SUBAGENT_MODEL"] = model
         original_model_name = self.model_name
         self.model_name = model
         try:
