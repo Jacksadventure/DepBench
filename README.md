@@ -7,7 +7,7 @@ This README is the compact reference for the **current v4 benchmark baseline**, 
 ## Current baseline
 
 - **Authoritative dataset path:** `harbor_benchmark/tasks_v4/`
-- **Current benchmark baseline:** **205 clean witnessed tasks**
+- **Current benchmark baseline:** **219 curated v4-with-test tasks (205 clean baseline + 14 hard with-test imports)**
 - **Index file:** `harbor_benchmark/task_summary.json`
 - **Harness spec:** `harbor_benchmark/HARNESS.md`
 
@@ -23,15 +23,18 @@ Each task directory contains:
 
 Under the current v4 setup, the dependency manifest patch is **not** pre-applied in the agent image. The agent must infer and perform the dependency upgrade itself.
 
-## Current 205-task distribution
+## Current 219-task distribution
 
 | Ecosystem | Tasks | Share |
 |---|---:|---:|
-| npm/yarn | 79 | 38.5% |
-| Maven/Java | 66 | 32.2% |
-| Go | 28 | 13.7% |
-| Cargo/Rust | 20 | 9.8% |
-| Python | 12 | 5.9% |
+| npm/yarn | 79 | 36.1% |
+| Maven/Java | 66 | 30.1% |
+| Go | 41 | 18.7% |
+| Cargo/Rust | 21 | 9.6% |
+| Python | 12 | 5.5% |
+
+
+The current branch keeps the published 205-task clean witnessed baseline and adds only the 14 harder with-test imports that survived the post-run quality audit. The audit removed 38 imported tasks whose hidden test deltas were too weak or whose tasks were solved by all three main GPT-5.5 agents (Copilot CLI, Codex, and OpenCode).
 
 ## Interpreting the result tables
 
