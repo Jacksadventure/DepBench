@@ -52,6 +52,16 @@ The tables below follow the numbers already documented in checked-in result file
 
 ## Current-dataset benchmark results
 
+### Current curated v4-with-test baseline: v4-219
+
+| Agent | Model | Snapshot | Mean reward | Source |
+|---|---|---|---:|---|
+| Codex | GPT-5.5 | v4-with-test219 | **0.479** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Copilot CLI | GPT-5.5 | v4-with-test219 | **0.449** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | GPT-5.5 | v4-with-test219 | **0.429** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+
+Supplemental hard14-only rows are also recorded for Claude Code/GPT-5.5 and OpenCode/Gemini 3.5 Flash in `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`; they are not merged into 219-task means because matching clean205 per-task baselines are not present on this branch.
+
 ### Current clean witnessed baseline: v4-205
 
 #### Final / intended comparison runs
@@ -71,18 +81,20 @@ The tables below follow the numbers already documented in checked-in result file
 
 ## Recommended comparison baseline
 
-For any new v4 comparison table, use:
+For any new v4-with-test comparison table, use:
 
-1. the **205-task clean witnessed snapshot**
+1. the **219-task curated v4-with-test snapshot**
 2. clearly labeled agent/model pairs
 
-The most meaningful completed clean205 comparison already documented in-repo is:
+Use the 205-task clean witnessed snapshot only for historical clean-baseline comparisons.
+
+The most meaningful completed current-dataset comparison already documented in-repo is:
 
 | Agent | Model | Mean reward |
 |---|---|---:|
-| Copilot CLI | GPT-5.5 | **0.450** |
-| Codex | GPT-5.5 | **0.478** |
-| OpenCode | GPT-5.5 | **0.449** |
+| Codex | GPT-5.5 | **0.479** |
+| Copilot CLI | GPT-5.5 | **0.449** |
+| OpenCode | GPT-5.5 | **0.429** |
 
 ## Source map
 
@@ -92,3 +104,5 @@ The most meaningful completed clean205 comparison already documented in-repo is:
 - Clean205 Codex/OpenCode resume note: `conversations/260619-benchmark-runs/040530-codex-opencode-resume.md`
 - Clean205 OpenCode-after-Codex note: `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md`
 - Clean205 launch note + Claude auth failure: `conversations/260619-benchmark-runs/153200-copilot-gpt55-clean205-launch.md`
+
+- v4-with-test219 merged summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`

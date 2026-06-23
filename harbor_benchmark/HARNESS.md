@@ -414,6 +414,8 @@ TOTAL :           45    109  154   29.2%
 - Post-audit current `tasks_v4` count: **219**. Ecosystem mix: npm/yarn 79 · Maven/Java 66 · Go 41 · Cargo/Rust 21 · Python 12.
 
 - Quality audit policy for imported tasks: keep only tasks with clean hidden-test paths, non-weak test deltas, and not solved by all three main GPT-5.5 agents (Copilot CLI, Codex, and OpenCode). Removed **38** imported tasks as weak/easy; retained **14** hard imports.
+- Merged GPT-5.5 results for the current 219-task dataset: Codex **0.479** (105/219), Copilot CLI **0.449** (97/216 reward-bearing; 3 no-reward), OpenCode **0.429** (94/219). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`.
+- Supplemental hard14-only results: Claude Code/GPT-5.5 **0.143** (2/14, all with `NonZeroAgentExitCodeError`), OpenCode/Gemini 3.5 Flash **0.214** (3/14).
 - Import report: `harbor_benchmark/reports/with_tests_v4_import_20260622.json`.
 
 ### v4 dataset snapshot — 228 tasks in `tasks_v4` (2026-06-18)
