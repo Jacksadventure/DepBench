@@ -71,13 +71,14 @@ Supplemental hard14-only rows are also recorded for Claude Code/GPT-5.5 and Open
 | Copilot CLI | GPT-5.5 | clean205 | **0.450** | `conversations/260619-benchmark-runs/142134-copilot-gpt55-complete.md` |
 | Codex | GPT-5.5 | clean205 | **0.478** | `harbor_jobs/codex_cloudgpt_gpt55_clean205_nopreapply_conc5_2026-06-19__15-16-03/result.json`, `harbor_jobs/codex_cloudgpt_gpt55_clean205_resume204_clean_conc5_2026-06-21__04-12-00/result.json`, `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md` |
 | OpenCode | GPT-5.5 | clean205 | **0.449** | `harbor_jobs/opencode_cloudgpt_gpt55_clean205_nopreapply_conc5_2026-06-19__15-16-03/result.json`, `harbor_jobs/opencode_gpt55_clean205_resume_after_codex_conc5_2026-06-21/result.json`, `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md` |
-| Claude Code | GPT-5.5 | clean205 | — | `conversations/260619-benchmark-runs/153200-copilot-gpt55-clean205-launch.md` |
+| Claude Code | GPT-5.5 | clean205 | **0.176** | `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.json` |
 
-#### Current in-progress clean205 run
+#### Additional clean205 runs
 
 | Agent | Model | Snapshot | Mean reward | Source |
 |---|---|---|---:|---|
 | OpenCode | Gemini 3.5 Flash | clean205 | **0.273** | `harbor_jobs/opencode_gemini35flash_clean205_frozen_conc6_2026-06-22__03-11-12/result.json` |
+| Claude Code | Gemini 3.5 Flash | clean205 | **0.176** | `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.json` |
 
 ## Recommended comparison baseline
 
@@ -104,5 +105,6 @@ The most meaningful completed current-dataset comparison already documented in-r
 - Clean205 Codex/OpenCode resume note: `conversations/260619-benchmark-runs/040530-codex-opencode-resume.md`
 - Clean205 OpenCode-after-Codex note: `conversations/260619-benchmark-runs/125236-opencode-after-codex-launch.md`
 - Clean205 launch note + Claude auth failure: `conversations/260619-benchmark-runs/153200-copilot-gpt55-clean205-launch.md`
+- Clean205 Claude Code Maestro summary: `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.md`
 
 - v4-with-test219 merged summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
