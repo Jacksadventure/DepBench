@@ -61,8 +61,10 @@ The tables below follow the numbers already documented in checked-in result file
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.429** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.174** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Claude Code | GPT-5.5 | v4-with-test219 | **0.174** | `harbor_benchmark/reports/claude_code_maestro_v4_with_test219_summary_2026-06-24.json` |
+| Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.174** | `harbor_benchmark/reports/claude_code_maestro_v4_with_test219_summary_2026-06-24.json` |
 
-A supplemental hard14-only row is recorded for Claude Code/GPT-5.5 in `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`; Claude lacks a complete valid 219-task run on this branch.
+Claude Code rows merge the matching clean205 and hard14 Maestro runs into 219-task means.
 
 ### Current clean witnessed baseline: v4-205
 
@@ -100,6 +102,8 @@ The most meaningful completed current-dataset comparison already documented in-r
 | OpenCode | GPT-5.5 | **0.429** |
 | Copilot CLI | Gemini 3.5 Flash | **0.225** |
 | OpenCode | Gemini 3.5 Flash | **0.174** |
+| Claude Code | GPT-5.5 | **0.174** |
+| Claude Code | Gemini 3.5 Flash | **0.174** |
 
 ## Source map
 
@@ -112,3 +116,4 @@ The most meaningful completed current-dataset comparison already documented in-r
 - Clean205 Claude Code Maestro summary: `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.md`
 
 - v4-with-test219 merged summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
+- v4-with-test219 Claude Code Maestro summary: `harbor_benchmark/reports/claude_code_maestro_v4_with_test219_summary_2026-06-24.md`
