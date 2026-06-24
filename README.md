@@ -59,8 +59,10 @@ The tables below follow the numbers already documented in checked-in result file
 | Codex | GPT-5.5 | v4-with-test219 | **0.479** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | GPT-5.5 | v4-with-test219 | **0.449** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.429** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.174** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 
-Supplemental hard14-only rows are also recorded for Claude Code/GPT-5.5 and OpenCode/Gemini 3.5 Flash in `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`; they are not merged into 219-task means because matching clean205 per-task baselines are not present on this branch.
+A supplemental hard14-only row is recorded for Claude Code/GPT-5.5 in `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`; Claude lacks a complete valid 219-task run on this branch.
 
 ### Current clean witnessed baseline: v4-205
 
@@ -96,6 +98,8 @@ The most meaningful completed current-dataset comparison already documented in-r
 | Codex | GPT-5.5 | **0.479** |
 | Copilot CLI | GPT-5.5 | **0.449** |
 | OpenCode | GPT-5.5 | **0.429** |
+| Copilot CLI | Gemini 3.5 Flash | **0.225** |
+| OpenCode | Gemini 3.5 Flash | **0.174** |
 
 ## Source map
 

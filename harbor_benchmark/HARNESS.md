@@ -415,7 +415,8 @@ TOTAL :           45    109  154   29.2%
 
 - Quality audit policy for imported tasks: keep only tasks with clean hidden-test paths, non-weak test deltas, and not solved by all three main GPT-5.5 agents (Copilot CLI, Codex, and OpenCode). Removed **38** imported tasks as weak/easy; retained **14** hard imports.
 - Merged GPT-5.5 results for the current 219-task dataset: Codex **0.479** (105/219), Copilot CLI **0.449** (97/216 reward-bearing; 3 no-reward), OpenCode **0.429** (94/219). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`.
-- Supplemental hard14-only results: Claude Code/GPT-5.5 **0.143** (2/14, all with `NonZeroAgentExitCodeError`), OpenCode/Gemini 3.5 Flash **0.214** (3/14).
+- Supplemental hard14-only result: Claude Code/GPT-5.5 **0.143** (2/14, all with `NonZeroAgentExitCodeError`).
+- Full Gemini 3.5 Flash results for the current 219-task dataset: Copilot CLI **0.225** (49/218 reward-bearing; 1 no-reward), OpenCode **0.174** (38/219). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`.
 - Import report: `harbor_benchmark/reports/with_tests_v4_import_20260622.json`.
 
 ### v4 dataset snapshot — 228 tasks in `tasks_v4` (2026-06-18)
