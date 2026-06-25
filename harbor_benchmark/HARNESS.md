@@ -54,6 +54,18 @@ This document captures the **current Harbor harness and dataset state** so we ca
 
 Key invariant: the agent is graded against a **fixed test.patch**. Even if it modified the working tree, the verifier overlays test.patch right before running tests, so the oracle test set is identical across every trial. Under the current prebuilt-image setup, the dependency manifest patch is not baked into `/app` and is not visible to the agent; the agent must infer and perform the upgrade from the instruction.
 
+Task-repository access guard: before launching new benchmark jobs, run
+`python _run_configs/patch_harbor_task_repo_blocker.py` on the host Harbor
+installation. The patch makes every `BaseInstalledAgent` trial infer the current
+task's upstream GitHub `owner/repo` and install container-side guards before the
+agent starts solving. The guards block common shell access paths to **that exact
+task repository** (`git`, `curl`, `wget`, `gh`, GitHub API/raw/codeload URLs,
+and git remotes), while leaving other repositories, dependency documentation,
+release notes, and package registries reachable. Set
+`DEPBENCH_DISABLE_TASK_REPO_BLOCK=1` only for intentional bypass/debugging. This
+is a shell-tool guard, not a full MITM proxy; arbitrary custom HTTPS clients can
+only be blocked with stronger network mediation.
+
 ---
 
 ## 2. Per-task scaffold layout
