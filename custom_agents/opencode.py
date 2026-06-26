@@ -77,7 +77,7 @@ class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
         return "custom-opencode"
 
     def get_version_command(self) -> str | None:
-        return "opencode --version"
+        return '. ~/.nvm/nvm.sh; nvm use 22 >/dev/null; opencode --version'
 
     def _settings(self) -> dict[str, str]:
         try:
@@ -184,23 +184,50 @@ class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
         await self.exec_as_root(
             environment,
             command=(
-                "set -euxo pipefail; "
-                "apt-get update && apt-get install -y curl ca-certificates gnupg; "
-                "if ! command -v node >/dev/null 2>&1 "
-                "|| [ \"$(node -p 'parseInt(process.versions.node)')\" -lt 20 ]; then "
-                "  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -; "
-                "  apt-get install -y nodejs; "
-                "fi; "
-                "node --version && npm --version"
+                "apt-get update && apt-get install -y curl ca-certificates"
             ),
             env={"DEBIAN_FRONTEND": "noninteractive"},
         )
         version_spec = f"@{self._version}" if self._version else "@latest"
-        await self.exec_as_root(
+        await self.exec_as_agent(
             environment,
-            command=f"npm install -g opencode-ai{version_spec}",
+            command=(
+                "set -euo pipefail; "
+                "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash && "
+                'export NVM_DIR="$HOME/.nvm" && '
+                '\\. "$NVM_DIR/nvm.sh" || true && '
+                "command -v nvm >/dev/null 2>&1 || { echo 'Error: NVM failed to load' >&2; exit 1; } && "
+                "nvm install 22 && nvm use 22 >/dev/null && npm -v && "
+                f"npm install -g opencode-ai{version_spec} && "
+                "opencode --version"
+            ),
         )
-        await self.exec_as_agent(environment, command="opencode --version")
+
+    def _error_messages(self) -> list[str]:
+        output_path = self.logs_dir / self._OUTPUT_FILENAME
+        if not output_path.exists():
+            return []
+
+        messages: list[str] = []
+        for line in output_path.read_text(errors="ignore").splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") != "error":
+                continue
+            error = event.get("error") or event.get("data") or event
+            if isinstance(error, dict):
+                message = (
+                    error.get("message")
+                    or error.get("error")
+                    or error.get("text")
+                    or json.dumps(error, sort_keys=True)
+                )
+            else:
+                message = str(error)
+            messages.append(message)
+        return messages
 
     async def _run_opencode(
         self,
@@ -260,6 +287,7 @@ class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
         await self.exec_as_agent(
             environment,
             command=(
+                ". ~/.nvm/nvm.sh; nvm use 22 >/dev/null; "
                 f"opencode --model={model_name} run --format=json "
                 f"{cli_flags_arg}--thinking --dangerously-skip-permissions "
                 f"-- {escaped_instruction} "
