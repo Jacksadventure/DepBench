@@ -57,6 +57,7 @@ The tables below follow the numbers already documented in checked-in result file
 | Agent | Model | Snapshot | Mean reward | Source |
 |---|---|---|---:|---|
 | Codex | GPT-5.5 | v4-with-test219 | **0.479** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Claude Code | Claude 4.8 | v4-with-test219 | **0.463** | `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` |
 | Claude Code | GPT-5.5 | v4-with-test219 | **0.452** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
 | Copilot CLI | GPT-5.5 | v4-with-test219 | **0.449** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.429** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
@@ -65,8 +66,10 @@ The tables below follow the numbers already documented in checked-in result file
 | Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
 | OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.174** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 
-Claude Code rows are full 219-task Copilot API runs and supersede older Maestro
-summaries that had auth/nonzero-exit reliability concerns.
+Claude Code GPT-5.5/Gemini rows are full 219-task Copilot API runs and supersede
+older Maestro summaries that had auth/nonzero-exit reliability concerns. The
+Claude 4.8 row is a full 219-task Claude Code run through the Anthropic-compatible
+Claude 4.8 endpoint.
 
 ### Current clean witnessed baseline: v4-205
 
@@ -100,6 +103,7 @@ The most meaningful completed current-dataset comparison already documented in-r
 | Agent | Model | Mean reward |
 |---|---|---:|
 | Codex | GPT-5.5 | **0.479** |
+| Claude Code | Claude 4.8 | **0.463** |
 | Claude Code | GPT-5.5 | **0.452** |
 | Copilot CLI | GPT-5.5 | **0.449** |
 | OpenCode | GPT-5.5 | **0.429** |
@@ -119,5 +123,7 @@ The most meaningful completed current-dataset comparison already documented in-r
 - Clean205 Claude Code Maestro summary: `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.md`
 
 - v4-with-test219 merged summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
+- v4-with-test219 Claude Code Claude 4.8 summary: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.md`
+- v4-with-test219 Claude Code Claude 4.8 per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_results_2026-06-26.csv`
 - v4-with-test219 Claude Code Copilot API summary: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.md`
 - v4-with-test219 Claude Code Copilot API per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_results_2026-06-25.csv`
