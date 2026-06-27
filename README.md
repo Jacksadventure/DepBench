@@ -56,13 +56,13 @@ The tables below follow the numbers already documented in checked-in result file
 
 | Agent | Model | Snapshot | Mean reward | Source |
 |---|---|---|---:|---|
-| Codex | GPT-5.5 | v4-with-test219 | **0.479** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Codex | GPT-5.5 | v4-with-test219 | **0.484** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Claude 4.8 | v4-with-test219 | **0.463** | `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` |
 | Copilot CLI | Claude 4.8 | v4-with-test219 | **0.461** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Claude Code | GPT-5.5 | v4-with-test219 | **0.452** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
-| Copilot CLI | GPT-5.5 | v4-with-test219 | **0.449** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Copilot CLI | GPT-5.5 | v4-with-test219 | **0.454** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | Claude 4.8 | v4-with-test219 | **0.447** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
-| OpenCode | GPT-5.5 | v4-with-test219 | **0.429** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | GPT-5.5 | v4-with-test219 | **0.434** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Codex | Claude 4.8 | v4-with-test219 | **0.359** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Codex | Gemini 3.5 Flash | v4-with-test219 | **0.279** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
@@ -105,13 +105,13 @@ The most meaningful completed current-dataset comparison already documented in-r
 
 | Agent | Model | Mean reward |
 |---|---|---:|
-| Codex | GPT-5.5 | **0.479** |
+| Codex | GPT-5.5 | **0.484** |
 | Claude Code | Claude 4.8 | **0.463** |
 | Copilot CLI | Claude 4.8 | **0.461** |
 | Claude Code | GPT-5.5 | **0.452** |
-| Copilot CLI | GPT-5.5 | **0.449** |
+| Copilot CLI | GPT-5.5 | **0.454** |
 | OpenCode | Claude 4.8 | **0.447** |
-| OpenCode | GPT-5.5 | **0.429** |
+| OpenCode | GPT-5.5 | **0.434** |
 | Codex | Claude 4.8 | **0.359** |
 | Codex | Gemini 3.5 Flash | **0.279** |
 | Copilot CLI | Gemini 3.5 Flash | **0.225** |

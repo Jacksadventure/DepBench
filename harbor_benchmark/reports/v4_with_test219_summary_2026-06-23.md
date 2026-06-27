@@ -1,14 +1,14 @@
 # v4-with-test219 summary
 
-Generated: 2026-06-27T08:26:18.368900+00:00
+Generated: 2026-06-27T08:40:54.925309+00:00
 
 ## GPT-5.5
 
 | Agent | Pass | Fail | No reward | Reward tasks | Pass rate |
 |---|---:|---:|---:|---:|---:|
-| codex | 105 | 114 | 0 | 219 | 0.479 |
-| copilot | 97 | 119 | 3 | 216 | 0.449 |
-| opencode | 94 | 125 | 0 | 219 | 0.429 |
+| codex | 106 | 113 | 0 | 219 | 0.484 |
+| copilot | 98 | 118 | 3 | 216 | 0.454 |
+| opencode | 95 | 124 | 0 | 219 | 0.434 |
 | claude_code | 99 | 120 | 0 | 219 | 0.452 |
 
 ## Gemini 3.5 Flash
