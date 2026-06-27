@@ -1,0 +1,1179 @@
+{
+  "schema_version": "ATIF-v1.7",
+  "session_id": "019ee92f-5b8f-7270-be69-86743c5d39af",
+  "agent": {
+    "name": "codex",
+    "version": "0.141.0",
+    "model_name": "gpt-5.5-20260424",
+    "extra": {
+      "originator": "codex_exec",
+      "cwd": "/app",
+      "git": {
+        "commit_hash": "8f5ada05cbd6a94004b9f7d2873c3dbc5927cb02",
+        "repository_url": "https://github.com/dkhmelenko/autoapproval.git"
+      }
+    }
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-06-21T07:57:35.626Z",
+      "source": "system",
+      "message": "<permissions instructions>\nFilesystem sandboxing defines which files can be read or written. `sandbox_mode` is `danger-full-access`: No filesystem sandboxing - all commands are permitted. Network access is enabled.\nApproval policy is currently never. Do not provide the `sandbox_permissions` for any reason, commands will be rejected.\n</permissions instructions><skills_instructions>\n## Skills\nA skill is a set of instructions provided through a `SKILL.md` source. Below is the list of skills that can be used. Each entry includes a name, description, and source locator. `file` locators are on the host filesystem, `environment resource` locators are owned by an execution environment, `orchestrator resource` locators are opaque non-filesystem resources, and `custom resource` locators use their provider's access mechanism.\n### Available skills\n- imagegen: Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, textures, sprites, mockups, or transparent-background cutouts. Use when Codex should create a brand-new image, transform an existing image, or derive visual variants from references, and the output should be a bitmap asset rather than repo-native code or vector. Do not use when the task is better handled by editing existing SVG/vector/code-native assets, extending an established icon or logo system, or building the visual directly in HTML/CSS/canvas. (file: /tmp/codex-home/skills/.system/imagegen/SKILL.md)\n- openai-docs: Use when the user asks how to build with OpenAI products or APIs, asks about Codex itself or choosing Codex surfaces, needs up-to-date official documentation with citations, help choosing the latest model for a use case, or model upgrade and prompt-upgrade guidance; use OpenAI docs MCP tools for non-Codex docs questions, use the Codex manual helper first for broad Codex self-knowledge, and restrict fallback browsing to official OpenAI domains. (file: /tmp/codex-home/skills/.system/openai-docs/SKILL.md)\n- plugin-creator: Create and scaffold plugin directories for Codex with a required `.codex-plugin/plugin.json`, optional plugin folders/files, valid manifest defaults, and personal-marketplace entries by default. Use when Codex needs to create a new personal plugin, add optional plugin structure, generate or update marketplace entries for plugin ordering and availability metadata, or update an existing local plugin during development with the CLI-driven cachebuster and reinstall flow. (file: /tmp/codex-home/skills/.system/plugin-creator/SKILL.md)\n- skill-creator: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Codex's capabilities with specialized knowledge, workflows, or tool integrations. (file: /tmp/codex-home/skills/.system/skill-creator/SKILL.md)\n- skill-installer: Install Codex skills into $CODEX_HOME/skills from a curated list or a GitHub repo path. Use when a user asks to list installable skills, install a curated skill, or install a skill from another repo (including private repos). (file: /tmp/codex-home/skills/.system/skill-installer/SKILL.md)\n### How to use skills\n- Discovery: The list above is the skills available in this session (name + description + source locator). `file` entries live on the host filesystem, `environment resource` entries are owned by their execution environment, `orchestrator resource` entries must be accessed through `skills.list` and `skills.read`, and `custom resource` entries use their provider's access mechanism.\n- Trigger rules: If the user names a skill (with `$SkillName` or plain text) OR the task clearly matches a skill's description shown above, you must use that skill for that turn. Multiple mentions mean use them all. Do not carry skills across turns unless re-mentioned.\n- Missing/blocked: If a named skill isn't in the list or its source can't be read, say so briefly and continue with the best fallback.\n- How to use a skill (progressive disclosure):\n  1) After deciding to use a skill, the main agent must read its `SKILL.md` completely before taking task actions. For a `file` entry, open the listed path. For an `environment resource`, use the filesystem of the owning environment. For an `orchestrator resource`, call `skills.list` with `{\"authority\":{\"kind\":\"orchestrator\"}}`, select the matching package, and pass its `main_resource` to `skills.read`. If a read is truncated or paginated, continue until EOF.\n  2) When `SKILL.md` references another resource, use the same access mechanism. Resolve relative paths against a filesystem-backed skill directory. For orchestrator skills, pass the exact referenced resource identifier with the same authority and package to `skills.read`; do not treat `skill://` identifiers as filesystem paths.\n  3) If `SKILL.md` points to extra folders such as `references/`, use its routing instructions to identify the resources required for the task. The main agent must read each required instruction or reference file itself before acting on it. Do not delegate reading, summarizing, or interpreting skill instructions to a subagent. Subagents may still perform task work when the selected skill allows it.\n  4) For filesystem-backed skills, prefer running or patching provided scripts instead of retyping large code blocks. For orchestrator skills, use `skills.read` and the available tools; do not invent a local path.\n  5) Reuse provided assets or templates through the same source access mechanism instead of recreating them.\n- Coordination and sequencing:\n  - If multiple skills apply, choose the minimal set that covers the request and state the order you'll use them.\n  - Announce which skill(s) you're using and why (one short line). If you skip an obvious skill, say why.\n- Context hygiene:\n  - Progressive disclosure applies to selecting relevant files, not partially reading a selected instruction file. Do not load unrelated references, scripts, or assets.\n  - Avoid deep reference-chasing: prefer opening only files directly linked from `SKILL.md` unless you're blocked.\n  - When variants exist (frameworks, providers, domains), pick only the relevant reference file(s) and note that choice.\n- Safety and fallback: If a skill can't be applied cleanly (missing files, unclear instructions), state the issue, pick the next-best approach, and continue.\n</skills_instructions>"
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-06-21T07:57:35.626Z",
+      "source": "user",
+      "message": "<environment_context>\n  <cwd>/app</cwd>\n  <shell>bash</shell>\n  <current_date>2026-06-21</current_date>\n  <timezone>Etc/UTC</timezone>\n  <filesystem><workspace_roots><root>/app</root></workspace_roots><permission_profile type=\"disabled\"><file_system type=\"unrestricted\" /></permission_profile></filesystem>\n</environment_context>"
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-06-21T07:57:35.634Z",
+      "source": "user",
+      "message": "<!-- v3-no-manifest-preapply -->\n\nBumps `mime-db` from 1.40.0 to 1.47.0.\n\n## Constraints\n\n- **Do not modify any test files.** The test suite is the evaluation oracle and will be re-applied verbatim before grading.\n- Restrict your changes to the project's source code so that the existing tests pass against the upgraded dependency.\n"
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-06-21T07:57:44.681Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "I\u2019ll inspect the dependency usage and repo structure first, then patch only source files needed for the `mime-db` behavior change."
+    },
+    {
+      "step_id": 5,
+      "timestamp": "2026-06-21T07:57:44.681Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_F23mcau0Cg8Nq2nT0w01cn74",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "pwd && rg --files",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_F23mcau0Cg8Nq2nT0w01cn74",
+            "content": "Chunk ID: 3ee11e\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 111\nOutput:\n/app\nLICENSE\ntsconfig.json\ntest/index.test.ts\ntest/fixtures/pull_request.opened.json\ntest/fixtures/pull_request_reviews_empty.json\ntest/fixtures/pull_request_opened_multiple_labels.json\ntest/fixtures/pull_request_review.dismissed.json\ntest/fixtures/pull_request_reviews.json\nCODE_OF_CONDUCT.md\napp.yml\nCONTRIBUTING.md\nREADME.md\nsrc/index.ts\ncodecov.yml\nlib/index.d.ts\nlib/index.js.map\nlib/index.js\npackage.json\njest.config.js\npackage-lock.json\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"pwd && rg --files\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 6,
+      "timestamp": "2026-06-21T07:57:44.682Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_Qlk17Tl50IboqaQ2q7KLbHbs",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git status --short",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_Qlk17Tl50IboqaQ2q7KLbHbs",
+            "content": "Chunk ID: 78fb30\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 0\nOutput:\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"git status --short\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 7,
+      "timestamp": "2026-06-21T07:57:51.022Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "The project is very small: one TypeScript source file plus generated `lib` output. I\u2019m going to read the package scripts and implementation to see whether the fix belongs in TS, generated JS, or both."
+    },
+    {
+      "step_id": 8,
+      "timestamp": "2026-06-21T07:57:51.022Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_X9Dlz6Y6UAJz7tkoELTVX1YX",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,220p' package.json",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_X9Dlz6Y6UAJz7tkoELTVX1YX",
+            "content": "Chunk ID: 0a4a62\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 398\nOutput:\n{\n  \"name\": \"autoapproval\",\n  \"version\": \"1.0.0\",\n  \"description\": \"The bot for approving pull requests automatically\",\n  \"author\": \"Dmytro Khmelenko <d.khmelenko@gmail.com> (dkhmelenko.github.io)\",\n  \"license\": \"ISC\",\n  \"repository\": \"https://github.com//autoapproval.git\",\n  \"homepage\": \"https://github.com//autoapproval\",\n  \"bugs\": \"https://github.com//autoapproval/issues\",\n  \"keywords\": [\n    \"probot\",\n    \"github\",\n    \"probot-app\"\n  ],\n  \"scripts\": {\n    \"build\": \"tsc -p tsconfig.json\",\n    \"dev\": \"nodemon --exec \\\"npm start\\\"\",\n    \"start\": \"probot run ./lib/index.js\",\n    \"lint\": \"standard **/*.ts --fix\",\n    \"test\": \"jest --coverage && standard **/*.ts\",\n    \"test:watch\": \"jest --watch --notify --notifyMode=change --coverage\",\n    \"heroku-postbuild\": \"echo Skip build on Heroku\"\n  },\n  \"dependencies\": {\n    \"@types/nock\": \"^11.1.0\",\n    \"btoa\": \"^1.2.1\",\n    \"nock\": \"^13.0.11\",\n    \"probot\": \"^7.5.3\",\n    \"probot-config\": \"^1.1.0\"\n  },\n  \"devDependencies\": {\n    \"@types/jest\": \"^26.0.22\",\n    \"@types/node\": \"^15.6.1\",\n    \"eslint-plugin-typescript\": \"^0.14.0\",\n    \"jest\": \"^25.5.4\",\n    \"nodemon\": \"^2.0.7\",\n    \"smee-client\": \"^1.2.2\",\n    \"standard\": \"^16.0.3\",\n    \"ts-jest\": \"^25.5.1\",\n    \"typescript\": \"^3.9.9\",\n    \"typescript-eslint-parser\": \"^22.0.0\"\n  },\n  \"engines\": {\n    \"node\": \">= 8.3.0\"\n  },\n  \"standard\": {\n    \"parser\": \"typescript-eslint-parser\",\n    \"env\": [\n      \"jest\"\n    ],\n    \"plugins\": [\n      \"typescript\"\n    ],\n    \"ignore\": [\n      \"/lib/*\"\n    ]\n  },\n  \"jest\": {\n    \"testEnvironment\": \"node\"\n  },\n  \"heroku-run-build-script\": true\n}\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,220p' package.json\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 9,
+      "timestamp": "2026-06-21T07:57:51.022Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_vMttgEuCA25rYgcEYLsou0n9",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,260p' src/index.ts",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_vMttgEuCA25rYgcEYLsou0n9",
+            "content": "Chunk ID: aaef11\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 999\nOutput:\nimport { Application, Context } from 'probot' // eslint-disable-line no-unused-vars\nimport {\n  PullRequestsCreateReviewParams, IssuesAddLabelsParams, PullRequestsListReviewsParams, PullRequestsListReviewsResponse\n} from '@octokit/rest'\n\nconst getConfig = require('probot-config')\n\nexport = (app: Application) => {\n  app.on(['pull_request.opened', 'pull_request.reopened', 'pull_request.labeled', 'pull_request.edited', 'pull_request_review'], async (context) => {\n    // reading configuration\n    const config = await getConfig(context, 'autoapproval.yml')\n    context.log(config, '\\n\\nLoaded config')\n    context.log('Repo: %s', context.payload.repository.full_name)\n\n    const pr = context.payload.pull_request\n    context.log('PR: %s', pr.html_url)\n    const prLabels: string[] = pr.labels.map((label: any) => label.name)\n\n    // determine if the PR has any \"blacklisted\" labels\n    var blacklistedLabels: string[] = []\n    if (config.blacklisted_labels) {\n      blacklistedLabels = config.blacklisted_labels\n        .filter((blacklistedLabel: any) => prLabels.includes(blacklistedLabel))\n\n      // if PR contains any black listed labels, do not proceed further\n      if (blacklistedLabels.length > 0) {\n        context.log('PR black listed from approving: %s', blacklistedLabels)\n        return\n      }\n    }\n\n    // reading pull request owner info and check it with configuration\n    const ownerSatisfied = config.from_owner.length === 0 || config.from_owner.includes(pr.user.login)\n\n    // reading pull request labels and check them with configuration\n    let requiredLabelsSatisfied\n    if (config.required_labels_mode == \"one_of\") {\n      // one of the required_labels needs to be applied\n      const appliedRequiredLabels = config.required_labels\n        .filter((requiredLabel: any) => prLabels.includes(requiredLabel))\n      requiredLabelsSatisfied = appliedRequiredLabels.length > 0\n\n    } else {\n      // all of the required_labels need to be applied\n      const missingRequiredLabels = config.required_labels\n        .filter((requiredLabel: any) => !prLabels.includes(requiredLabel))\n      requiredLabelsSatisfied = missingRequiredLabels.length === 0\n    }\n\n    if (requiredLabelsSatisfied && ownerSatisfied) {\n      const reviews = await getAutoapprovalReviews(context)\n\n      if (reviews.length > 0) {\n        context.log('PR has already reviews')\n        if (context.payload.action === 'dismissed') {\n          approvePullRequest(context)\n          applyLabels(context, config.apply_labels as string[])\n          context.log('Review was dismissed, approve again')\n        }\n      } else {\n        approvePullRequest(context)\n        applyLabels(context, config.apply_labels as string[])\n        context.log('PR approved first time')\n      }\n    } else {\n      // one of the checks failed\n      context.log('Condition failed! \\n - missing required labels: %s\\n - PR owner found: %s', requiredLabelsSatisfied, ownerSatisfied)\n    }\n  })\n}\n\nasync function approvePullRequest (context: Context) {\n  const prParams = context.issue({ event: 'APPROVE', body: 'Approved :+1:' })\n  await context.github.pullRequests.createReview(prParams as PullRequestsCreateReviewParams)\n}\n\nasync function applyLabels (context: Context, labels: string[]) {\n  // if there are labels required to be added, add them\n  if (labels.length > 0) {\n    // trying to apply existing labels to PR. If labels didn't exist, this call will fail\n    const labelsParam = context.issue({ labels: labels })\n    await context.github.issues.addLabels(labelsParam as IssuesAddLabelsParams)\n  }\n}\n\nasync function getAutoapprovalReviews (context: Context): Promise<PullRequestsListReviewsResponse> {\n  const reviewParams = context.issue()\n  const reviews = await context.github.pullRequests.listReviews(reviewParams as PullRequestsListReviewsParams)\n\n  const autoapprovalReviews = (reviews.data as PullRequestsListReviewsResponse)\n    .filter(item => item.user.login === 'autoapproval[bot]')\n\n  return autoapprovalReviews\n}\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,260p' src/index.ts\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 10,
+      "timestamp": "2026-06-21T07:57:51.023Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_VlFiC4JFd1JOmnFlexkoK0C3",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,320p' test/index.test.ts",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 24000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_VlFiC4JFd1JOmnFlexkoK0C3",
+            "content": "Chunk ID: 34d566\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 2247\nOutput:\n// You can import your modules\n// import index from '../src/index'\n\nimport nock from 'nock'\n// Requiring our app implementation\nimport myProbotApp from '../src'\nimport { Probot } from 'probot'\n\nconst btoa = require('btoa')\n\nnock.disableNetConnect()\n\ndescribe('Autoapproval bot', () => {\n  let probot: any\n\n  beforeEach(() => {\n    probot = new Probot({})\n    // Load our app into probot\n    const app = probot.load(myProbotApp)\n\n    // just return a test token\n    app.app = () => 'test'\n  })\n\n  test('PR has blacklisted labels -> will NOT be approved', async (done) => {\n    const payload = require('./fixtures/pull_request.opened.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels:\\n  - merge\\nblacklisted_labels:\\n  - wip\\napply_labels: []')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR has no required labels -> will NOT be approved', async (done) => {\n    const payload = require('./fixtures/pull_request.opened.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels:\\n  - ready\\nblacklisted_labels: []\\napply_labels: []')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR has not all required labels -> will NOT be approved', async (done) => {\n    const payload = require('./fixtures/pull_request.opened.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels:\\n  - ready\\n  - ready2\\nblacklisted_labels: []\\napply_labels: []')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR has no expected owner -> will NOT be approved', async (done) => {\n    const payload = require('./fixtures/pull_request.opened.json')\n    const config = btoa('from_owner:\\n  - blabla\\nrequired_labels:\\n  - merge\\nblacklisted_labels: []\\napply_labels: []')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR has required labels and expected owner -> will be approved', async (done) => {\n    const payload = require('./fixtures/pull_request.opened.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels:\\n  - merge\\nblacklisted_labels: []\\napply_labels: []')\n    const reviews = require('./fixtures/pull_request_reviews_empty.json')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/pulls/1/reviews')\n      .reply(200, reviews)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/pulls/1/reviews', (body: any) => {\n        return body.event === 'APPROVE'\n      })\n      .reply(200)\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR has multiple required labels and expected owner -> will be approved', async (done) => {\n    const payload = require('./fixtures/pull_request_opened_multiple_labels.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels:\\n  - merge\\n  - merge2\\nblacklisted_labels: []\\napply_labels: []')\n    const reviews = require('./fixtures/pull_request_reviews_empty.json')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/pulls/1/reviews')\n      .reply(200, reviews)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/pulls/1/reviews', (body: any) => {\n        return body.event === 'APPROVE'\n      })\n      .reply(200)\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR has one of multiple required labels and expected owner -> will be approved', async (done) => {\n    const payload = require('./fixtures/pull_request_opened_multiple_labels.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels:\\n  - merge\\n  - merge2\\nrequired_labels_mode: one_of\\nblacklisted_labels: []\\napply_labels: []')\n    const reviews = require('./fixtures/pull_request_reviews_empty.json')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/pulls/1/reviews')\n      .reply(200, reviews)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/pulls/1/reviews', (body: any) => {\n        return body.event === 'APPROVE'\n      })\n      .reply(200)\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR approved and label is applied', async (done) => {\n    const payload = require('./fixtures/pull_request.opened.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels: []\\nblacklisted_labels: []\\napply_labels:\\n  - done')\n    const reviews = require('./fixtures/pull_request_reviews_empty.json')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/pulls/1/reviews')\n      .reply(200, reviews)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/pulls/1/reviews', (body: any) => {\n        return body.event === 'APPROVE'\n      })\n      .reply(200)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/issues/1/labels', (body: any) => {\n        return body.includes('done')\n      })\n      .reply(200)\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('PR is already approved -> will not be approved again', async (done) => {\n    const payload = require('./fixtures/pull_request_review.dismissed.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels: []\\nblacklisted_labels: []\\napply_labels:\\n  - merge')\n    const reviews = require('./fixtures/pull_request_reviews.json')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/pulls/1/reviews')\n      .reply(200, reviews)\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request_review.dismissed', payload })\n    done()\n    nock.cleanAll()\n  })\n\n  test('Autoapproval review was dismissed -> approve PR again', async (done) => {\n    const payload = require('./fixtures/pull_request_review.dismissed.json')\n    const config = btoa('from_owner:\\n  - dkhmelenko\\nrequired_labels: []\\nblacklisted_labels: []\\napply_labels:\\n  - merge')\n    const reviews = require('./fixtures/pull_request_reviews.json')\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/contents/.github/autoapproval.yml')\n      .reply(200, { content: config })\n\n    nock('https://api.github.com')\n      .get('/repos/dkhmelenko/autoapproval/pulls/1/reviews')\n      .reply(200, reviews)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/pulls/1/reviews', (body: any) => {\n        return body.event === 'APPROVE'\n      })\n      .reply(200)\n\n    nock('https://api.github.com')\n      .post('/repos/dkhmelenko/autoapproval/issues/1/labels', (body: any) => {\n        return body.includes('merge')\n      })\n      .reply(200)\n\n    // Receive a webhook event\n    await probot.receive({ name: 'pull_request_review.dismissed', payload })\n    done()\n    nock.cleanAll()\n  })\n})\n\n// For more information about testing with Jest see:\n// https://facebook.github.io/jest/\n\n// For more information about using TypeScript in your tests, Jest recommends:\n// https://github.com/kulshekhar/ts-jest\n\n// For more information about testing with Nock see:\n// https://github.com/nock/nock\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,320p' test/index.test.ts\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":24000}"
+      }
+    },
+    {
+      "step_id": 11,
+      "timestamp": "2026-06-21T07:57:51.023Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_xbOLKI7laVF6L0pO4S7EKCXU",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,260p' lib/index.js",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_xbOLKI7laVF6L0pO4S7EKCXU",
+            "content": "Chunk ID: 3ad31c\nWall time: 0.0001 seconds\nProcess exited with code 0\nOriginal token count: 2032\nOutput:\n\"use strict\";\nvar __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {\n    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }\n    return new (P || (P = Promise))(function (resolve, reject) {\n        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }\n        function rejected(value) { try { step(generator[\"throw\"](value)); } catch (e) { reject(e); } }\n        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }\n        step((generator = generator.apply(thisArg, _arguments || [])).next());\n    });\n};\nvar __generator = (this && this.__generator) || function (thisArg, body) {\n    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;\n    return g = { next: verb(0), \"throw\": verb(1), \"return\": verb(2) }, typeof Symbol === \"function\" && (g[Symbol.iterator] = function() { return this; }), g;\n    function verb(n) { return function (v) { return step([n, v]); }; }\n    function step(op) {\n        if (f) throw new TypeError(\"Generator is already executing.\");\n        while (_) try {\n            if (f = 1, y && (t = op[0] & 2 ? y[\"return\"] : op[0] ? y[\"throw\"] || ((t = y[\"return\"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;\n            if (y = 0, t) op = [op[0] & 2, t.value];\n            switch (op[0]) {\n                case 0: case 1: t = op; break;\n                case 4: _.label++; return { value: op[1], done: false };\n                case 5: _.label++; y = op[1]; op = [0]; continue;\n                case 7: op = _.ops.pop(); _.trys.pop(); continue;\n                default:\n                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }\n                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }\n                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }\n                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }\n                    if (t[2]) _.ops.pop();\n                    _.trys.pop(); continue;\n            }\n            op = body.call(thisArg, _);\n        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }\n        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };\n    }\n};\nvar getConfig = require('probot-config');\nfunction approvePullRequest(context) {\n    return __awaiter(this, void 0, void 0, function () {\n        var prParams;\n        return __generator(this, function (_a) {\n            switch (_a.label) {\n                case 0:\n                    prParams = context.issue({ event: 'APPROVE', body: 'Approved :+1:' });\n                    return [4 /*yield*/, context.github.pullRequests.createReview(prParams)];\n                case 1:\n                    _a.sent();\n                    return [2 /*return*/];\n            }\n        });\n    });\n}\nfunction applyLabels(context, labels) {\n    return __awaiter(this, void 0, void 0, function () {\n        var labelsParam;\n        return __generator(this, function (_a) {\n            switch (_a.label) {\n                case 0:\n                    if (!(labels.length > 0)) return [3 /*break*/, 2];\n                    labelsParam = context.issue({ labels: labels });\n                    return [4 /*yield*/, context.github.issues.addLabels(labelsParam)];\n                case 1:\n                    _a.sent();\n                    _a.label = 2;\n                case 2: return [2 /*return*/];\n            }\n        });\n    });\n}\nfunction getAutoapprovalReviews(context) {\n    return __awaiter(this, void 0, void 0, function () {\n        var reviewParams, reviews, autoapprovalReviews;\n        return __generator(this, function (_a) {\n            switch (_a.label) {\n                case 0:\n                    reviewParams = context.issue();\n                    return [4 /*yield*/, context.github.pullRequests.listReviews(reviewParams)];\n                case 1:\n                    reviews = _a.sent();\n                    autoapprovalReviews = reviews.data\n                        .filter(function (item) { return item.user.login === 'autoapproval[bot]'; });\n                    return [2 /*return*/, autoapprovalReviews];\n            }\n        });\n    });\n}\nmodule.exports = function (app) {\n    app.on(['pull_request.opened', 'pull_request.reopened', 'pull_request.labeled', 'pull_request.edited', 'pull_request_review'], function (context) { return __awaiter(void 0, void 0, void 0, function () {\n        var config, pr, prLabels, blacklistedLabels, ownerSatisfied, requiredLabelsSatisfied, appliedRequiredLabels, missingRequiredLabels, reviews;\n        return __generator(this, function (_a) {\n            switch (_a.label) {\n                case 0: return [4 /*yield*/, getConfig(context, 'autoapproval.yml')];\n                case 1:\n                    config = _a.sent();\n                    context.log(config, '\\n\\nLoaded config');\n                    context.log('Repo: %s', context.payload.repository.full_name);\n                    pr = context.payload.pull_request;\n                    context.log('PR: %s', pr.html_url);\n                    prLabels = pr.labels.map(function (label) { return label.name; });\n                    blacklistedLabels = [];\n                    if (config.blacklisted_labels) {\n                        blacklistedLabels = config.blacklisted_labels\n                            .filter(function (blacklistedLabel) { return prLabels.includes(blacklistedLabel); });\n                        // if PR contains any black listed labels, do not proceed further\n                        if (blacklistedLabels.length > 0) {\n                            context.log('PR black listed from approving: %s', blacklistedLabels);\n                            return [2 /*return*/];\n                        }\n                    }\n                    ownerSatisfied = config.from_owner.length === 0 || config.from_owner.includes(pr.user.login);\n                    if (config.required_labels_mode == \"one_of\") {\n                        appliedRequiredLabels = config.required_labels\n                            .filter(function (requiredLabel) { return prLabels.includes(requiredLabel); });\n                        requiredLabelsSatisfied = appliedRequiredLabels.length > 0;\n                    }\n                    else {\n                        missingRequiredLabels = config.required_labels\n                            .filter(function (requiredLabel) { return !prLabels.includes(requiredLabel); });\n                        requiredLabelsSatisfied = missingRequiredLabels.length === 0;\n                    }\n                    if (!(requiredLabelsSatisfied && ownerSatisfied)) return [3 /*break*/, 3];\n                    return [4 /*yield*/, getAutoapprovalReviews(context)];\n                case 2:\n                    reviews = _a.sent();\n                    if (reviews.length > 0) {\n                        context.log('PR has already reviews');\n                        if (context.payload.action === 'dismissed') {\n                            approvePullRequest(context);\n                            applyLabels(context, config.apply_labels);\n                            context.log('Review was dismissed, approve again');\n                        }\n                    }\n                    else {\n                        approvePullRequest(context);\n                        applyLabels(context, config.apply_labels);\n                        context.log('PR approved first time');\n                    }\n                    return [3 /*break*/, 4];\n                case 3:\n                    // one of the checks failed\n                    context.log('Condition failed! \\n - missing required labels: %s\\n - PR owner found: %s', requiredLabelsSatisfied, ownerSatisfied);\n                    _a.label = 4;\n                case 4: return [2 /*return*/];\n            }\n        });\n    }); });\n};\n//# sourceMappingURL=index.js.map"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,260p' lib/index.js\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 12,
+      "timestamp": "2026-06-21T07:57:57.397Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "I don\u2019t see direct `mime-db` usage in app code, so the likely breakage is through Probot/Nock\u2019s HTTP stack. I\u2019m checking the lockfile state and running the existing tests to reproduce the failure before changing source."
+    },
+    {
+      "step_id": 13,
+      "timestamp": "2026-06-21T07:57:57.397Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_GD1MHGuaxCLnLSVNdei9kcKK",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "rg \"mime-db|mime-types|content-type|application/json|octet|text/\" package-lock.json package.json src lib test",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_GD1MHGuaxCLnLSVNdei9kcKK",
+            "content": "Chunk ID: 2f65d1\nWall time: 0.0001 seconds\nProcess exited with code 0\nOriginal token count: 373\nOutput:\npackage-lock.json:        \"mime-types\": \"~2.1.24\",\npackage-lock.json:        \"mime-db\": {\npackage-lock.json:          \"resolved\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.40.0.tgz\",\npackage-lock.json:        \"mime-types\": {\npackage-lock.json:          \"resolved\": \"https://registry.npmjs.org/mime-types/-/mime-types-2.1.24.tgz\",\npackage-lock.json:            \"mime-db\": \"1.40.0\"\npackage-lock.json:        \"content-type\": \"~1.0.4\",\npackage-lock.json:    \"content-type\": {\npackage-lock.json:      \"resolved\": \"https://registry.npmjs.org/content-type/-/content-type-1.0.4.tgz\",\npackage-lock.json:        \"content-type\": \"~1.0.4\",\npackage-lock.json:        \"mime-types\": \"^2.1.12\"\npackage-lock.json:    \"mime-db\": {\npackage-lock.json:      \"resolved\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.37.0.tgz\",\npackage-lock.json:    \"mime-types\": {\npackage-lock.json:      \"resolved\": \"https://registry.npmjs.org/mime-types/-/mime-types-2.1.21.tgz\",\npackage-lock.json:        \"mime-db\": \"~1.37.0\"\npackage-lock.json:        \"mime-types\": \"~2.1.19\",\npackage-lock.json:            \"mime-types\": \"^2.1.12\"\npackage-lock.json:        \"mime-types\": \"~2.1.24\"\npackage-lock.json:        \"mime-db\": {\npackage-lock.json:          \"resolved\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.40.0.tgz\",\npackage-lock.json:        \"mime-types\": {\npackage-lock.json:          \"resolved\": \"https://registry.npmjs.org/mime-types/-/mime-types-2.1.24.tgz\",\npackage-lock.json:            \"mime-db\": \"1.40.0\"\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"rg \\\"mime-db|mime-types|content-type|application/json|octet|text/\\\" package-lock.json package.json src lib test\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 14,
+      "timestamp": "2026-06-21T07:57:57.398Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_ziPsDEmSXlNr6FwSvXBxIxc3",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm test -- --runInBand",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 40000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_ziPsDEmSXlNr6FwSvXBxIxc3",
+            "content": "Chunk ID: afef98\nWall time: 15.9635 seconds\nProcess exited with code 1\nOriginal token count: 1642\nOutput:\n\n> autoapproval@1.0.0 test\n> jest --coverage && standard **/*.ts --runInBand\n\n  console.warn\n    [before-after-hook]: \"Hook()\" repurposing warning, use \"Hook.Collection()\". Read more: https://git.io/upgrade-before-after-hook-to-1.4\n\n      at new Hook (node_modules/before-after-hook/index.js:45:13)\n      at new GitHubApi (node_modules/@octokit/rest/index.js:19:16)\n      at Object.GitHubAPI (node_modules/probot/src/github/index.ts:15:19)\n      at Application.<anonymous> (node_modules/probot/src/application.ts:194:20)\n      at step (node_modules/probot/lib/application.js:40:23)\n      at Object.next (node_modules/probot/lib/application.js:21:53)\n      at node_modules/probot/lib/application.js:15:71\n\n07:58:06.929Z  INFO event: (apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n  --\n  blacklisted_labels: [\n    \"wip\"\n  ]\n07:58:06.930Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:06.930Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:06.930Z  INFO event: PR black listed from approving: [ 'wip' ]\n07:58:06.949Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\"\n  ]\n07:58:06.949Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:06.949Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:06.949Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n07:58:06.962Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\",\n    \"ready2\"\n  ]\n07:58:06.963Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:06.963Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:06.963Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n07:58:06.975Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"blabla\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n07:58:06.975Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:06.975Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:06.975Z  INFO event:\n  Condition failed! \n   - missing required labels: true\n   - PR owner found: false\n07:58:06.991Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n07:58:06.991Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:06.991Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:07.990Z  INFO event: PR approved first time\n07:58:08.007Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n07:58:08.007Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:08.007Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:09.006Z  INFO event: PR approved first time\n07:58:09.020Z  INFO event: (required_labels_mode=one_of, blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n07:58:09.020Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:09.020Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n07:58:10.018Z  INFO event: PR approved first time\n07:58:10.032Z  INFO event: (required_labels=[], blacklisted_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  apply_labels: [\n    \"done\"\n  ]\n07:58:10.032Z  INFO event: Repo: dkhmelenko/autoapproval\n07:58:10.032Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\nPASS test/index.test.ts (8.659s)\n  Autoapproval bot\n    \u2713 PR has blacklisted labels -> will NOT be approved (142ms)\n    \u2713 PR has no required labels -> will NOT be approved (18ms)\n    \u2713 PR has not all required labels -> will NOT be approved (13ms)\n    \u2713 PR has no expected owner -> will NOT be approved (12ms)\n    \u2713 PR has required labels and expected owner -> will be approved (1015ms)\n    \u2713 PR has multiple required labels and expected owner -> will be approved (1017ms)\n    \u2713 PR has one of multiple required labels and expected owner -> will be approved (1012ms)\n    \u2713 PR approved and label is applied (1013ms)\n    \u2713 PR is already approved -> will not be approved again (9ms)\n    \u2713 Autoapproval review was dismissed -> approve PR again (1ms)\n\n----------|---------|----------|---------|---------|-------------------\nFile      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s \n----------|---------|----------|---------|---------|-------------------\nAll files |   88.24 |    78.95 |   90.91 |   86.96 |                   \n index.ts |   88.24 |    78.95 |   90.91 |   86.96 | 54-58,91          \n----------|---------|----------|---------|---------|-------------------\nTest Suites: 1 passed, 1 total\nTests:       10 passed, 10 total\nSnapshots:   0 total\nTime:        10.593s\nRan all test suites.\n07:58:11.031Z  INFO event: PR approved first time\nstandard: Unexpected linter output:\n\nError: Failed to load parser 'typescript-eslint-parser' declared in 'CLIOptions': Cannot find module 'eslint/lib/util/traverser'\nRequire stack:\n- /app/node_modules/typescript-eslint-parser/parser.js\n- /app/node_modules/@eslint/eslintrc/lib/config-array-factory.js\n- /app/node_modules/@eslint/eslintrc/lib/index.js\n- /app/node_modules/eslint/lib/cli-engine/cli-engine.js\n- /app/node_modules/eslint/lib/cli-engine/index.js\n- /app/node_modules/eslint/lib/api.js\n- /app/node_modules/standard/options.js\n- /app/node_modules/standard/bin/cmd.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)\n    at Function._load (node:internal/modules/cjs/loader:1216:25)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\n    at Module.require (node:internal/modules/cjs/loader:1527:12)\n    at require (node:internal/modules/helpers:147:16)\n    at Object.<anonymous> (/app/node_modules/typescript-eslint-parser/parser.js:13:19)\n    at Module._compile (node:internal/modules/cjs/loader:1781:14)\n    at Object..js (node:internal/modules/cjs/loader:1913:10)\n\nIf you think this is a bug in `standard`, open an issue: https://github.com/standard/standard/issues\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm test -- --runInBand\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":40000}"
+      }
+    },
+    {
+      "step_id": 15,
+      "timestamp": "2026-06-21T07:58:22.839Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "Jest passes in the current install; the full `npm test` is failing in the linter because the pinned TypeScript parser is incompatible with the installed ESLint internals, not because of app behavior. I\u2019m going to reproduce specifically with `mime-db@1.47.0` in the lockfile and see what changes in the HTTP mocks."
+    },
+    {
+      "step_id": 16,
+      "timestamp": "2026-06-21T07:58:22.839Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_2FP4YdDSV7ELpAAPPO5bNfeC",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm ls mime-db mime-types --all",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_2FP4YdDSV7ELpAAPPO5bNfeC",
+            "content": "Chunk ID: 3e16cc\nWall time: 1.0018 seconds\nProcess running with session ID 5714\nOriginal token count: 0\nOutput:\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm ls mime-db mime-types --all\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 17,
+      "timestamp": "2026-06-21T07:58:22.840Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_XKL0NAAam2Hq5d3vM1e2tSOn",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "node -e \"const p=require('./node_modules/mime-db/package.json'); console.log(p.version); const mt=require('mime-types'); console.log('json', mt.contentType('json')); console.log('yml', mt.contentType('yml'));\"",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_XKL0NAAam2Hq5d3vM1e2tSOn",
+            "content": "Chunk ID: 8cef30\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 19\nOutput:\n1.37.0\njson application/json; charset=utf-8\nyml text/yaml; charset=utf-8\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"node -e \\\"const p=require('./node_modules/mime-db/package.json'); console.log(p.version); const mt=require('mime-types'); console.log('json', mt.contentType('json')); console.log('yml', mt.contentType('yml'));\\\"\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 18,
+      "timestamp": "2026-06-21T07:58:22.840Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_mPd8T2Q2nq5fHgunjfzZ3I3k",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,220p' package-lock.json",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_mPd8T2Q2nq5fHgunjfzZ3I3k",
+            "content": "Chunk ID: bf2af1\nWall time: 0.0001 seconds\nProcess exited with code 0\nOriginal token count: 2253\nOutput:\n{\n  \"name\": \"autoapproval\",\n  \"version\": \"1.0.0\",\n  \"lockfileVersion\": 1,\n  \"requires\": true,\n  \"dependencies\": {\n    \"@babel/code-frame\": {\n      \"version\": \"7.0.0\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.0.0.tgz\",\n      \"integrity\": \"sha512-OfC2uemaknXr87bdLUkWog7nYuliM9Ij5HUcajsVcMCpQrcLmtxRbVFTIqmcSkSeYRBFBRxs2FiUqFJDLdiebA==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/highlight\": \"^7.0.0\"\n      }\n    },\n    \"@babel/core\": {\n      \"version\": \"7.9.6\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/core/-/core-7.9.6.tgz\",\n      \"integrity\": \"sha512-nD3deLvbsApbHAHttzIssYqgb883yU/d9roe4RZymBCDaZryMJDbptVpEpeQuRh4BJ+SYI8le9YGxKvFEvl1Wg==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/code-frame\": \"^7.8.3\",\n        \"@babel/generator\": \"^7.9.6\",\n        \"@babel/helper-module-transforms\": \"^7.9.0\",\n        \"@babel/helpers\": \"^7.9.6\",\n        \"@babel/parser\": \"^7.9.6\",\n        \"@babel/template\": \"^7.8.6\",\n        \"@babel/traverse\": \"^7.9.6\",\n        \"@babel/types\": \"^7.9.6\",\n        \"convert-source-map\": \"^1.7.0\",\n        \"debug\": \"^4.1.0\",\n        \"gensync\": \"^1.0.0-beta.1\",\n        \"json5\": \"^2.1.2\",\n        \"lodash\": \"^4.17.13\",\n        \"resolve\": \"^1.3.2\",\n        \"semver\": \"^5.4.1\",\n        \"source-map\": \"^0.5.0\"\n      },\n      \"dependencies\": {\n        \"@babel/code-frame\": {\n          \"version\": \"7.8.3\",\n          \"resolved\": \"https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.8.3.tgz\",\n          \"integrity\": \"sha512-a9gxpmdXtZEInkCSHUJDLHZVBgb1QS0jhss4cPP93EW7s+uC5bikET2twEF3KV+7rDblJcmNvTR7VJejqd2C2g==\",\n          \"dev\": true,\n          \"requires\": {\n            \"@babel/highlight\": \"^7.8.3\"\n          }\n        },\n        \"@babel/highlight\": {\n          \"version\": \"7.9.0\",\n          \"resolved\": \"https://registry.npmjs.org/@babel/highlight/-/highlight-7.9.0.tgz\",\n          \"integrity\": \"sha512-lJZPilxX7Op3Nv/2cvFdnlepPXDxi29wxteT57Q965oc5R9v86ztx0jfxVrTcBk8C2kcPkkDa2Z4T3ZsPPVWsQ==\",\n          \"dev\": true,\n          \"requires\": {\n            \"@babel/helper-validator-identifier\": \"^7.9.0\",\n            \"chalk\": \"^2.0.0\",\n            \"js-tokens\": \"^4.0.0\"\n          }\n        },\n        \"source-map\": {\n          \"version\": \"0.5.7\",\n          \"resolved\": \"https://registry.npmjs.org/source-map/-/source-map-0.5.7.tgz\",\n          \"integrity\": \"sha1-igOdLRAh0i0eoUyA2OpGi6LvP8w=\",\n          \"dev\": true\n        }\n      }\n    },\n    \"@babel/generator\": {\n      \"version\": \"7.9.6\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/generator/-/generator-7.9.6.tgz\",\n      \"integrity\": \"sha512-+htwWKJbH2bL72HRluF8zumBxzuX0ZZUFl3JLNyoUjM/Ho8wnVpPXM6aUz8cfKDqQ/h7zHqKt4xzJteUosckqQ==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/types\": \"^7.9.6\",\n        \"jsesc\": \"^2.5.1\",\n        \"lodash\": \"^4.17.13\",\n        \"source-map\": \"^0.5.0\"\n      },\n      \"dependencies\": {\n        \"source-map\": {\n          \"version\": \"0.5.7\",\n          \"resolved\": \"https://registry.npmjs.org/source-map/-/source-map-0.5.7.tgz\",\n          \"integrity\": \"sha1-igOdLRAh0i0eoUyA2OpGi6LvP8w=\",\n          \"dev\": true\n        }\n      }\n    },\n    \"@babel/helper-function-name\": {\n      \"version\": \"7.9.5\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-function-name/-/helper-function-name-7.9.5.tgz\",\n      \"integrity\": \"sha512-JVcQZeXM59Cd1qanDUxv9fgJpt3NeKUaqBqUEvfmQ+BCOKq2xUgaWZW2hr0dkbyJgezYuplEoh5knmrnS68efw==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/helper-get-function-arity\": \"^7.8.3\",\n        \"@babel/template\": \"^7.8.3\",\n        \"@babel/types\": \"^7.9.5\"\n      }\n    },\n    \"@babel/helper-get-function-arity\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-get-function-arity/-/helper-get-function-arity-7.8.3.tgz\",\n      \"integrity\": \"sha512-FVDR+Gd9iLjUMY1fzE2SR0IuaJToR4RkCDARVfsBBPSP53GEqSFjD8gNyxg246VUyc/ALRxFaAK8rVG7UT7xRA==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/types\": \"^7.8.3\"\n      }\n    },\n    \"@babel/helper-member-expression-to-functions\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-member-expression-to-functions/-/helper-member-expression-to-functions-7.8.3.tgz\",\n      \"integrity\": \"sha512-fO4Egq88utkQFjbPrSHGmGLFqmrshs11d46WI+WZDESt7Wu7wN2G2Iu+NMMZJFDOVRHAMIkB5SNh30NtwCA7RA==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/types\": \"^7.8.3\"\n      }\n    },\n    \"@babel/helper-module-imports\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-module-imports/-/helper-module-imports-7.8.3.tgz\",\n      \"integrity\": \"sha512-R0Bx3jippsbAEtzkpZ/6FIiuzOURPcMjHp+Z6xPe6DtApDJx+w7UYyOLanZqO8+wKR9G10s/FmHXvxaMd9s6Kg==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/types\": \"^7.8.3\"\n      }\n    },\n    \"@babel/helper-module-transforms\": {\n      \"version\": \"7.9.0\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-module-transforms/-/helper-module-transforms-7.9.0.tgz\",\n      \"integrity\": \"sha512-0FvKyu0gpPfIQ8EkxlrAydOWROdHpBmiCiRwLkUiBGhCUPRRbVD2/tm3sFr/c/GWFrQ/ffutGUAnx7V0FzT2wA==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/helper-module-imports\": \"^7.8.3\",\n        \"@babel/helper-replace-supers\": \"^7.8.6\",\n        \"@babel/helper-simple-access\": \"^7.8.3\",\n        \"@babel/helper-split-export-declaration\": \"^7.8.3\",\n        \"@babel/template\": \"^7.8.6\",\n        \"@babel/types\": \"^7.9.0\",\n        \"lodash\": \"^4.17.13\"\n      }\n    },\n    \"@babel/helper-optimise-call-expression\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-optimise-call-expression/-/helper-optimise-call-expression-7.8.3.tgz\",\n      \"integrity\": \"sha512-Kag20n86cbO2AvHca6EJsvqAd82gc6VMGule4HwebwMlwkpXuVqrNRj6CkCV2sKxgi9MyAUnZVnZ6lJ1/vKhHQ==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/types\": \"^7.8.3\"\n      }\n    },\n    \"@babel/helper-plugin-utils\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.8.3.tgz\",\n      \"integrity\": \"sha512-j+fq49Xds2smCUNYmEHF9kGNkhbet6yVIBp4e6oeQpH1RUs/Ir06xUKzDjDkGcaaokPiTNs2JBWHjaE4csUkZQ==\",\n      \"dev\": true\n    },\n    \"@babel/helper-replace-supers\": {\n      \"version\": \"7.9.6\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-replace-supers/-/helper-replace-supers-7.9.6.tgz\",\n      \"integrity\": \"sha512-qX+chbxkbArLyCImk3bWV+jB5gTNU/rsze+JlcF6Nf8tVTigPJSI1o1oBow/9Resa1yehUO9lIipsmu9oG4RzA==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/helper-member-expression-to-functions\": \"^7.8.3\",\n        \"@babel/helper-optimise-call-expression\": \"^7.8.3\",\n        \"@babel/traverse\": \"^7.9.6\",\n        \"@babel/types\": \"^7.9.6\"\n      }\n    },\n    \"@babel/helper-simple-access\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-simple-access/-/helper-simple-access-7.8.3.tgz\",\n      \"integrity\": \"sha512-VNGUDjx5cCWg4vvCTR8qQ7YJYZ+HBjxOgXEl7ounz+4Sn7+LMD3CFrCTEU6/qXKbA2nKg21CwhhBzO0RpRbdCw==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/template\": \"^7.8.3\",\n        \"@babel/types\": \"^7.8.3\"\n      }\n    },\n    \"@babel/helper-split-export-declaration\": {\n      \"version\": \"7.8.3\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-split-export-declaration/-/helper-split-export-declaration-7.8.3.tgz\",\n      \"integrity\": \"sha512-3x3yOeyBhW851hroze7ElzdkeRXQYQbFIb7gLK1WQYsw2GWDay5gAJNw1sWJ0VFP6z5J1whqeXH/WCdCjZv6dA==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/types\": \"^7.8.3\"\n      }\n    },\n    \"@babel/helper-validator-identifier\": {\n      \"version\": \"7.9.5\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helper-validator-identifier/-/helper-validator-identifier-7.9.5.tgz\",\n      \"integrity\": \"sha512-/8arLKUFq882w4tWGj9JYzRpAlZgiWUJ+dtteNTDqrRBz9Iguck9Rn3ykuBDoUwh2TO4tSAJlrxDUOXWklJe4g==\",\n      \"dev\": true\n    },\n    \"@babel/helpers\": {\n      \"version\": \"7.9.6\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/helpers/-/helpers-7.9.6.tgz\",\n      \"integrity\": \"sha512-tI4bUbldloLcHWoRUMAj4g1bF313M/o6fBKhIsb3QnGVPwRm9JsNf/gqMkQ7zjqReABiffPV6RWj7hEglID5Iw==\",\n      \"dev\": true,\n      \"requires\": {\n        \"@babel/template\": \"^7.8.3\",\n        \"@babel/traverse\": \"^7.9.6\",\n        \"@babel/types\": \"^7.9.6\"\n      }\n    },\n    \"@babel/highlight\": {\n      \"version\": \"7.0.0\",\n      \"resolved\": \"https://registry.npmjs.org/@babel/highlight/-/highlight-7.0.0.tgz\",\n      \"integrity\": \"sha512-UFMC4ZeFC48Tpvj7C8UgLvtkaUuovQX+5xNWrsIoMG8o2z+XFKjKaN9iVmS84dPwVN00W4wPmqvYoZF3EGAsfw==\",\n      \"dev\": true,\n      \"requires\": {\n        \"chalk\": \"^2.0.0\",\n        \"esutils\": \"^2.0.2\",\n        \"js-tokens\": \"^4.0.0\"\n      },\n      \"dependencies\": {\n        \"js-tokens\": {\n          \"version\": \"4.0.0\",\n          \"resolved\": \"https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz\",\n          \"integrity\": \"sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==\",\n          \"dev\": true\n        }\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,220p' package-lock.json\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 19,
+      "timestamp": "2026-06-21T07:58:27.689Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_KqmnV5ekZnILsdllcCuqQkJj",
+          "function_name": "write_stdin",
+          "arguments": {
+            "session_id": 5714,
+            "chars": "",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_KqmnV5ekZnILsdllcCuqQkJj",
+            "content": "Chunk ID: 2d5673\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 198\nOutput:\nautoapproval@1.0.0 /app\n\u251c\u2500\u252c jest@25.5.4\n\u2502 \u2514\u2500\u252c @jest/core@25.5.4\n\u2502   \u2514\u2500\u252c jest-config@25.5.4\n\u2502     \u2514\u2500\u252c jest-environment-jsdom@25.5.0\n\u2502       \u2514\u2500\u252c jsdom@15.2.1\n\u2502         \u2514\u2500\u252c request@2.88.2\n\u2502           \u251c\u2500\u252c form-data@2.3.3\n\u2502           \u2502 \u2514\u2500\u2500 mime-types@2.1.21 deduped\n\u2502           \u2514\u2500\u2500 mime-types@2.1.21 deduped\n\u251c\u2500\u252c probot@7.5.3\n\u2502 \u2514\u2500\u252c express@4.17.1\n\u2502   \u251c\u2500\u252c accepts@1.3.7\n\u2502   \u2502 \u2514\u2500\u252c mime-types@2.1.24\n\u2502   \u2502   \u2514\u2500\u2500 mime-db@1.40.0\n\u2502   \u2514\u2500\u252c type-is@1.6.18\n\u2502     \u2514\u2500\u252c mime-types@2.1.24\n\u2502       \u2514\u2500\u2500 mime-db@1.40.0\n\u2514\u2500\u252c smee-client@1.2.2\n  \u2514\u2500\u252c superagent@5.3.1\n    \u2514\u2500\u252c form-data@3.0.0\n      \u2514\u2500\u252c mime-types@2.1.21\n        \u2514\u2500\u2500 mime-db@1.37.0\n\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"session_id\":5714,\"chars\":\"\",\"yield_time_ms\":30000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 20,
+      "timestamp": "2026-06-21T07:58:50.238Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "The dependency tree shows `mime-db` is only pulled through `mime-types`, mainly under Express. The important behavior to check is how response bodies and YAML config content are typed when the newer database is present, so I\u2019m going to compare the old and new MIME mappings directly."
+    },
+    {
+      "step_id": 21,
+      "timestamp": "2026-06-21T07:58:51.461Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_Ed1Bm66br6M7fcE4F3e8jv2J",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm view mime-db@1.47.0 version dist.tarball --json && npm view mime-db@1.47.0 types.\"text/yaml\" types.\"application/yaml\" --json",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_Ed1Bm66br6M7fcE4F3e8jv2J",
+            "content": "Chunk ID: 640b4d\nWall time: 0.5868 seconds\nProcess exited with code 0\nOriginal token count: 26\nOutput:\n{\n  \"version\": \"1.47.0\",\n  \"dist.tarball\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.47.0.tgz\"\n}\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm view mime-db@1.47.0 version dist.tarball --json && npm view mime-db@1.47.0 types.\\\"text/yaml\\\" types.\\\"application/yaml\\\" --json\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 22,
+      "timestamp": "2026-06-21T07:58:58.306Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_Xq3s4PqKFkkNKVR74tZ6BK5V",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm pack mime-db@1.47.0 --quiet",
+            "workdir": "/tmp",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_Xq3s4PqKFkkNKVR74tZ6BK5V",
+            "content": "Chunk ID: 136ad0\nWall time: 0.6080 seconds\nProcess exited with code 0\nOriginal token count: 5\nOutput:\nmime-db-1.47.0.tgz\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm pack mime-db@1.47.0 --quiet\",\"workdir\":\"/tmp\",\"yield_time_ms\":30000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 23,
+      "timestamp": "2026-06-21T07:59:06.143Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_tXoqnYa0Ji8PiSJomO2iF5ko",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "tar -xOf /tmp/mime-db-1.47.0.tgz package/db.json | node -e \"const fs=require('fs'); const db=JSON.parse(fs.readFileSync(0,'utf8')); for (const k of ['text/yaml','application/yaml','application/json','text/json']) console.log(k, db[k]);\"",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_tXoqnYa0Ji8PiSJomO2iF5ko",
+            "content": "Chunk ID: 30d208\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 51\nOutput:\ntext/yaml { extensions: [ 'yaml', 'yml' ] }\napplication/yaml undefined\napplication/json {\n  source: 'iana',\n  charset: 'UTF-8',\n  compressible: true,\n  extensions: [ 'json', 'map' ]\n}\ntext/json undefined\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"tar -xOf /tmp/mime-db-1.47.0.tgz package/db.json | node -e \\\"const fs=require('fs'); const db=JSON.parse(fs.readFileSync(0,'utf8')); for (const k of ['text/yaml','application/yaml','application/json','text/json']) console.log(k, db[k]);\\\"\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 24,
+      "timestamp": "2026-06-21T07:59:06.151Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_3Wg6DNvBdySIJDUmuFocGM9U",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "node -e \"const db=require('mime-db'); for (const k of ['text/yaml','application/yaml','application/json','text/json']) console.log(k, db[k]);\"",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_3Wg6DNvBdySIJDUmuFocGM9U",
+            "content": "Chunk ID: 1c2cff\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 51\nOutput:\ntext/yaml { extensions: [ 'yaml', 'yml' ] }\napplication/yaml undefined\napplication/json {\n  source: 'iana',\n  charset: 'UTF-8',\n  compressible: true,\n  extensions: [ 'json', 'map' ]\n}\ntext/json undefined\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"node -e \\\"const db=require('mime-db'); for (const k of ['text/yaml','application/yaml','application/json','text/json']) console.log(k, db[k]);\\\"\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 25,
+      "timestamp": "2026-06-21T07:59:06.151Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_GEoMK455aVtgw4mZzyC54ckJ",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "tar -xOf /tmp/mime-db-1.47.0.tgz package/HISTORY.md | sed -n '1,140p'",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_GEoMK455aVtgw4mZzyC54ckJ",
+            "content": "Chunk ID: ac5b51\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 936\nOutput:\n1.47.0 / 2021-04-01\n===================\n\n  * Add new upstream MIME types\n  * Remove ambigious extensions from IANA for `application/*+xml` types\n  * Update primary extension to `.es` for `application/ecmascript`\n\n1.46.0 / 2021-02-13\n===================\n\n  * Add extension `.amr` to `audio/amr`\n  * Add extension `.m4s` to `video/iso.segment`\n  * Add extension `.opus` to `audio/ogg`\n  * Add new upstream MIME types\n\n1.45.0 / 2020-09-22\n===================\n\n  * Add `application/ubjson` with extension `.ubj`\n  * Add `image/avif` with extension `.avif`\n  * Add `image/ktx2` with extension `.ktx2`\n  * Add extension `.dbf` to `application/vnd.dbf`\n  * Add extension `.rar` to `application/vnd.rar`\n  * Add extension `.td` to `application/urc-targetdesc+xml`\n  * Add new upstream MIME types\n  * Fix extension of `application/vnd.apple.keynote` to be `.key`\n\n1.44.0 / 2020-04-22\n===================\n\n  * Add charsets from IANA\n  * Add extension `.cjs` to `application/node`\n  * Add new upstream MIME types\n\n1.43.0 / 2020-01-05\n===================\n\n  * Add `application/x-keepass2` with extension `.kdbx`\n  * Add extension `.mxmf` to `audio/mobile-xmf`\n  * Add extensions from IANA for `application/*+xml` types\n  * Add new upstream MIME types\n\n1.42.0 / 2019-09-25\n===================\n\n  * Add `image/vnd.ms-dds` with extension `.dds`\n  * Add new upstream MIME types\n  * Remove compressible from `multipart/mixed`\n\n1.41.0 / 2019-08-30\n===================\n\n  * Add new upstream MIME types\n  * Add `application/toml` with extension `.toml`\n  * Mark `font/ttf` as compressible\n\n1.40.0 / 2019-04-20\n===================\n\n  * Add extensions from IANA for `model/*` types\n  * Add `text/mdx` with extension `.mdx`\n\n1.39.0 / 2019-04-04\n===================\n\n  * Add extensions `.siv` and `.sieve` to `application/sieve`\n  * Add new upstream MIME types\n\n1.38.0 / 2019-02-04\n===================\n\n  * Add extension `.nq` to `application/n-quads`\n  * Add extension `.nt` to `application/n-triples`\n  * Add new upstream MIME types\n  * Mark `text/less` as compressible\n\n1.37.0 / 2018-10-19\n===================\n\n  * Add extensions to HEIC image types\n  * Add new upstream MIME types\n\n1.36.0 / 2018-08-20\n===================\n\n  * Add Apple file extensions from IANA\n  * Add extensions from IANA for `image/*` types\n  * Add new upstream MIME types\n\n1.35.0 / 2018-07-15\n===================\n\n  * Add extension `.owl` to `application/rdf+xml`\n  * Add new upstream MIME types\n    - Removes extension `.woff` from `application/font-woff`\n\n1.34.0 / 2018-06-03\n===================\n\n  * Add extension `.csl` to `application/vnd.citationstyles.style+xml`\n  * Add extension `.es` to `application/ecmascript`\n  * Add new upstream MIME types\n  * Add `UTF-8` as default charset for `text/turtle`\n  * Mark all XML-derived types as compressible\n\n1.33.0 / 2018-02-15\n===================\n\n  * Add extensions from IANA for `message/*` types\n  * Add new upstream MIME types\n  * Fix some incorrect OOXML types\n  * Remove `application/font-woff2`\n\n1.32.0 / 2017-11-29\n===================\n\n  * Add new upstream MIME types\n  * Update `text/hjson` to registered `application/hjson`\n  * Add `text/shex` with extension `.shex`\n\n1.31.0 / 2017-10-25\n===================\n\n  * Add `application/raml+yaml` with extension `.raml`\n  * Add `application/wasm` with extension `.wasm`\n  * Add new `font` type from IANA\n  * Add new upstream font extensions\n  * Add new upstream MIME types\n  * Add extensions for JPEG-2000 images\n\n1.30.0 / 2017-08-27\n===================\n\n  * Add `application/vnd.ms-outlook`\n  * Add `application/x-arj`\n  * Add extension `.mjs` to `application/javascript`\n  * Add glTF types and extensions\n  * Add new upstream MIME types\n  * Add `text/x-org`\n  * Add VirtualBox MIME types\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"tar -xOf /tmp/mime-db-1.47.0.tgz package/HISTORY.md | sed -n '1,140p'\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 26,
+      "timestamp": "2026-06-21T07:59:25.420Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_hMM24pIVfO6o79j2QvgCD7y5",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "rg -n '\"mime-db\"|\"mime-types\"|\"accepts\"|\"type-is\"' package-lock.json",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_hMM24pIVfO6o79j2QvgCD7y5",
+            "content": "Chunk ID: fae02c\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 151\nOutput:\n1423:    \"accepts\": {\n1428:        \"mime-types\": \"~2.1.24\",\n1432:        \"mime-db\": {\n1437:        \"mime-types\": {\n1442:            \"mime-db\": \"1.40.0\"\n1949:        \"type-is\": \"~1.6.17\"\n3594:        \"accepts\": \"~1.3.7\",\n3621:        \"type-is\": \"~1.6.18\",\n3904:        \"mime-types\": \"^2.1.12\"\n6731:    \"mime-db\": {\n6737:    \"mime-types\": {\n6743:        \"mime-db\": \"~1.37.0\"\n7875:        \"mime-types\": \"~2.1.19\",\n9002:            \"mime-types\": \"^2.1.12\"\n9342:    \"type-is\": {\n9348:        \"mime-types\": \"~2.1.24\"\n9351:        \"mime-db\": {\n9356:        \"mime-types\": {\n9361:            \"mime-db\": \"1.40.0\"\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"rg -n '\\\"mime-db\\\"|\\\"mime-types\\\"|\\\"accepts\\\"|\\\"type-is\\\"' package-lock.json\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 27,
+      "timestamp": "2026-06-21T07:59:29.712Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_8GGT1ObZTgpqtuusCfHIKYFo",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1418,1450p;9340,9368p;6728,6746p' package-lock.json",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_8GGT1ObZTgpqtuusCfHIKYFo",
+            "content": "Chunk ID: e8dc87\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 855\nOutput:\n      \"version\": \"1.1.1\",\n      \"resolved\": \"https://registry.npmjs.org/abbrev/-/abbrev-1.1.1.tgz\",\n      \"integrity\": \"sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==\",\n      \"dev\": true\n    },\n    \"accepts\": {\n      \"version\": \"1.3.7\",\n      \"resolved\": \"https://registry.npmjs.org/accepts/-/accepts-1.3.7.tgz\",\n      \"integrity\": \"sha512-Il80Qs2WjYlJIBNzNkK6KYqlVMTbZLXgHx2oT0pU/fjRHyEp+PEfEPY0R3WCwAGVOtauxh1hOxNgIf5bv7dQpA==\",\n      \"requires\": {\n        \"mime-types\": \"~2.1.24\",\n        \"negotiator\": \"0.6.2\"\n      },\n      \"dependencies\": {\n        \"mime-db\": {\n          \"version\": \"1.40.0\",\n          \"resolved\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.40.0.tgz\",\n          \"integrity\": \"sha512-jYdeOMPy9vnxEqFRRo6ZvTZ8d9oPb+k18PKoYNYUe2stVEBPPwsln/qWzdbmaIvnhZ9v2P+CuecK+fpUfsV2mA==\"\n        },\n        \"mime-types\": {\n          \"version\": \"2.1.24\",\n          \"resolved\": \"https://registry.npmjs.org/mime-types/-/mime-types-2.1.24.tgz\",\n          \"integrity\": \"sha512-WaFHS3MCl5fapm3oLxU4eYDw77IQM2ACcxQ9RIxfaC3ooc6PFuBMGZZsYpvoXS5D5QTWPieo1jjLdAm3TBP3cQ==\",\n          \"requires\": {\n            \"mime-db\": \"1.40.0\"\n          }\n        }\n      }\n    },\n    \"acorn\": {\n      \"version\": \"7.1.1\",\n      \"resolved\": \"https://registry.npmjs.org/acorn/-/acorn-7.1.1.tgz\",\n      \"integrity\": \"sha512-add7dgA5ppRPxCFJoAGfMDi7PIBXq1RtGo7BhbLaxwrXPOmw8gq48Y9ozT01hUKy9byMjlR20EJhu5zlkErEkg==\",\n      \"resolved\": \"https://registry.npmjs.org/mime/-/mime-1.6.0.tgz\",\n      \"integrity\": \"sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==\"\n    },\n    \"mime-db\": {\n      \"version\": \"1.37.0\",\n      \"resolved\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.37.0.tgz\",\n      \"integrity\": \"sha512-R3C4db6bgQhlIhPU48fUtdVmKnflq+hRdad7IyKhtFj06VPNVdk2RhiYL3UjQIlso8L+YxAtFkobT0VK+S/ybg==\",\n      \"dev\": true\n    },\n    \"mime-types\": {\n      \"version\": \"2.1.21\",\n      \"resolved\": \"https://registry.npmjs.org/mime-types/-/mime-types-2.1.21.tgz\",\n      \"integrity\": \"sha512-3iL6DbwpyLzjR3xHSFNFeb9Nz/M8WDkX33t1GFQnFOllWk8pOrh/LSrB5OXlnlW5P9LH73X6loW/eogc+F5lJg==\",\n      \"dev\": true,\n      \"requires\": {\n        \"mime-db\": \"~1.37.0\"\n      }\n    },\n    \"mimic-fn\": {\n      \"dev\": true\n    },\n    \"type-is\": {\n      \"version\": \"1.6.18\",\n      \"resolved\": \"https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz\",\n      \"integrity\": \"sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==\",\n      \"requires\": {\n        \"media-typer\": \"0.3.0\",\n        \"mime-types\": \"~2.1.24\"\n      },\n      \"dependencies\": {\n        \"mime-db\": {\n          \"version\": \"1.40.0\",\n          \"resolved\": \"https://registry.npmjs.org/mime-db/-/mime-db-1.40.0.tgz\",\n          \"integrity\": \"sha512-jYdeOMPy9vnxEqFRRo6ZvTZ8d9oPb+k18PKoYNYUe2stVEBPPwsln/qWzdbmaIvnhZ9v2P+CuecK+fpUfsV2mA==\"\n        },\n        \"mime-types\": {\n          \"version\": \"2.1.24\",\n          \"resolved\": \"https://registry.npmjs.org/mime-types/-/mime-types-2.1.24.tgz\",\n          \"integrity\": \"sha512-WaFHS3MCl5fapm3oLxU4eYDw77IQM2ACcxQ9RIxfaC3ooc6PFuBMGZZsYpvoXS5D5QTWPieo1jjLdAm3TBP3cQ==\",\n          \"requires\": {\n            \"mime-db\": \"1.40.0\"\n          }\n        }\n      }\n    },\n    \"typedarray-to-buffer\": {\n      \"version\": \"3.1.5\",\n      \"resolved\": \"https://registry.npmjs.org/typedarray-to-buffer/-/typedarray-to-buffer-3.1.5.tgz\",\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1418,1450p;9340,9368p;6728,6746p' package-lock.json\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 28,
+      "timestamp": "2026-06-21T07:59:42.452Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "One real source-level fragility showed up in the test run: `approvePullRequest` and `applyLabels` are fired without awaiting them, and the final approval log appears after Jest has already reported completion. That can turn into failures when dependency timing changes, so I\u2019m going to fix the handler to await those GitHub calls."
+    },
+    {
+      "step_id": 29,
+      "timestamp": "2026-06-21T07:59:42.453Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_JWCgS2b2KFPrPb8QCBaRJ4Qd",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,220p' tsconfig.json",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_JWCgS2b2KFPrPb8QCBaRJ4Qd",
+            "content": "Chunk ID: 249be4\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 138\nOutput:\n{\n  \"compilerOptions\": {\n    \"allowJs\": false,\n    \"lib\": [\"es2015\", \"es2017\"],\n    \"module\": \"commonjs\",\n    \"moduleResolution\": \"node\",\n    \"target\": \"es5\",\n    \"noImplicitReturns\": true,\n    \"noFallthroughCasesInSwitch\": true,\n    \"noUnusedLocals\": false,\n    \"pretty\": true,\n    \"strict\": true,\n    \"sourceMap\": true,\n    \"outDir\": \"./lib\",\n    \"skipLibCheck\": true,\n    \"noImplicitAny\": true,\n    \"esModuleInterop\": true,\n    \"declaration\": true,\n    \"resolveJsonModule\": true\n  },\n  \"include\": [\n    \"src/**/*\"\n  ],\n  \"compileOnSave\": false\n}\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,220p' tsconfig.json\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 30,
+      "timestamp": "2026-06-21T07:59:42.453Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_1iTELY0PrWMVODSgFPAzIMSs",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,200p' test/fixtures/pull_request_reviews.json",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_1iTELY0PrWMVODSgFPAzIMSs",
+            "content": "Chunk ID: 2bfce2\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 438\nOutput:\n[\n    {\n      \"id\": 80,\n      \"node_id\": \"MDE3OlB1bGxSZXF1ZXN0UmV2aWV3ODA=\",\n      \"user\": {\n        \"login\": \"autoapproval[bot]\",\n        \"id\": 1,\n        \"node_id\": \"MDQ6VXNlcjE=\",\n        \"avatar_url\": \"https://github.com/images/error/octocat_happy.gif\",\n        \"gravatar_id\": \"\",\n        \"url\": \"https://api.github.com/users/octocat\",\n        \"html_url\": \"https://github.com/octocat\",\n        \"followers_url\": \"https://api.github.com/users/octocat/followers\",\n        \"following_url\": \"https://api.github.com/users/octocat/following{/other_user}\",\n        \"gists_url\": \"https://api.github.com/users/octocat/gists{/gist_id}\",\n        \"starred_url\": \"https://api.github.com/users/octocat/starred{/owner}{/repo}\",\n        \"subscriptions_url\": \"https://api.github.com/users/octocat/subscriptions\",\n        \"organizations_url\": \"https://api.github.com/users/octocat/orgs\",\n        \"repos_url\": \"https://api.github.com/users/octocat/repos\",\n        \"events_url\": \"https://api.github.com/users/octocat/events{/privacy}\",\n        \"received_events_url\": \"https://api.github.com/users/octocat/received_events\",\n        \"type\": \"User\",\n        \"site_admin\": false\n      },\n      \"body\": \"Here is the body for the review.\",\n      \"commit_id\": \"ecdd80bb57125d7ba9641ffaa4d7d2c19d3f3091\",\n      \"state\": \"APPROVED\",\n      \"html_url\": \"https://github.com/octocat/Hello-World/pull/12#pullrequestreview-80\",\n      \"pull_request_url\": \"https://api.github.com/repos/octocat/Hello-World/pulls/12\",\n      \"_links\": {\n        \"html\": {\n          \"href\": \"https://github.com/octocat/Hello-World/pull/12#pullrequestreview-80\"\n        },\n        \"pull_request\": {\n          \"href\": \"https://api.github.com/repos/octocat/Hello-World/pulls/12\"\n        }\n      }\n    }\n  ]\n  "
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,200p' test/fixtures/pull_request_reviews.json\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 31,
+      "timestamp": "2026-06-21T07:59:42.453Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_1wvRJFhVowMQ6YD5mDRiP5NJ",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,160p' lib/index.d.ts && sed -n '1,80p' lib/index.js.map",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_1wvRJFhVowMQ6YD5mDRiP5NJ",
+            "content": "Chunk ID: f41523\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 798\nOutput:\nimport { Application } from 'probot';\ndeclare const _default: (app: Application) => void;\nexport = _default;\n{\"version\":3,\"file\":\"index.js\",\"sourceRoot\":\"\",\"sources\":[\"../src/index.ts\"],\"names\":[],\"mappings\":\"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\"}"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"sed -n '1,160p' lib/index.d.ts && sed -n '1,80p' lib/index.js.map\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 32,
+      "timestamp": "2026-06-21T07:59:49.796Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "I\u2019m editing the handler now so each approval and label application completes before `probot.receive` resolves. Since this package ships `lib`, I\u2019ll rebuild after editing rather than hand-maintaining generated output."
+    },
+    {
+      "step_id": 33,
+      "timestamp": "2026-06-21T07:59:52.492Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_a1iVgci0cGsyBjLJObhtk33c",
+          "function_name": "apply_patch",
+          "arguments": {
+            "input": "*** Begin Patch\n*** Update File: /app/src/index.ts\n@@\n-    if (config.required_labels_mode == \"one_of\") {\n+    if (config.required_labels_mode === 'one_of') {\n@@\n         context.log('PR has already reviews')\n         if (context.payload.action === 'dismissed') {\n-          approvePullRequest(context)\n-          applyLabels(context, config.apply_labels as string[])\n+          await approvePullRequest(context)\n+          await applyLabels(context, config.apply_labels as string[])\n           context.log('Review was dismissed, approve again')\n         }\n       } else {\n-        approvePullRequest(context)\n-        applyLabels(context, config.apply_labels as string[])\n+        await approvePullRequest(context)\n+        await applyLabels(context, config.apply_labels as string[])\n         context.log('PR approved first time')\n       }\n*** End Patch\n"
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_a1iVgci0cGsyBjLJObhtk33c",
+            "content": "Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM /app/src/index.ts\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "*** Begin Patch\n*** Update File: /app/src/index.ts\n@@\n-    if (config.required_labels_mode == \"one_of\") {\n+    if (config.required_labels_mode === 'one_of') {\n@@\n         context.log('PR has already reviews')\n         if (context.payload.action === 'dismissed') {\n-          approvePullRequest(context)\n-          applyLabels(context, config.apply_labels as string[])\n+          await approvePullRequest(context)\n+          await applyLabels(context, config.apply_labels as string[])\n           context.log('Review was dismissed, approve again')\n         }\n       } else {\n-        approvePullRequest(context)\n-        applyLabels(context, config.apply_labels as string[])\n+        await approvePullRequest(context)\n+        await applyLabels(context, config.apply_labels as string[])\n         context.log('PR approved first time')\n       }\n*** End Patch\n",
+        "status": "completed"
+      }
+    },
+    {
+      "step_id": 34,
+      "timestamp": "2026-06-21T07:59:56.287Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_X07HkTPTYIp83GoDiY1hFMza",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm run build",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 40000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_X07HkTPTYIp83GoDiY1hFMza",
+            "content": "Chunk ID: 9ce8d5\nWall time: 1.1954 seconds\nProcess exited with code 0\nOriginal token count: 13\nOutput:\n\n> autoapproval@1.0.0 build\n> tsc -p tsconfig.json\n\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm run build\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":40000}"
+      }
+    },
+    {
+      "step_id": 35,
+      "timestamp": "2026-06-21T08:00:04.049Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "The TypeScript build succeeded and regenerated `lib`. I\u2019m running the behavior tests again, then I\u2019ll check the diff to make sure only source/output files changed."
+    },
+    {
+      "step_id": 36,
+      "timestamp": "2026-06-21T08:00:04.049Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_PS0mebdMHA8tqaW99aj6e0zN",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npx jest --runInBand",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 40000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_PS0mebdMHA8tqaW99aj6e0zN",
+            "content": "Chunk ID: f2a053\nWall time: 12.2259 seconds\nProcess exited with code 0\nOriginal token count: 1175\nOutput:\n  console.warn\n    [before-after-hook]: \"Hook()\" repurposing warning, use \"Hook.Collection()\". Read more: https://git.io/upgrade-before-after-hook-to-1.4\n\n      at new Hook (node_modules/before-after-hook/index.js:45:13)\n      at new GitHubApi (node_modules/@octokit/rest/index.js:19:16)\n      at Object.GitHubAPI (node_modules/probot/src/github/index.ts:15:19)\n      at Application.<anonymous> (node_modules/probot/src/application.ts:194:20)\n      at step (node_modules/probot/lib/application.js:40:23)\n      at Object.next (node_modules/probot/lib/application.js:21:53)\n      at node_modules/probot/lib/application.js:15:71\n\n08:00:07.170Z  INFO event: (apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n  --\n  blacklisted_labels: [\n    \"wip\"\n  ]\n08:00:07.171Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:07.171Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:07.171Z  INFO event: PR black listed from approving: [ 'wip' ]\n08:00:07.187Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\"\n  ]\n08:00:07.188Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:07.188Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:07.188Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:00:07.203Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\",\n    \"ready2\"\n  ]\n08:00:07.203Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:07.203Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:07.203Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:00:07.215Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"blabla\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:00:07.216Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:07.216Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:07.216Z  INFO event:\n  Condition failed! \n   - missing required labels: true\n   - PR owner found: false\n08:00:07.230Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:00:07.230Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:07.230Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:09.233Z  INFO event: PR approved first time\n08:00:09.250Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:00:09.250Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:09.250Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:11.249Z  INFO event: PR approved first time\n08:00:11.305Z  INFO event: (required_labels_mode=one_of, blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:00:11.306Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:11.306Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:13.262Z  INFO event: PR approved first time\n08:00:13.274Z  INFO event: (required_labels=[], blacklisted_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  apply_labels: [\n    \"done\"\n  ]\n08:00:13.274Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:13.274Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\nPASS test/index.test.ts (11.105s)\n  Autoapproval bot\n    \u2713 PR has blacklisted labels -> will NOT be approved (73ms)\n    \u2713 PR has no required labels -> will NOT be approved (17ms)\n    \u2713 PR has not all required labels -> will NOT be approved (15ms)\n    \u2713 PR has no expected owner -> will NOT be approved (13ms)\n    \u2713 PR has required labels and expected owner -> will be approved (2017ms)\n    \u2713 PR has multiple required labels and expected owner -> will be approved (2016ms)\n    \u2713 PR has one of multiple required labels and expected owner -> will be approved (2013ms)\n    \u2713 PR approved and label is applied (3014ms)\n    \u2713 PR is already approved -> will not be approved again (3ms)\n    \u2713 Autoapproval review was dismissed -> approve PR again (1ms)\n\nTest Suites: 1 passed, 1 total\nTests:       10 passed, 10 total\nSnapshots:   0 total\nTime:        11.491s\nRan all test suites.\n08:00:16.276Z  INFO event: PR approved first time\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npx jest --runInBand\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":40000}"
+      }
+    },
+    {
+      "step_id": 37,
+      "timestamp": "2026-06-21T08:00:04.049Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_AQhAiekmRsJvL1SKdLLQ4kYW",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git diff -- src/index.ts lib/index.js lib/index.js.map lib/index.d.ts",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 30000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_AQhAiekmRsJvL1SKdLLQ4kYW",
+            "content": "Chunk ID: d9527d\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 2848\nOutput:\ndiff --git a/lib/index.js b/lib/index.js\nindex bd15ebf..71f7492 100644\n--- a/lib/index.js\n+++ b/lib/index.js\n@@ -109,7 +109,7 @@ module.exports = function (app) {\n                         }\n                     }\n                     ownerSatisfied = config.from_owner.length === 0 || config.from_owner.includes(pr.user.login);\n-                    if (config.required_labels_mode == \"one_of\") {\n+                    if (config.required_labels_mode === 'one_of') {\n                         appliedRequiredLabels = config.required_labels\n                             .filter(function (requiredLabel) { return prLabels.includes(requiredLabel); });\n                         requiredLabelsSatisfied = appliedRequiredLabels.length > 0;\n@@ -119,29 +119,36 @@ module.exports = function (app) {\n                             .filter(function (requiredLabel) { return !prLabels.includes(requiredLabel); });\n                         requiredLabelsSatisfied = missingRequiredLabels.length === 0;\n                     }\n-                    if (!(requiredLabelsSatisfied && ownerSatisfied)) return [3 /*break*/, 3];\n+                    if (!(requiredLabelsSatisfied && ownerSatisfied)) return [3 /*break*/, 10];\n                     return [4 /*yield*/, getAutoapprovalReviews(context)];\n                 case 2:\n                     reviews = _a.sent();\n-                    if (reviews.length > 0) {\n-                        context.log('PR has already reviews');\n-                        if (context.payload.action === 'dismissed') {\n-                            approvePullRequest(context);\n-                            applyLabels(context, config.apply_labels);\n-                            context.log('Review was dismissed, approve again');\n-                        }\n-                    }\n-                    else {\n-                        approvePullRequest(context);\n-                        applyLabels(context, config.apply_labels);\n-                        context.log('PR approved first time');\n-                    }\n-                    return [3 /*break*/, 4];\n+                    if (!(reviews.length > 0)) return [3 /*break*/, 6];\n+                    context.log('PR has already reviews');\n+                    if (!(context.payload.action === 'dismissed')) return [3 /*break*/, 5];\n+                    return [4 /*yield*/, approvePullRequest(context)];\n                 case 3:\n+                    _a.sent();\n+                    return [4 /*yield*/, applyLabels(context, config.apply_labels)];\n+                case 4:\n+                    _a.sent();\n+                    context.log('Review was dismissed, approve again');\n+                    _a.label = 5;\n+                case 5: return [3 /*break*/, 9];\n+                case 6: return [4 /*yield*/, approvePullRequest(context)];\n+                case 7:\n+                    _a.sent();\n+                    return [4 /*yield*/, applyLabels(context, config.apply_labels)];\n+                case 8:\n+                    _a.sent();\n+                    context.log('PR approved first time');\n+                    _a.label = 9;\n+                case 9: return [3 /*break*/, 11];\n+                case 10:\n                     // one of the checks failed\n                     context.log('Condition failed! \\n - missing required labels: %s\\n - PR owner found: %s', requiredLabelsSatisfied, ownerSatisfied);\n-                    _a.label = 4;\n-                case 4: return [2 /*return*/];\n+                    _a.label = 11;\n+                case 11: return [2 /*return*/];\n             }\n         });\n     }); });\ndiff --git a/lib/index.js.map b/lib/index.js.map\nindex 4d88529..b2a8bc4 100644\n--- a/lib/index.js.map\n+++ b/lib/index.js.map\n@@ -1 +1 @@\n-{\"version\":3,\"file\":\"index.js\",\"sourceRoot\":\"\",\"sources\":[\"../src/index.ts\"],\"names\":[],\"mappings\":\"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\"}\n\\ No newline at end of file\n+{\"version\":3,\"file\":\"index.js\",\"sourceRoot\":\"\",\"sources\":[\"../src/index.ts\"],\"names\":[],\"mappings\":\"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\"}\n\\ No newline at end of file\ndiff --git a/src/index.ts b/src/index.ts\nindex b974df6..c8910ea 100644\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -34,7 +34,7 @@ export = (app: Application) => {\n \n     // reading pull request labels and check them with configuration\n     let requiredLabelsSatisfied\n-    if (config.required_labels_mode == \"one_of\") {\n+    if (config.required_labels_mode === 'one_of') {\n       // one of the required_labels needs to be applied\n       const appliedRequiredLabels = config.required_labels\n         .filter((requiredLabel: any) => prLabels.includes(requiredLabel))\n@@ -53,13 +53,13 @@ export = (app: Application) => {\n       if (reviews.length > 0) {\n         context.log('PR has already reviews')\n         if (context.payload.action === 'dismissed') {\n-          approvePullRequest(context)\n-          applyLabels(context, config.apply_labels as string[])\n+          await approvePullRequest(context)\n+          await applyLabels(context, config.apply_labels as string[])\n           context.log('Review was dismissed, approve again')\n         }\n       } else {\n-        approvePullRequest(context)\n-        applyLabels(context, config.apply_labels as string[])\n+        await approvePullRequest(context)\n+        await applyLabels(context, config.apply_labels as string[])\n         context.log('PR approved first time')\n       }\n     } else {\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"git diff -- src/index.ts lib/index.js lib/index.js.map lib/index.d.ts\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":30000}"
+      }
+    },
+    {
+      "step_id": 38,
+      "timestamp": "2026-06-21T08:00:38.254Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "The behavioral tests still pass after the await fix. The delayed log is from Probot\u2019s event dispatch/test harness rather than TypeScript compilation, so I\u2019m going one step further and testing with the nested Express `mime-db` copies replaced by 1.47.0 locally, without changing the manifest or lockfile."
+    },
+    {
+      "step_id": 39,
+      "timestamp": "2026-06-21T08:00:40.701Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_rDUNoztMAHfxm96StXDEslf7",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "for d in node_modules/accepts/node_modules/mime-db node_modules/type-is/node_modules/mime-db; do rm -rf \"$d\" && mkdir -p \"$d\" && tar -xzf /tmp/mime-db-1.47.0.tgz -C \"$d\" --strip-components=1; done\nnode -e \"console.log(require('./node_modules/accepts/node_modules/mime-db/package.json').version); console.log(require('./node_modules/type-is/node_modules/mime-db/package.json').version)\"",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_rDUNoztMAHfxm96StXDEslf7",
+            "content": "Chunk ID: e8372f\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 4\nOutput:\n1.47.0\n1.47.0\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"for d in node_modules/accepts/node_modules/mime-db node_modules/type-is/node_modules/mime-db; do rm -rf \\\"$d\\\" && mkdir -p \\\"$d\\\" && tar -xzf /tmp/mime-db-1.47.0.tgz -C \\\"$d\\\" --strip-components=1; done\\nnode -e \\\"console.log(require('./node_modules/accepts/node_modules/mime-db/package.json').version); console.log(require('./node_modules/type-is/node_modules/mime-db/package.json').version)\\\"\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 40,
+      "timestamp": "2026-06-21T08:00:44.662Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_h17fEczilWDdDUw84dnKwD6d",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npx jest --runInBand",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 40000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_h17fEczilWDdDUw84dnKwD6d",
+            "content": "Chunk ID: b7dede\nWall time: 10.9623 seconds\nProcess exited with code 0\nOriginal token count: 1179\nOutput:\n  console.warn\n    [before-after-hook]: \"Hook()\" repurposing warning, use \"Hook.Collection()\". Read more: https://git.io/upgrade-before-after-hook-to-1.4\n\n      at new Hook (node_modules/before-after-hook/index.js:45:13)\n      at new GitHubApi (node_modules/@octokit/rest/index.js:19:16)\n      at Object.GitHubAPI (node_modules/probot/src/github/index.ts:15:19)\n      at Application.<anonymous> (node_modules/probot/src/application.ts:194:20)\n      at step (node_modules/probot/lib/application.js:40:23)\n      at Object.next (node_modules/probot/lib/application.js:21:53)\n      at node_modules/probot/lib/application.js:15:71\n\n08:00:46.598Z  INFO event: (apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n  --\n  blacklisted_labels: [\n    \"wip\"\n  ]\n08:00:46.599Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:46.599Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:46.599Z  INFO event: PR black listed from approving: [ 'wip' ]\n08:00:46.617Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\"\n  ]\n08:00:46.617Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:46.617Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:46.617Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:00:46.633Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\",\n    \"ready2\"\n  ]\n08:00:46.633Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:46.633Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:46.633Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:00:46.647Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"blabla\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:00:46.647Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:46.647Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:46.647Z  INFO event:\n  Condition failed! \n   - missing required labels: true\n   - PR owner found: false\n08:00:46.662Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:00:46.662Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:46.662Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:48.660Z  INFO event: PR approved first time\n08:00:48.676Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:00:48.676Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:48.676Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:50.679Z  INFO event: PR approved first time\n08:00:50.697Z  INFO event: (required_labels_mode=one_of, blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:00:50.697Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:50.697Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:00:52.696Z  INFO event: PR approved first time\n08:00:52.709Z  INFO event: (required_labels=[], blacklisted_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  apply_labels: [\n    \"done\"\n  ]\n08:00:52.709Z  INFO event: Repo: dkhmelenko/autoapproval\n08:00:52.709Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\nPASS test/index.test.ts (10.002s)\n  Autoapproval bot\n    \u2713 PR has blacklisted labels -> will NOT be approved (77ms)\n    \u2713 PR has no required labels -> will NOT be approved (18ms)\n    \u2713 PR has not all required labels -> will NOT be approved (15ms)\n    \u2713 PR has no expected owner -> will NOT be approved (14ms)\n    \u2713 PR has required labels and expected owner -> will be approved (2013ms)\n    \u2713 PR has multiple required labels and expected owner -> will be approved (2020ms)\n    \u2713 PR has one of multiple required labels and expected owner -> will be approved (2016ms)\n    \u2713 PR approved and label is applied (3014ms)\n    \u2713 PR is already approved -> will not be approved again (3ms)\n    \u2713 Autoapproval review was dismissed -> approve PR again (1ms)\n\nTest Suites: 1 passed, 1 total\nTests:       10 passed, 10 total\nSnapshots:   0 total\nTime:        10.373s, estimated 12s\nRan all test suites.\n08:00:55.710Z  INFO event: PR approved first time\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npx jest --runInBand\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":40000}"
+      }
+    },
+    {
+      "step_id": 41,
+      "timestamp": "2026-06-21T08:01:08.411Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_ngbMu0YV77WtJeuCm4alArjA",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git status --short",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_ngbMu0YV77WtJeuCm4alArjA",
+            "content": "Chunk ID: dbfc35\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 13\nOutput:\n M lib/index.js\n M lib/index.js.map\n M src/index.ts\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"git status --short\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 42,
+      "timestamp": "2026-06-21T08:01:08.437Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_fYuO5RUcruSKLCh2x6oq7RMt",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git diff --stat",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_fYuO5RUcruSKLCh2x6oq7RMt",
+            "content": "Chunk ID: 637758\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 45\nOutput:\n lib/index.js     | 43 +++++++++++++++++++++++++------------------\n lib/index.js.map |  2 +-\n src/index.ts     | 10 +++++-----\n 3 files changed, 31 insertions(+), 24 deletions(-)\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"git diff --stat\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 43,
+      "timestamp": "2026-06-21T08:01:08.450Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_Ch4VB3q3vcDsoSdR9HyiSgA5",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git diff -- src/index.ts lib/index.js",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_Ch4VB3q3vcDsoSdR9HyiSgA5",
+            "content": "Chunk ID: 319e50\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 1231\nOutput:\ndiff --git a/lib/index.js b/lib/index.js\nindex bd15ebf..71f7492 100644\n--- a/lib/index.js\n+++ b/lib/index.js\n@@ -109,7 +109,7 @@ module.exports = function (app) {\n                         }\n                     }\n                     ownerSatisfied = config.from_owner.length === 0 || config.from_owner.includes(pr.user.login);\n-                    if (config.required_labels_mode == \"one_of\") {\n+                    if (config.required_labels_mode === 'one_of') {\n                         appliedRequiredLabels = config.required_labels\n                             .filter(function (requiredLabel) { return prLabels.includes(requiredLabel); });\n                         requiredLabelsSatisfied = appliedRequiredLabels.length > 0;\n@@ -119,29 +119,36 @@ module.exports = function (app) {\n                             .filter(function (requiredLabel) { return !prLabels.includes(requiredLabel); });\n                         requiredLabelsSatisfied = missingRequiredLabels.length === 0;\n                     }\n-                    if (!(requiredLabelsSatisfied && ownerSatisfied)) return [3 /*break*/, 3];\n+                    if (!(requiredLabelsSatisfied && ownerSatisfied)) return [3 /*break*/, 10];\n                     return [4 /*yield*/, getAutoapprovalReviews(context)];\n                 case 2:\n                     reviews = _a.sent();\n-                    if (reviews.length > 0) {\n-                        context.log('PR has already reviews');\n-                        if (context.payload.action === 'dismissed') {\n-                            approvePullRequest(context);\n-                            applyLabels(context, config.apply_labels);\n-                            context.log('Review was dismissed, approve again');\n-                        }\n-                    }\n-                    else {\n-                        approvePullRequest(context);\n-                        applyLabels(context, config.apply_labels);\n-                        context.log('PR approved first time');\n-                    }\n-                    return [3 /*break*/, 4];\n+                    if (!(reviews.length > 0)) return [3 /*break*/, 6];\n+                    context.log('PR has already reviews');\n+                    if (!(context.payload.action === 'dismissed')) return [3 /*break*/, 5];\n+                    return [4 /*yield*/, approvePullRequest(context)];\n                 case 3:\n+                    _a.sent();\n+                    return [4 /*yield*/, applyLabels(context, config.apply_labels)];\n+                case 4:\n+                    _a.sent();\n+                    context.log('Review was dismissed, approve again');\n+                    _a.label = 5;\n+                case 5: return [3 /*break*/, 9];\n+                case 6: return [4 /*yield*/, approvePullRequest(context)];\n+                case 7:\n+                    _a.sent();\n+                    return [4 /*yield*/, applyLabels(context, config.apply_labels)];\n+                case 8:\n+                    _a.sent();\n+                    context.log('PR approved first time');\n+                    _a.label = 9;\n+                case 9: return [3 /*break*/, 11];\n+                case 10:\n                     // one of the checks failed\n                     context.log('Condition failed! \\n - missing required labels: %s\\n - PR owner found: %s', requiredLabelsSatisfied, ownerSatisfied);\n-                    _a.label = 4;\n-                case 4: return [2 /*return*/];\n+                    _a.label = 11;\n+                case 11: return [2 /*return*/];\n             }\n         });\n     }); });\ndiff --git a/src/index.ts b/src/index.ts\nindex b974df6..c8910ea 100644\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -34,7 +34,7 @@ export = (app: Application) => {\n \n     // reading pull request labels and check them with configuration\n     let requiredLabelsSatisfied\n-    if (config.required_labels_mode == \"one_of\") {\n+    if (config.required_labels_mode === 'one_of') {\n       // one of the required_labels needs to be applied\n       const appliedRequiredLabels = config.required_labels\n         .filter((requiredLabel: any) => prLabels.includes(requiredLabel))\n@@ -53,13 +53,13 @@ export = (app: Application) => {\n       if (reviews.length > 0) {\n         context.log('PR has already reviews')\n         if (context.payload.action === 'dismissed') {\n-          approvePullRequest(context)\n-          applyLabels(context, config.apply_labels as string[])\n+          await approvePullRequest(context)\n+          await applyLabels(context, config.apply_labels as string[])\n           context.log('Review was dismissed, approve again')\n         }\n       } else {\n-        approvePullRequest(context)\n-        applyLabels(context, config.apply_labels as string[])\n+        await approvePullRequest(context)\n+        await applyLabels(context, config.apply_labels as string[])\n         context.log('PR approved first time')\n       }\n     } else {\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"git diff -- src/index.ts lib/index.js\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 44,
+      "timestamp": "2026-06-21T08:01:33.238Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "The 1.47.0 local simulation passes the Jest suite too. I\u2019m doing one final build/test/status pass now; the only expected caveat is the existing `standard` parser failure in `npm test`, which is outside source code."
+    },
+    {
+      "step_id": 45,
+      "timestamp": "2026-06-21T08:01:33.238Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_9elsdePLVMJyhka4a0C41brq",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm run build",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 20000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_9elsdePLVMJyhka4a0C41brq",
+            "content": "Chunk ID: 84d095\nWall time: 1.7843 seconds\nProcess exited with code 0\nOriginal token count: 13\nOutput:\n\n> autoapproval@1.0.0 build\n> tsc -p tsconfig.json\n\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm run build\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":20000}"
+      }
+    },
+    {
+      "step_id": 46,
+      "timestamp": "2026-06-21T08:01:33.238Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_js2NT14FsChQclpEFQxI7nsA",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npx jest --runInBand",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 40000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_js2NT14FsChQclpEFQxI7nsA",
+            "content": "Chunk ID: 084417\nWall time: 12.0195 seconds\nProcess exited with code 0\nOriginal token count: 1179\nOutput:\n  console.warn\n    [before-after-hook]: \"Hook()\" repurposing warning, use \"Hook.Collection()\". Read more: https://git.io/upgrade-before-after-hook-to-1.4\n\n      at new Hook (node_modules/before-after-hook/index.js:45:13)\n      at new GitHubApi (node_modules/@octokit/rest/index.js:19:16)\n      at Object.GitHubAPI (node_modules/probot/src/github/index.ts:15:19)\n      at Application.<anonymous> (node_modules/probot/src/application.ts:194:20)\n      at step (node_modules/probot/lib/application.js:40:23)\n      at Object.next (node_modules/probot/lib/application.js:21:53)\n      at node_modules/probot/lib/application.js:15:71\n\n08:01:36.145Z  INFO event: (apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n  --\n  blacklisted_labels: [\n    \"wip\"\n  ]\n08:01:36.146Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:36.146Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:36.146Z  INFO event: PR black listed from approving: [ 'wip' ]\n08:01:36.163Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\"\n  ]\n08:01:36.163Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:36.163Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:36.163Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:01:36.179Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\",\n    \"ready2\"\n  ]\n08:01:36.180Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:36.180Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:36.180Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:01:36.195Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"blabla\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:01:36.195Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:36.195Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:36.195Z  INFO event:\n  Condition failed! \n   - missing required labels: true\n   - PR owner found: false\n08:01:36.212Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:01:36.212Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:36.213Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:38.213Z  INFO event: PR approved first time\n08:01:38.231Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:01:38.232Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:38.232Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:40.232Z  INFO event: PR approved first time\n08:01:40.246Z  INFO event: (required_labels_mode=one_of, blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:01:40.246Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:40.246Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:42.246Z  INFO event: PR approved first time\n08:01:42.260Z  INFO event: (required_labels=[], blacklisted_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  apply_labels: [\n    \"done\"\n  ]\n08:01:42.260Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:42.260Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\nPASS test/index.test.ts (10.085s)\n  Autoapproval bot\n    \u2713 PR has blacklisted labels -> will NOT be approved (74ms)\n    \u2713 PR has no required labels -> will NOT be approved (16ms)\n    \u2713 PR has not all required labels -> will NOT be approved (16ms)\n    \u2713 PR has no expected owner -> will NOT be approved (15ms)\n    \u2713 PR has required labels and expected owner -> will be approved (2018ms)\n    \u2713 PR has multiple required labels and expected owner -> will be approved (2020ms)\n    \u2713 PR has one of multiple required labels and expected owner -> will be approved (2013ms)\n    \u2713 PR approved and label is applied (3013ms)\n    \u2713 PR is already approved -> will not be approved again (4ms)\n    \u2713 Autoapproval review was dismissed -> approve PR again (1ms)\n\nTest Suites: 1 passed, 1 total\nTests:       10 passed, 10 total\nSnapshots:   0 total\nTime:        10.801s, estimated 11s\nRan all test suites.\n08:01:45.259Z  INFO event: PR approved first time\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npx jest --runInBand\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":40000}"
+      }
+    },
+    {
+      "step_id": 47,
+      "timestamp": "2026-06-21T08:01:33.239Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_NnJTlQSCpg1uidYQRjkeS6rD",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git status --short",
+            "workdir": "/app",
+            "yield_time_ms": 1000,
+            "max_output_tokens": 12000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_NnJTlQSCpg1uidYQRjkeS6rD",
+            "content": "Chunk ID: 05ae27\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 13\nOutput:\n M lib/index.js\n M lib/index.js.map\n M src/index.ts\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"git status --short\",\"workdir\":\"/app\",\"yield_time_ms\":1000,\"max_output_tokens\":12000}"
+      }
+    },
+    {
+      "step_id": 48,
+      "timestamp": "2026-06-21T08:01:55.452Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "",
+      "tool_calls": [
+        {
+          "tool_call_id": "call_W1vcDPAuRNaTw2h8IYb82mlw",
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "npm test -- --runInBand",
+            "workdir": "/app",
+            "yield_time_ms": 30000,
+            "max_output_tokens": 50000
+          }
+        }
+      ],
+      "observation": {
+        "results": [
+          {
+            "source_call_id": "call_W1vcDPAuRNaTw2h8IYb82mlw",
+            "content": "Chunk ID: 522538\nWall time: 13.6495 seconds\nProcess exited with code 1\nOriginal token count: 1642\nOutput:\n\n> autoapproval@1.0.0 test\n> jest --coverage && standard **/*.ts --runInBand\n\n  console.warn\n    [before-after-hook]: \"Hook()\" repurposing warning, use \"Hook.Collection()\". Read more: https://git.io/upgrade-before-after-hook-to-1.4\n\n      at new Hook (node_modules/before-after-hook/index.js:45:13)\n      at new GitHubApi (node_modules/@octokit/rest/index.js:19:16)\n      at Object.GitHubAPI (node_modules/probot/src/github/index.ts:15:19)\n      at Application.<anonymous> (node_modules/probot/src/application.ts:194:20)\n      at step (node_modules/probot/lib/application.js:40:23)\n      at Object.next (node_modules/probot/lib/application.js:21:53)\n      at node_modules/probot/lib/application.js:15:71\n\n08:01:58.778Z  INFO event: (apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n  --\n  blacklisted_labels: [\n    \"wip\"\n  ]\n08:01:58.779Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:58.779Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:58.780Z  INFO event: PR black listed from approving: [ 'wip' ]\n08:01:58.799Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\"\n  ]\n08:01:58.800Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:58.800Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:58.800Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:01:58.816Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"ready\",\n    \"ready2\"\n  ]\n08:01:58.816Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:58.816Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:58.816Z  INFO event:\n  Condition failed! \n   - missing required labels: false\n   - PR owner found: true\n08:01:58.831Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"blabla\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:01:58.831Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:58.831Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:01:58.831Z  INFO event:\n  Condition failed! \n   - missing required labels: true\n   - PR owner found: false\n08:01:58.850Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\"\n  ]\n08:01:58.851Z  INFO event: Repo: dkhmelenko/autoapproval\n08:01:58.851Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:02:00.850Z  INFO event: PR approved first time\n08:02:00.865Z  INFO event: (blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:02:00.865Z  INFO event: Repo: dkhmelenko/autoapproval\n08:02:00.865Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:02:02.865Z  INFO event: PR approved first time\n08:02:02.883Z  INFO event: (required_labels_mode=one_of, blacklisted_labels=[], apply_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  required_labels: [\n    \"merge\",\n    \"merge2\"\n  ]\n08:02:02.883Z  INFO event: Repo: dkhmelenko/autoapproval\n08:02:02.883Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\n08:02:04.880Z  INFO event: PR approved first time\n08:02:04.894Z  INFO event: (required_labels=[], blacklisted_labels=[])\n  \n  \n  Loaded config\n  --\n  from_owner: [\n    \"dkhmelenko\"\n  ]\n  --\n  apply_labels: [\n    \"done\"\n  ]\n08:02:04.894Z  INFO event: Repo: dkhmelenko/autoapproval\n08:02:04.894Z  INFO event: PR: https://github.com/dkhmelenko/autoapproval/pull/1\nPASS test/index.test.ts (11.482s)\n  Autoapproval bot\n    \u2713 PR has blacklisted labels -> will NOT be approved (82ms)\n    \u2713 PR has no required labels -> will NOT be approved (20ms)\n    \u2713 PR has not all required labels -> will NOT be approved (17ms)\n    \u2713 PR has no expected owner -> will NOT be approved (14ms)\n    \u2713 PR has required labels and expected owner -> will be approved (2019ms)\n    \u2713 PR has multiple required labels and expected owner -> will be approved (2015ms)\n    \u2713 PR has one of multiple required labels and expected owner -> will be approved (2016ms)\n    \u2713 PR approved and label is applied (3013ms)\n    \u2713 PR is already approved -> will not be approved again (3ms)\n    \u2713 Autoapproval review was dismissed -> approve PR again (2ms)\n\n----------|---------|----------|---------|---------|-------------------\nFile      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s \n----------|---------|----------|---------|---------|-------------------\nAll files |   88.24 |       80 |   90.91 |   86.96 |                   \n index.ts |   88.24 |       80 |   90.91 |   86.96 | 54-58,91          \n----------|---------|----------|---------|---------|-------------------\nTest Suites: 1 passed, 1 total\nTests:       10 passed, 10 total\nSnapshots:   0 total\nTime:        11.928s\nRan all test suites.\n08:02:07.894Z  INFO event: PR approved first time\nstandard: Unexpected linter output:\n\nError: Failed to load parser 'typescript-eslint-parser' declared in 'CLIOptions': Cannot find module 'eslint/lib/util/traverser'\nRequire stack:\n- /app/node_modules/typescript-eslint-parser/parser.js\n- /app/node_modules/@eslint/eslintrc/lib/config-array-factory.js\n- /app/node_modules/@eslint/eslintrc/lib/index.js\n- /app/node_modules/eslint/lib/cli-engine/cli-engine.js\n- /app/node_modules/eslint/lib/cli-engine/index.js\n- /app/node_modules/eslint/lib/api.js\n- /app/node_modules/standard/options.js\n- /app/node_modules/standard/bin/cmd.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)\n    at Function._load (node:internal/modules/cjs/loader:1216:25)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\n    at Module.require (node:internal/modules/cjs/loader:1527:12)\n    at require (node:internal/modules/helpers:147:16)\n    at Object.<anonymous> (/app/node_modules/typescript-eslint-parser/parser.js:13:19)\n    at Module._compile (node:internal/modules/cjs/loader:1781:14)\n    at Object..js (node:internal/modules/cjs/loader:1913:10)\n\nIf you think this is a bug in `standard`, open an issue: https://github.com/standard/standard/issues\n"
+          }
+        ]
+      },
+      "extra": {
+        "raw_arguments": "{\"cmd\":\"npm test -- --runInBand\",\"workdir\":\"/app\",\"yield_time_ms\":30000,\"max_output_tokens\":50000}"
+      }
+    },
+    {
+      "step_id": 49,
+      "timestamp": "2026-06-21T08:02:18.657Z",
+      "source": "agent",
+      "model_name": "gpt-5.5-20260424",
+      "message": "Implemented the source fix in [src/index.ts](/app/src/index.ts:34) and rebuilt the shipped `lib` output.\n\nWhat changed:\n- Awaited `approvePullRequest` and `applyLabels` so webhook handling does not race the test harness/API mocks.\n- Tightened `required_labels_mode` comparison to strict equality.\n\nVerification:\n- `npm run build` passes.\n- `npx jest --runInBand` passes.\n- `npm test -- --runInBand` runs Jest successfully, then fails in `standard` because `typescript-eslint-parser` cannot load `eslint/lib/util/traverser`; that is an existing tooling dependency issue, not source/test behavior."
+    }
+  ],
+  "final_metrics": {
+    "total_prompt_tokens": 618971,
+    "total_completion_tokens": 5522,
+    "total_cached_tokens": 527360,
+    "total_steps": 49,
+    "extra": {
+      "reasoning_output_tokens": 2597,
+      "total_tokens": 624493,
+      "last_token_usage": {
+        "input_tokens": 48745,
+        "cached_input_tokens": 25472,
+        "output_tokens": 259,
+        "reasoning_output_tokens": 114,
+        "total_tokens": 49004
+      }
+    }
+  }
+}
