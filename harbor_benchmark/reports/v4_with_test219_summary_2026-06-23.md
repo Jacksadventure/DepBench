@@ -1,6 +1,6 @@
 # v4-with-test219 summary
 
-Generated: 2026-06-26T12:36:14.718277+00:00
+Generated: 2026-06-27T08:26:18.368900+00:00
 
 ## GPT-5.5
 
@@ -25,3 +25,6 @@ Generated: 2026-06-26T12:36:14.718277+00:00
 | Agent | Pass | Fail | No reward | Reward tasks | Pass rate |
 |---|---:|---:|---:|---:|---:|
 | claude_code | 100 | 116 | 3 | 216 | 0.463 |
+| copilot | 100 | 117 | 2 | 217 | 0.461 |
+| opencode | 98 | 121 | 0 | 219 | 0.447 |
+| codex | 78 | 139 | 2 | 217 | 0.359 |

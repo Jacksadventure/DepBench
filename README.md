@@ -58,9 +58,12 @@ The tables below follow the numbers already documented in checked-in result file
 |---|---|---|---:|---|
 | Codex | GPT-5.5 | v4-with-test219 | **0.479** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Claude 4.8 | v4-with-test219 | **0.463** | `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` |
+| Copilot CLI | Claude 4.8 | v4-with-test219 | **0.461** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Claude Code | GPT-5.5 | v4-with-test219 | **0.452** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
 | Copilot CLI | GPT-5.5 | v4-with-test219 | **0.449** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | Claude 4.8 | v4-with-test219 | **0.447** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.429** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Codex | Claude 4.8 | v4-with-test219 | **0.359** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Codex | Gemini 3.5 Flash | v4-with-test219 | **0.279** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
@@ -68,8 +71,8 @@ The tables below follow the numbers already documented in checked-in result file
 
 Claude Code GPT-5.5/Gemini rows are full 219-task Copilot API runs and supersede
 older Maestro summaries that had auth/nonzero-exit reliability concerns. The
-Claude 4.8 row is a full 219-task Claude Code run through the Anthropic-compatible
-Claude 4.8 endpoint.
+Claude 4.8 rows are full 219-task runs through the Anthropic/OpenAI-compatible
+Claude 4.8 endpoint; Copilot CLI uses BYOK provider mode.
 
 ### Current clean witnessed baseline: v4-205
 
@@ -104,9 +107,12 @@ The most meaningful completed current-dataset comparison already documented in-r
 |---|---|---:|
 | Codex | GPT-5.5 | **0.479** |
 | Claude Code | Claude 4.8 | **0.463** |
+| Copilot CLI | Claude 4.8 | **0.461** |
 | Claude Code | GPT-5.5 | **0.452** |
 | Copilot CLI | GPT-5.5 | **0.449** |
+| OpenCode | Claude 4.8 | **0.447** |
 | OpenCode | GPT-5.5 | **0.429** |
+| Codex | Claude 4.8 | **0.359** |
 | Codex | Gemini 3.5 Flash | **0.279** |
 | Copilot CLI | Gemini 3.5 Flash | **0.225** |
 | Claude Code | Gemini 3.5 Flash | **0.224** |
@@ -125,5 +131,7 @@ The most meaningful completed current-dataset comparison already documented in-r
 - v4-with-test219 merged summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
 - v4-with-test219 Claude Code Claude 4.8 summary: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.md`
 - v4-with-test219 Claude Code Claude 4.8 per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_results_2026-06-26.csv`
+- v4-with-test219 Claude 4.8 multi-agent summary: `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.md`
+- v4-with-test219 Claude 4.8 multi-agent per-task results: `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_results_2026-06-27.csv`
 - v4-with-test219 Claude Code Copilot API summary: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.md`
 - v4-with-test219 Claude Code Copilot API per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_results_2026-06-25.csv`
