@@ -128,7 +128,8 @@ The most meaningful completed current-dataset comparison already documented in-r
 - Clean205 launch note + Claude auth failure: `conversations/260619-benchmark-runs/153200-copilot-gpt55-clean205-launch.md`
 - Clean205 Claude Code Maestro summary: `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.md`
 
-- v4-with-test219 merged summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
+- v4-with-test219 summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
+- v4-with-test219 result directory map: `harbor_benchmark/reports/v4_withtest219_result_directory_map_20260627.md`
 - v4-with-test219 Claude Code Claude 4.8 summary: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.md`
 - v4-with-test219 Claude Code Claude 4.8 per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_results_2026-06-26.csv`
 - v4-with-test219 Claude 4.8 multi-agent summary: `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.md`
