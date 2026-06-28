@@ -2,7 +2,7 @@
 
 Generated: 2026-06-28T14:29:14.926641+00:00
 
-The scanner uses one rule set for every LLM--harness pair and excludes user/system prompt text.
+The scanner uses one rule set for every LLM--harness pair and excludes user/system prompt text. Mean rows are arithmetic means across displayed harness rows, not pooled totals.
 
 | LLM | Harness | Rows | With trajectory | Docs | API | Tests | BC hyp. |
 |---|---|---:|---:|---:|---:|---:|---:|
@@ -16,3 +16,6 @@ The scanner uses one rule set for every LLM--harness pair and excludes user/syst
 | gpt55 | codex | 219 | 219 | 194 | 219 | 175 | 203 |
 | gpt55 | copilot_cli | 219 | 216 | 6 | 142 | 116 | 119 |
 | gpt55 | opencode | 219 | 219 | 195 | 219 | 195 | 207 |
+| **claude48** | **mean** | 219.0 | 218.7 | 126.7 | 217.7 | 198.7 | 207.0 |
+| **gemini35flash** | **mean** | 219.0 | 172.3 | 71.7 | 115.0 | 103.7 | 67.3 |
+| **gpt55** | **mean** | 219.0 | 218.2 | 135.8 | 199.8 | 173.2 | 181.2 |
