@@ -30,6 +30,7 @@ COPILOT_TOKEN_KEYS = (
     "GH_TOKEN",
     "GITHUB_TOKEN",
 )
+OPENAI_COMPATIBLE_NPM = "@ai-sdk/openai-compatible"
 
 
 class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
@@ -151,6 +152,15 @@ class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
             provider_config.setdefault("options", {})["baseURL"] = base_url
             generated = {"provider": {"openai": provider_config}}
             config = self._deep_merge(generated, config)
+        elif provider != "github-copilot" and base_url:
+            provider_config = {
+                "npm": OPENAI_COMPATIBLE_NPM,
+                "env": ["OPENAI_API_KEY"],
+                "options": {"baseURL": base_url},
+                "models": {model_id: {}},
+            }
+            generated = {"provider": {provider: provider_config}}
+            config = self._deep_merge(generated, config)
         return config
 
     def _build_register_config_command_for(
@@ -259,6 +269,9 @@ class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
             env["GH_TOKEN"] = token
             env["COPILOT_GITHUB_TOKEN"] = token
             env["COPILOT_API_KEY"] = token
+        elif self._base_url_arg:
+            base_url = self._base_url(settings)
+            env["OPENAI_API_KEY"] = self._api_key(settings)
 
         for key in (
             "OPENAI_API_KEY",
