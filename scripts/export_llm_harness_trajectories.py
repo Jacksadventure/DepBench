@@ -59,12 +59,6 @@ GROUPS: list[dict[str, str]] = [
     },
     {
         "llm": "gemini35flash",
-        "harness": "codex",
-        "model": "gemini-3.5-flash",
-        "job": "v4_withtest219__codex__gemini35flash__full219_20260627",
-    },
-    {
-        "llm": "gemini35flash",
         "harness": "copilot_cli",
         "model": "gemini-3.5-flash",
         "job": "v4_withtest219__copilot_cli__gemini35flash__full219_20260627",
@@ -80,12 +74,6 @@ GROUPS: list[dict[str, str]] = [
         "harness": "claude_code",
         "model": "gemini-3.5-flash",
         "job": "claude_code_copilot_api_gemini35flash_v4_withtest_219_conc10_2026-06-25__0400-00",
-    },
-    {
-        "llm": "claude48",
-        "harness": "codex",
-        "model": "claude-opus-4-8",
-        "job": "codex_claude48_v4_withtest_219_conc10_2026-06-26__1248-00",
     },
     {
         "llm": "claude48",

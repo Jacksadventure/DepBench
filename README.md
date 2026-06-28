@@ -63,8 +63,6 @@ The tables below follow the numbers already documented in checked-in result file
 | Copilot CLI | GPT-5.5 | v4-with-test219 | **0.454** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | Claude 4.8 | v4-with-test219 | **0.447** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.434** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
-| Codex | Claude 4.8 | v4-with-test219 | **0.359** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
-| Codex | Gemini 3.5 Flash | v4-with-test219 | **0.279** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.248** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
@@ -73,6 +71,12 @@ Claude Code GPT-5.5/Gemini rows are full 219-task Copilot API runs and supersede
 older Maestro summaries that had auth/nonzero-exit reliability concerns. The
 Claude 4.8 rows are full 219-task runs through the Anthropic/OpenAI-compatible
 Claude 4.8 endpoint; Copilot CLI uses BYOK provider mode.
+
+Codex non-GPT rows are excluded from the current comparison. Codex versions after
+v0.94.0 no longer support the chat-completions wire API
+(openai/codex#10157); this makes the Gemini Copilot-API route unavailable to
+current Codex, and the Claude 4.8 Codex run failed with provider-level tool
+message ordering errors under the responses wire API.
 
 ### Current clean witnessed baseline: v4-205
 
@@ -112,8 +116,6 @@ The most meaningful completed current-dataset comparison already documented in-r
 | Copilot CLI | GPT-5.5 | **0.454** |
 | OpenCode | Claude 4.8 | **0.447** |
 | OpenCode | GPT-5.5 | **0.434** |
-| Codex | Claude 4.8 | **0.359** |
-| Codex | Gemini 3.5 Flash | **0.279** |
 | OpenCode | Gemini 3.5 Flash | **0.248** |
 | Copilot CLI | Gemini 3.5 Flash | **0.225** |
 | Claude Code | Gemini 3.5 Flash | **0.224** |
