@@ -68,9 +68,13 @@ Your current working directory contains the trial's input bundle:
 - `oracle.patch`     : the gold source repair (`solution/code.patch`) — your "correct fix" reference
 - `trajectory.json`  : the coding agent's full run trajectory — YOUR ONLY WINDOW INTO THE RUN
 - `meta.json`        : {{trial, task, harness, llm, model, reward, exception_type}} — `reward` is authoritative
+- `verifier_log.txt` : OPTIONAL — the held-out test run's stdout, present ONLY for some trials.
+                       When present, use it to pin how a failing trial missed the hidden tests
+                       (and to confirm a pass). When ABSENT, this file does not exist.
 
-You do NOT have any verifier/grading log or the held-out test patch. Diagnose hidden-test
-failures by comparing the agent's edits (from `trajectory.json`) to `oracle.patch`.
+You do NOT have the held-out test *patch*. When `verifier_log.txt` is present, use it to
+diagnose hidden-test failures directly; when it is absent, diagnose them by comparing the
+agent's edits (from `trajectory.json`) to `oracle.patch`.
 
 Follow the protocol below EXACTLY. Produce one JSON object per its §7 schema and WRITE it to a
 file named exactly `{output}` in the current working directory (valid JSON, nothing else).

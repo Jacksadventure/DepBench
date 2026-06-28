@@ -152,25 +152,45 @@ def discover_trials(jobs_globs: list[str]) -> list[dict]:
     return trials
 
 
+LOCAL_TASKS_DIR = REPO_ROOT / "harbor_benchmark" / "tasks_v4"
+
+
+def resolve_task_path(meta: dict) -> Path | None:
+    """Locate the task dir holding instruction.md + solution/code.patch.
+
+    `result.json`'s `task_id.path` may be absolute and FOREIGN (e.g. the opencode/gemini
+    rerun was produced on another machine, recording `/Data2/.../tasks_v4/<name>`). Fall back
+    to the local `harbor_benchmark/tasks_v4/<task>` by name, which is what actually exists here.
+    """
+    candidates: list[Path] = []
+    task_dir = meta.get("task_dir")
+    if task_dir:
+        p = Path(task_dir)
+        candidates.append(p if p.is_absolute() else REPO_ROOT / task_dir)
+    task = meta.get("task")
+    if task:
+        candidates.append(LOCAL_TASKS_DIR / task)
+    for c in candidates:
+        if (c / "instruction.md").exists() and (c / "solution" / "code.patch").exists():
+            return c
+    return None
+
+
 def stage_inputs(rec: dict, dest: Path) -> str | None:
-    """Stage {instruction.md, oracle.patch, trajectory.json, meta.json} OUTSIDE the repo,
-    git-init'd so agents (esp. opencode) anchor to the stage dir, not the DepBench repo.
+    """Stage {instruction.md, oracle.patch, trajectory.json, meta.json, verifier_log.txt?}
+    OUTSIDE the repo, git-init'd so agents (esp. opencode) anchor to the stage dir, not the
+    DepBench repo. The verifier log is staged ONLY when the trial directory has one.
 
     Returns a skip reason string, or None on success.
     """
     meta = rec["meta"]
     if not meta["has_trajectory"]:
         return "no trajectory"
-    task_dir = meta.get("task_dir")
-    if not task_dir:
-        return "no task path in result.json"
-    task_path = (REPO_ROOT / task_dir) if not Path(task_dir).is_absolute() else Path(task_dir)
+    task_path = resolve_task_path(meta)
+    if task_path is None:
+        return "task inputs (instruction.md + oracle) not found"
     instruction = task_path / "instruction.md"
     oracle = task_path / "solution" / "code.patch"
-    if not instruction.exists():
-        return "no instruction.md"
-    if not oracle.exists():
-        return "no oracle code.patch"
 
     if dest.exists():
         shutil.rmtree(dest)
@@ -178,6 +198,16 @@ def stage_inputs(rec: dict, dest: Path) -> str | None:
     shutil.copy2(instruction, dest / "instruction.md")
     shutil.copy2(oracle, dest / "oracle.patch")
     shutil.copy2(Path(meta["trajectory_path"]), dest / "trajectory.json")
+
+    # Optional held-out test stdout — present only for some runs (e.g. opencode/gemini).
+    has_verifier_log = False
+    trial_dir = rec.get("trial_dir")
+    if trial_dir:
+        vlog = Path(trial_dir) / "verifier" / "test-stdout.txt"
+        if vlog.exists() and vlog.stat().st_size > 0:
+            shutil.copy2(vlog, dest / "verifier_log.txt")
+            has_verifier_log = True
+
     (dest / "meta.json").write_text(
         json.dumps(
             {
@@ -188,6 +218,7 @@ def stage_inputs(rec: dict, dest: Path) -> str | None:
                 "model": meta["model"],
                 "reward": meta["reward"],
                 "exception_type": meta["exception_type"],
+                "has_verifier_log": has_verifier_log,
             },
             indent=2,
         )
