@@ -1,0 +1,278 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 1c21fdb..169ccfc 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -44,7 +44,7 @@ async-http-proxy = { version = "1.2.5", features = ["runtime-tokio"] }
+ criterion = { version = "0.5.0", features = ["async_tokio"] }
+ reqwest = "0.11.10"
+ rustls-native-certs = "0.6.2"
+-rustls-pemfile = "1.0.0"
++rustls-pemfile = "2.0.0"
+ tls-listener = { version = "0.8.0", features = ["rustls", "hyper-h1", "hyper-h2"] }
+ tokio = { version = "1.24.2", features = ["full"] }
+ tokio-native-tls = "0.3.1"
+diff --git a/benches/certificate_authorities.rs b/benches/certificate_authorities.rs
+index f1eba6a..9c13ceb 100644
+--- a/benches/certificate_authorities.rs
++++ b/benches/certificate_authorities.rs
+@@ -18,13 +18,18 @@ fn build_rcgen_ca(cache_size: u64) -> RcgenAuthority {
+     let mut ca_cert_bytes: &[u8] = include_bytes!("../examples/ca/hudsucker.cer");
+     let private_key = rustls::PrivateKey(
+         pemfile::pkcs8_private_keys(&mut private_key_bytes)
++            .next()
+             .expect("Failed to parse private key")
+-            .remove(0),
++            .unwrap()
++            .secret_pkcs8_der()
++            .to_vec(),
+     );
+     let ca_cert = rustls::Certificate(
+         pemfile::certs(&mut ca_cert_bytes)
++            .next()
+             .expect("Failed to parse CA certificate")
+-            .remove(0),
++            .unwrap()
++            .to_vec(),
+     );
+ 
+     RcgenAuthority::new(private_key, ca_cert, cache_size)
+diff --git a/benches/proxy.rs b/benches/proxy.rs
+index b71a19c..e06095b 100644
+--- a/benches/proxy.rs
++++ b/benches/proxy.rs
+@@ -31,13 +31,18 @@ fn build_ca() -> RcgenAuthority {
+     let mut ca_cert_bytes: &[u8] = include_bytes!("../examples/ca/hudsucker.cer");
+     let private_key = rustls::PrivateKey(
+         pemfile::pkcs8_private_keys(&mut private_key_bytes)
++            .next()
+             .expect("Failed to parse private key")
+-            .remove(0),
++            .unwrap()
++            .secret_pkcs8_der()
++            .to_vec(),
+     );
+     let ca_cert = rustls::Certificate(
+         pemfile::certs(&mut ca_cert_bytes)
++            .next()
+             .expect("Failed to parse CA certificate")
+-            .remove(0),
++            .unwrap()
++            .to_vec(),
+     );
+ 
+     RcgenAuthority::new(private_key, ca_cert, 1_000)
+diff --git a/examples/log.rs b/examples/log.rs
+index c5abb83..f8943c8 100644
+--- a/examples/log.rs
++++ b/examples/log.rs
+@@ -51,13 +51,18 @@ async fn main() {
+     let mut ca_cert_bytes: &[u8] = include_bytes!("ca/hudsucker.cer");
+     let private_key = rustls::PrivateKey(
+         pemfile::pkcs8_private_keys(&mut private_key_bytes)
++            .next()
+             .expect("Failed to parse private key")
+-            .remove(0),
++            .unwrap()
++            .secret_pkcs8_der()
++            .to_vec(),
+     );
+     let ca_cert = rustls::Certificate(
+         pemfile::certs(&mut ca_cert_bytes)
++            .next()
+             .expect("Failed to parse CA certificate")
+-            .remove(0),
++            .unwrap()
++            .to_vec(),
+     );
+ 
+     let ca = RcgenAuthority::new(private_key, ca_cert, 1_000)
+diff --git a/examples/noop.rs b/examples/noop.rs
+index 52f8354..78c7860 100644
+--- a/examples/noop.rs
++++ b/examples/noop.rs
+@@ -17,13 +17,18 @@ async fn main() {
+     let mut ca_cert_bytes: &[u8] = include_bytes!("ca/hudsucker.cer");
+     let private_key = rustls::PrivateKey(
+         pemfile::pkcs8_private_keys(&mut private_key_bytes)
++            .next()
+             .expect("Failed to parse private key")
+-            .remove(0),
++            .unwrap()
++            .secret_pkcs8_der()
++            .to_vec(),
+     );
+     let ca_cert = rustls::Certificate(
+         pemfile::certs(&mut ca_cert_bytes)
++            .next()
+             .expect("Failed to parse CA certificate")
+-            .remove(0),
++            .unwrap()
++            .to_vec(),
+     );
+ 
+     let ca = RcgenAuthority::new(private_key, ca_cert, 1_000)
+diff --git a/src/certificate_authority/rcgen_authority.rs b/src/certificate_authority/rcgen_authority.rs
+index 6f412c9..da3fd1b 100644
+--- a/src/certificate_authority/rcgen_authority.rs
++++ b/src/certificate_authority/rcgen_authority.rs
+@@ -28,13 +28,18 @@ use tracing::debug;
+ /// let mut ca_cert_bytes: &[u8] = include_bytes!("../../examples/ca/hudsucker.cer");
+ /// let private_key = rustls::PrivateKey(
+ ///     pemfile::pkcs8_private_keys(&mut private_key_bytes)
++///         .next()
+ ///         .unwrap()
+-///         .remove(0),
++///         .unwrap()
++///         .secret_pkcs8_der()
++///         .to_vec(),
+ /// );
+ /// let ca_cert = rustls::Certificate(
+ ///     pemfile::certs(&mut ca_cert_bytes)
++///         .next()
++///         .unwrap()
+ ///         .unwrap()
+-///         .remove(0),
++///         .to_vec(),
+ /// );
+ ///
+ /// let ca = RcgenAuthority::new(private_key, ca_cert, 1_000).unwrap();
+@@ -159,13 +164,18 @@ mod tests {
+         let mut ca_cert_bytes: &[u8] = include_bytes!("../../examples/ca/hudsucker.cer");
+         let private_key = rustls::PrivateKey(
+             pemfile::pkcs8_private_keys(&mut private_key_bytes)
++                .next()
+                 .expect("Failed to parse private key")
+-                .remove(0),
++                .expect("Failed to parse private key")
++                .secret_pkcs8_der()
++                .to_vec(),
+         );
+         let ca_cert = rustls::Certificate(
+             pemfile::certs(&mut ca_cert_bytes)
++                .next()
++                .expect("Failed to parse CA certificate")
+                 .expect("Failed to parse CA certificate")
+-                .remove(0),
++                .to_vec(),
+         );
+ 
+         RcgenAuthority::new(private_key, ca_cert, cache_size).unwrap()
+diff --git a/src/proxy/builder.rs b/src/proxy/builder.rs
+index ecabec7..c0e6128 100644
+--- a/src/proxy/builder.rs
++++ b/src/proxy/builder.rs
+@@ -31,13 +31,18 @@ use tokio_tungstenite::Connector;
+ /// # let mut ca_cert_bytes: &[u8] = include_bytes!("../../examples/ca/hudsucker.cer");
+ /// # let private_key = rustls::PrivateKey(
+ /// #     pemfile::pkcs8_private_keys(&mut private_key_bytes)
++/// #         .next()
+ /// #         .expect("Failed to parse private key")
+-/// #         .remove(0),
++/// #         .unwrap()
++/// #         .secret_pkcs8_der()
++/// #         .to_vec(),
+ /// # );
+ /// # let ca_cert = rustls::Certificate(
+ /// #     pemfile::certs(&mut ca_cert_bytes)
++/// #         .next()
+ /// #         .expect("Failed to parse CA certificate")
+-/// #         .remove(0),
++/// #         .unwrap()
++/// #         .to_vec(),
+ /// # );
+ /// #
+ /// # let ca = RcgenAuthority::new(private_key, ca_cert, 1_000)
+diff --git a/src/proxy/mod.rs b/src/proxy/mod.rs
+index 07445c0..357b80f 100644
+--- a/src/proxy/mod.rs
++++ b/src/proxy/mod.rs
+@@ -34,13 +34,18 @@ pub use builder::ProxyBuilder;
+ /// # let mut ca_cert_bytes: &[u8] = include_bytes!("../../examples/ca/hudsucker.cer");
+ /// # let private_key = rustls::PrivateKey(
+ /// #     pemfile::pkcs8_private_keys(&mut private_key_bytes)
++/// #         .next()
+ /// #         .expect("Failed to parse private key")
+-/// #         .remove(0),
++/// #         .unwrap()
++/// #         .secret_pkcs8_der()
++/// #         .to_vec(),
+ /// # );
+ /// # let ca_cert = rustls::Certificate(
+ /// #     pemfile::certs(&mut ca_cert_bytes)
++/// #         .next()
+ /// #         .expect("Failed to parse CA certificate")
+-/// #         .remove(0),
++/// #         .unwrap()
++/// #         .to_vec(),
+ /// # );
+ /// #
+ /// # let ca = RcgenAuthority::new(private_key, ca_cert, 1_000)
+diff --git a/tests/common/mod.rs b/tests/common/mod.rs
+index 1a1cf80..30efcee 100644
+--- a/tests/common/mod.rs
++++ b/tests/common/mod.rs
+@@ -130,7 +130,13 @@ fn rustls_client_config() -> rustls::ClientConfig {
+     }
+ 
+     let mut ca_cert_bytes: &[u8] = include_bytes!("../../examples/ca/hudsucker.cer");
+-    let ca_cert = rustls::Certificate(pemfile::certs(&mut ca_cert_bytes).unwrap().remove(0));
++    let ca_cert = rustls::Certificate(
++        pemfile::certs(&mut ca_cert_bytes)
++            .next()
++            .unwrap()
++            .unwrap()
++            .to_vec(),
++    );
+ 
+     roots.add(&ca_cert).unwrap();
+ 
+diff --git a/tests/rcgen_ca.rs b/tests/rcgen_ca.rs
+index 576677c..31d5bba 100644
+--- a/tests/rcgen_ca.rs
++++ b/tests/rcgen_ca.rs
+@@ -9,13 +9,18 @@ fn build_ca() -> RcgenAuthority {
+     let mut ca_cert_bytes: &[u8] = include_bytes!("../examples/ca/hudsucker.cer");
+     let private_key = rustls::PrivateKey(
+         pemfile::pkcs8_private_keys(&mut private_key_bytes)
++            .next()
+             .expect("Failed to parse private key")
+-            .remove(0),
++            .unwrap()
++            .secret_pkcs8_der()
++            .to_vec(),
+     );
+     let ca_cert = rustls::Certificate(
+         pemfile::certs(&mut ca_cert_bytes)
++            .next()
+             .expect("Failed to parse CA certificate")
+-            .remove(0),
++            .unwrap()
++            .to_vec(),
+     );
+ 
+     RcgenAuthority::new(private_key, ca_cert, 1_000)
+diff --git a/tests/websocket.rs b/tests/websocket.rs
+index cff6451..c1e73d2 100644
+--- a/tests/websocket.rs
++++ b/tests/websocket.rs
+@@ -15,13 +15,18 @@ fn build_ca() -> RcgenAuthority {
+     let mut ca_cert_bytes: &[u8] = include_bytes!("../examples/ca/hudsucker.cer");
+     let private_key = rustls::PrivateKey(
+         pemfile::pkcs8_private_keys(&mut private_key_bytes)
++            .next()
+             .expect("Failed to parse private key")
+-            .remove(0),
++            .unwrap()
++            .secret_pkcs8_der()
++            .to_vec(),
+     );
+     let ca_cert = rustls::Certificate(
+         pemfile::certs(&mut ca_cert_bytes)
++            .next()
+             .expect("Failed to parse CA certificate")
+-            .remove(0),
++            .unwrap()
++            .to_vec(),
+     );
+ 
+     RcgenAuthority::new(private_key, ca_cert, 1_000)

@@ -1,0 +1,94 @@
+diff --git a/kroxylicious-integration-tests/src/test/java/io/kroxylicious/proxy/MetricsIT.java b/kroxylicious-integration-tests/src/test/java/io/kroxylicious/proxy/MetricsIT.java
+index 04da4db64..eb9c69fed 100644
+--- a/kroxylicious-integration-tests/src/test/java/io/kroxylicious/proxy/MetricsIT.java
++++ b/kroxylicious-integration-tests/src/test/java/io/kroxylicious/proxy/MetricsIT.java
+@@ -112,7 +112,7 @@ class MetricsIT {
+     }
+ 
+     private static void assertResponseBodyContainsMeterWithTag(HttpResponse<String> response, String meterName, String tagKey, String tagValue) {
+-        assertResponseBodyContainsMeter(response, meterName, "\\{" + Pattern.quote(tagKey) + "=\"" + Pattern.quote(tagValue) + "\",\\}", "[0-9\\.E]+");
++        assertResponseBodyContainsMeter(response, meterName, "\\{" + Pattern.quote(tagKey) + "=\"" + Pattern.quote(tagValue) + "\"\\}", "[0-9\\.E]+");
+     }
+ 
+     private static void assertResponseBodyContainsMeter(HttpResponse<String> response, String meterName, String labelRegex, String valueRegex) {
+diff --git a/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/MeterRegistries.java b/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/MeterRegistries.java
+index fc216e84e..f605c9b0e 100644
+--- a/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/MeterRegistries.java
++++ b/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/MeterRegistries.java
+@@ -18,8 +18,8 @@ import io.micrometer.core.instrument.Tag;
+ import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+ import io.micrometer.core.instrument.config.MeterFilter;
+ import io.micrometer.core.instrument.config.MeterFilterReply;
+-import io.micrometer.prometheus.PrometheusConfig;
+-import io.micrometer.prometheus.PrometheusMeterRegistry;
++import io.micrometer.prometheusmetrics.PrometheusConfig;
++import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+ 
+ import io.kroxylicious.proxy.config.MicrometerDefinition;
+ import io.kroxylicious.proxy.micrometer.MicrometerConfigurationHook;
+diff --git a/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/admin/PrometheusMetricsEndpoint.java b/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/admin/PrometheusMetricsEndpoint.java
+index 02b9a9680..495a1fa99 100644
+--- a/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/admin/PrometheusMetricsEndpoint.java
++++ b/kroxylicious-runtime/src/main/java/io/kroxylicious/proxy/internal/admin/PrometheusMetricsEndpoint.java
+@@ -7,7 +7,7 @@ package io.kroxylicious.proxy.internal.admin;
+ 
+ import java.util.function.Function;
+ 
+-import io.micrometer.prometheus.PrometheusMeterRegistry;
++import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+ import io.netty.handler.codec.http.HttpRequest;
+ import io.netty.handler.codec.http.HttpResponse;
+ 
+diff --git a/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/metrics/MetricsCollector.java b/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/metrics/MetricsCollector.java
+index c47965e50..27c542aff 100644
+--- a/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/metrics/MetricsCollector.java
++++ b/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/metrics/MetricsCollector.java
+@@ -269,6 +269,7 @@ public class MetricsCollector {
+ 
+         if (collectedData != null && !collectedData.isEmpty()) {
+             for (Map.Entry<String, String> entry : collectedData.entrySet()) {
++                LOGGER.debug("Matching pattern: {} against data: {}", pattern, entry.getValue());
+                 Matcher t = pattern.matcher(entry.getValue());
+                 if (t.find()) {
+                     values.add(Double.parseDouble(t.group(1)));
+diff --git a/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/utils/MetricsUtils.java b/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/utils/MetricsUtils.java
+index 9cf3eac01..ba71b3193 100644
+--- a/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/utils/MetricsUtils.java
++++ b/kroxylicious-systemtests/src/main/java/io/kroxylicious/systemtests/utils/MetricsUtils.java
+@@ -24,7 +24,7 @@ public class MetricsUtils {
+     }
+ 
+     public static void assertMetricResourceNotNull(MetricsCollector collector, String metric, String kind) {
+-        String metrics = metric + "\\{kind=\"" + kind + "\",.*}";
++        String metrics = metric + "\\{kind=\"" + kind + "\"(,.*)?}";
+         assertMetricValueNotNull(collector, metrics);
+     }
+ 
+@@ -69,12 +69,12 @@ public class MetricsUtils {
+     }
+ 
+     private static List<Double> createPatternAndCollect(MetricsCollector collector, String metric) {
+-        Pattern pattern = Pattern.compile(metric + "\\{.*\\} ([\\d.][^\\n]+)", Pattern.CASE_INSENSITIVE);
++        Pattern pattern = Pattern.compile(metric + "(?:\\{.*\\})? ([\\d.][^\\n]+)", Pattern.CASE_INSENSITIVE);
+         return collector.waitForSpecificMetricAndCollect(pattern);
+     }
+ 
+     private static List<Double> createPatternAndCollectWithoutWait(MetricsCollector collector, String metric) {
+-        Pattern pattern = Pattern.compile(metric + "\\{.*\\} ([\\d.][^\\n]+)", Pattern.CASE_INSENSITIVE);
++        Pattern pattern = Pattern.compile(metric + "(?:\\{.*\\})? ([\\d.][^\\n]+)", Pattern.CASE_INSENSITIVE);
+         return collector.collectSpecificMetric(pattern);
+     }
+ }
+diff --git a/pom.xml b/pom.xml
+index e4062c966..c050682b9 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -52,7 +52,7 @@
+         <netty.kqueue.classifier>osx-x86_64</netty.kqueue.classifier>
+         <assertj-core.version>3.25.3</assertj-core.version>
+         <mockito.version>5.11.0</mockito.version>
+-        <micrometer.version>1.12.5</micrometer.version>
++        <micrometer.version>1.13.0</micrometer.version>
+         <slf4j.version>2.0.13</slf4j.version>
+         <sundr-builder-annotations.version>0.200.0</sundr-builder-annotations.version>
+         <spotbugs-annotations.version>4.8.5</spotbugs-annotations.version>

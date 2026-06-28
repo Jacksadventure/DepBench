@@ -1,0 +1,47 @@
+diff --git a/pom.xml b/pom.xml
+index 4660b810..4507f573 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -19,7 +19,7 @@
+     <maven.compiler.source>${java.version}</maven.compiler.source>
+     <maven.compiler.target>${java.version}</maven.compiler.target>
+ 
+-    <zeebe.version>8.4.1</zeebe.version>
++    <zeebe.version>8.4.3</zeebe.version>
+     <identity.version>8.4.0-SNAPSHOT</identity.version>
+ 
+     <spring-boot.version>3.2.2</spring-boot.version>
+diff --git a/spring-boot-starter-camunda/src/main/java/io/camunda/zeebe/spring/client/properties/PropertyBasedZeebeWorkerValueCustomizer.java b/spring-boot-starter-camunda/src/main/java/io/camunda/zeebe/spring/client/properties/PropertyBasedZeebeWorkerValueCustomizer.java
+index baa21155..b6037322 100644
+--- a/spring-boot-starter-camunda/src/main/java/io/camunda/zeebe/spring/client/properties/PropertyBasedZeebeWorkerValueCustomizer.java
++++ b/spring-boot-starter-camunda/src/main/java/io/camunda/zeebe/spring/client/properties/PropertyBasedZeebeWorkerValueCustomizer.java
+@@ -54,7 +54,7 @@ public class PropertyBasedZeebeWorkerValueCustomizer implements ZeebeWorkerValue
+       }
+       variables.addAll(
+           readZeebeVariableParameters(zeebeWorkerValue.getMethodInfo()).stream()
+-              .map(ParameterInfo::getParameterName)
++              .map(this::getVariableName)
+               .collect(Collectors.toList()));
+       variables.addAll(readVariablesAsTypeParameters(zeebeWorkerValue.getMethodInfo()));
+       zeebeWorkerValue.setFetchVariables(variables.toArray(new String[0]));
+@@ -65,6 +65,20 @@ public class PropertyBasedZeebeWorkerValueCustomizer implements ZeebeWorkerValue
+     }
+   }
+ 
++  private String getVariableName(ParameterInfo param) {
++    if (param.getParameterInfo().isAnnotationPresent(Variable.class)) {
++      String nameFromAnnotation = param.getParameterInfo().getAnnotation(Variable.class).name();
++      if (!java.util.Objects.equals(nameFromAnnotation, Variable.DEFAULT_NAME)) {
++        return nameFromAnnotation;
++      }
++      String valueFromAnnotation = param.getParameterInfo().getAnnotation(Variable.class).value();
++      if (!java.util.Objects.equals(valueFromAnnotation, Variable.DEFAULT_NAME)) {
++        return valueFromAnnotation;
++      }
++    }
++    return param.getParameterName();
++  }
++
+   private List<ParameterInfo> readZeebeVariableParameters(MethodInfo methodInfo) {
+     List<ParameterInfo> result = methodInfo.getParametersFilteredByAnnotation(Variable.class);
+     result.addAll(methodInfo.getParametersFilteredByAnnotation(ZeebeVariable.class));

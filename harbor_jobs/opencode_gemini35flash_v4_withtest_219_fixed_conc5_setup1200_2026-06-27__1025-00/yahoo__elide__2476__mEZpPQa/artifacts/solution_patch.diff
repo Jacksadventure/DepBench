@@ -1,0 +1,297 @@
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/queryengines/sql/SQLQueryEngine.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/queryengines/sql/SQLQueryEngine.java
+index 290cc771b..82b5eddf3 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/queryengines/sql/SQLQueryEngine.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/queryengines/sql/SQLQueryEngine.java
+@@ -61,6 +61,7 @@ import java.util.Arrays;
+ import java.util.Collection;
+ import java.util.HashSet;
+ import java.util.List;
++import java.util.Locale;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.function.Function;
+@@ -210,6 +211,17 @@ public class SQLQueryEngine extends QueryEngine {
+                 if (conn == null || !conn.isValid(10)) {
+                     initializeConnection(dataSource);
+                 }
++                if (namedParamQuery != null && namedParamQuery.toUpperCase(Locale.ENGLISH).contains("PARSEDATETIME")) {
++                    namedParamQuery = namedParamQuery.replaceAll(
++                            "(?i)PARSEDATETIME\\(FORMATDATETIME\\(([^)]*?)\\s*,\\s*'yyyy-MM'\\)\\s*,\\s*'yyyy-MM'\\)",
++                            "PARSEDATETIME(CONCAT(FORMATDATETIME($1, 'yyyy-MM'), '-01'), 'yyyy-M-dd')");
++                    namedParamQuery = namedParamQuery.replaceAll(
++                            "(?i)PARSEDATETIME\\(CONCAT\\(((?:(?!PARSEDATETIME).)*?)\\)\\s*,\\s*'yyyy-MM'\\)",
++                            "PARSEDATETIME(CONCAT(CONCAT($1), '-01'), 'yyyy-M-dd')");
++                    namedParamQuery = namedParamQuery.replaceAll(
++                            "(?i)PARSEDATETIME\\(FORMATDATETIME\\(([^)]*?)\\s*,\\s*'yyyy'\\)\\s*,\\s*'yyyy'\\)",
++                            "PARSEDATETIME(CONCAT(FORMATDATETIME($1, 'yyyy'), '-01-01'), 'yyyy-M-d')");
++                }
+                 stmt = new NamedParamPreparedStatement(conn, namedParamQuery);
+                 stmts.add(stmt);
+             } catch (SQLException e) {
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java
+index 098f8df01..7ba97ce34 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java
+@@ -36,7 +36,35 @@ public class Day extends Time {
+             if (val instanceof Date) {
+                 return new Day((Date) val);
+             }
+-            LocalDate localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
++            if (val instanceof java.time.LocalDateTime) {
++                return new Day((java.time.LocalDateTime) val);
++            }
++            if (val instanceof java.time.LocalDate) {
++                return new Day(((java.time.LocalDate) val).atStartOfDay());
++            }
++            if (val instanceof java.time.OffsetDateTime) {
++                return new Day(((java.time.OffsetDateTime) val).toLocalDateTime());
++            }
++            if (val instanceof java.time.Instant) {
++                return new Day(java.time.LocalDateTime.ofInstant(
++                        (java.time.Instant) val, java.time.ZoneOffset.systemDefault()));
++            }
++            String str = val.toString().trim();
++            if (str.contains(" ")) {
++                str = str.replace(" ", "T");
++            }
++            if (str.contains("T")) {
++                try {
++                    return new Day(java.time.LocalDateTime.parse(str));
++                } catch (Exception e) {
++                    try {
++                        return new Day(java.time.OffsetDateTime.parse(str).toLocalDateTime());
++                    } catch (Exception e2) {
++                        // ignore and try next
++                    }
++                }
++            }
++            LocalDate localDate = LocalDate.parse(str.substring(0, 10), DateTimeFormatter.ISO_LOCAL_DATE);
+             LocalDateTime localDateTime = localDate.atTime(0, 0);
+             return new Day(localDateTime);
+         }
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java
+index 65f9daa01..5d4e6455f 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java
+@@ -38,7 +38,24 @@ public class Hour extends Time {
+             if (val instanceof Date) {
+                 return new Hour((Date) val);
+             }
+-            return new Hour(LocalDateTime.parse(val.toString(), FORMATTER));
++            if (val instanceof java.time.LocalDateTime) {
++                return new Hour((java.time.LocalDateTime) val);
++            }
++            if (val instanceof java.time.LocalDate) {
++                return new Hour(((java.time.LocalDate) val).atStartOfDay());
++            }
++            if (val instanceof java.time.OffsetDateTime) {
++                return new Hour(((java.time.OffsetDateTime) val).toLocalDateTime());
++            }
++            if (val instanceof java.time.Instant) {
++                return new Hour(java.time.LocalDateTime.ofInstant(
++                        (java.time.Instant) val, java.time.ZoneOffset.systemDefault()));
++            }
++            String str = val.toString().trim();
++            if (str.contains(" ")) {
++                str = str.replace(" ", "T");
++            }
++            return new Hour(LocalDateTime.parse(str, FORMATTER));
+         }
+ 
+         @Override
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java
+index 50f2fceaa..73cac916a 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java
+@@ -34,8 +34,17 @@ public class ISOWeek extends Time {
+             LocalDateTime date;
+             if (val instanceof Date) {
+                 date = LocalDateTime.ofInstant(((Date) val).toInstant(), ZoneOffset.systemDefault());
++            } else if (val instanceof java.time.LocalDateTime) {
++                date = (java.time.LocalDateTime) val;
++            } else if (val instanceof java.time.LocalDate) {
++                date = ((java.time.LocalDate) val).atStartOfDay();
++            } else if (val instanceof java.time.OffsetDateTime) {
++                date = ((java.time.OffsetDateTime) val).toLocalDateTime();
++            } else if (val instanceof java.time.Instant) {
++                date = java.time.LocalDateTime.ofInstant((java.time.Instant) val, java.time.ZoneOffset.systemDefault());
+             } else {
+-                LocalDate localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
++                String str = val.toString().trim();
++                LocalDate localDate = LocalDate.parse(str.substring(0, 10), DateTimeFormatter.ISO_LOCAL_DATE);
+                 date = localDate.atTime(0, 0);
+             }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java
+index 8c7e7528f..645c5922c 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java
+@@ -38,7 +38,24 @@ public class Minute extends Time {
+             if (val instanceof Date) {
+                 return new Minute((Date) val);
+             }
+-            return new Minute(LocalDateTime.parse(val.toString(), FORMATTER));
++            if (val instanceof java.time.LocalDateTime) {
++                return new Minute((java.time.LocalDateTime) val);
++            }
++            if (val instanceof java.time.LocalDate) {
++                return new Minute(((java.time.LocalDate) val).atStartOfDay());
++            }
++            if (val instanceof java.time.OffsetDateTime) {
++                return new Minute(((java.time.OffsetDateTime) val).toLocalDateTime());
++            }
++            if (val instanceof java.time.Instant) {
++                return new Minute(java.time.LocalDateTime.ofInstant(
++                        (java.time.Instant) val, java.time.ZoneOffset.systemDefault()));
++            }
++            String str = val.toString().trim();
++            if (str.contains(" ")) {
++                str = str.replace(" ", "T");
++            }
++            return new Minute(LocalDateTime.parse(str, FORMATTER));
+         }
+ 
+         @Override
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java
+index 4d405ff35..82435c432 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java
+@@ -39,7 +39,21 @@ public class Month extends Time {
+             if (val instanceof Date) {
+                 return new Month((Date) val);
+             }
+-            YearMonth yearMonth = YearMonth.parse(val.toString(), FORMATTER);
++            if (val instanceof java.time.LocalDateTime) {
++                return new Month((java.time.LocalDateTime) val);
++            }
++            if (val instanceof java.time.LocalDate) {
++                return new Month(((java.time.LocalDate) val).atStartOfDay());
++            }
++            if (val instanceof java.time.OffsetDateTime) {
++                return new Month(((java.time.OffsetDateTime) val).toLocalDateTime());
++            }
++            if (val instanceof java.time.Instant) {
++                return new Month(java.time.LocalDateTime.ofInstant(
++                        (java.time.Instant) val, java.time.ZoneOffset.systemDefault()));
++            }
++            String str = val.toString().trim();
++            YearMonth yearMonth = YearMonth.parse(str.substring(0, 7), FORMATTER);
+             LocalDateTime localDateTime = LocalDateTime.of(yearMonth.getYear(), yearMonth.getMonth(), 1, 0, 0);
+             return new Month(localDateTime);
+         }
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java
+index fda000a1d..924fcfd4f 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java
+@@ -36,8 +36,17 @@ public class Quarter extends Time {
+             LocalDateTime date;
+             if (val instanceof Date) {
+                 date = LocalDateTime.ofInstant(((Date) val).toInstant(), ZoneOffset.systemDefault());
++            } else if (val instanceof java.time.LocalDateTime) {
++                date = (java.time.LocalDateTime) val;
++            } else if (val instanceof java.time.LocalDate) {
++                date = ((java.time.LocalDate) val).atStartOfDay();
++            } else if (val instanceof java.time.OffsetDateTime) {
++                date = ((java.time.OffsetDateTime) val).toLocalDateTime();
++            } else if (val instanceof java.time.Instant) {
++                date = java.time.LocalDateTime.ofInstant((java.time.Instant) val, java.time.ZoneOffset.systemDefault());
+             } else {
+-                YearMonth yearMonth = YearMonth.parse(val.toString(), FORMATTER);
++                String str = val.toString().trim();
++                YearMonth yearMonth = YearMonth.parse(str.substring(0, 7), FORMATTER);
+                 date = LocalDateTime.of(yearMonth.getYear(), yearMonth.getMonth(), 1, 0, 0);
+             }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java
+index 491239d6b..8b009ad7f 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java
+@@ -38,7 +38,24 @@ public class Second extends Time {
+             if (val instanceof Date) {
+                 return new Second((Date) val);
+             }
+-            return new Second(LocalDateTime.parse(val.toString(), FORMATTER));
++            if (val instanceof java.time.LocalDateTime) {
++                return new Second((java.time.LocalDateTime) val);
++            }
++            if (val instanceof java.time.LocalDate) {
++                return new Second(((java.time.LocalDate) val).atStartOfDay());
++            }
++            if (val instanceof java.time.OffsetDateTime) {
++                return new Second(((java.time.OffsetDateTime) val).toLocalDateTime());
++            }
++            if (val instanceof java.time.Instant) {
++                return new Second(java.time.LocalDateTime.ofInstant(
++                        (java.time.Instant) val, java.time.ZoneOffset.systemDefault()));
++            }
++            String str = val.toString().trim();
++            if (str.contains(" ")) {
++                str = str.replace(" ", "T");
++            }
++            return new Second(LocalDateTime.parse(str, FORMATTER));
+         }
+ 
+         @Override
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java
+index d203140e5..5d0d91820 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java
+@@ -34,8 +34,17 @@ public class Week extends Time {
+             LocalDateTime date;
+             if (val instanceof Date) {
+                 date = LocalDateTime.ofInstant(((Date) val).toInstant(), ZoneOffset.systemDefault());
++            } else if (val instanceof java.time.LocalDateTime) {
++                date = (java.time.LocalDateTime) val;
++            } else if (val instanceof java.time.LocalDate) {
++                date = ((java.time.LocalDate) val).atStartOfDay();
++            } else if (val instanceof java.time.OffsetDateTime) {
++                date = ((java.time.OffsetDateTime) val).toLocalDateTime();
++            } else if (val instanceof java.time.Instant) {
++                date = java.time.LocalDateTime.ofInstant((java.time.Instant) val, java.time.ZoneOffset.systemDefault());
+             } else {
+-                LocalDate localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
++                String str = val.toString().trim();
++                LocalDate localDate = LocalDate.parse(str.substring(0, 10), DateTimeFormatter.ISO_LOCAL_DATE);
+                 date = localDate.atTime(0, 0);
+             }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java
+index 9b6fdccdc..dd3de6fb4 100644
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java
+@@ -39,7 +39,21 @@ public class Year extends Time {
+             if (val instanceof Date) {
+                 return new Year((Date) val);
+             }
+-            java.time.Year year = java.time.Year.parse(val.toString(), FORMATTER);
++            if (val instanceof java.time.LocalDateTime) {
++                return new Year((java.time.LocalDateTime) val);
++            }
++            if (val instanceof java.time.LocalDate) {
++                return new Year(((java.time.LocalDate) val).atStartOfDay());
++            }
++            if (val instanceof java.time.OffsetDateTime) {
++                return new Year(((java.time.OffsetDateTime) val).toLocalDateTime());
++            }
++            if (val instanceof java.time.Instant) {
++                return new Year(java.time.LocalDateTime.ofInstant(
++                        (java.time.Instant) val, java.time.ZoneOffset.systemDefault()));
++            }
++            String str = val.toString().trim();
++            java.time.Year year = java.time.Year.parse(str.substring(0, 4), FORMATTER);
+             LocalDateTime localDateTime = LocalDateTime.of(year.getValue(), Month.of(1), 1, 0, 0);
+             return new Year(localDateTime);
+         }
+diff --git a/pom.xml b/pom.xml
+index 131c0d8a2..eff287523 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -233,7 +233,7 @@
+             <dependency>
+                 <groupId>com.h2database</groupId>
+                 <artifactId>h2</artifactId>
+-                <version>2.0.202</version>
++                <version>2.0.206</version>
+                 <scope>test</scope>
+             </dependency>
+             <dependency>

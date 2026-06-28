@@ -1,0 +1,111 @@
+diff --git a/cli.js b/cli.js
+index fb9686e..967659a 100755
+--- a/cli.js
++++ b/cli.js
+@@ -38,13 +38,15 @@ commander
+ 
+ commander.parse(process.argv);
+ 
+-if (commander.scopes && commander.packages) {
++const options = commander.opts();
++
++if (options.scopes && options.packages) {
+     console.error('Please specify either scopes or packages, not both.');
+     commander.help();
+ }
+ 
+-if (commander.strategy !== 'highest' && commander.strategy !== 'fewer') {
+-    console.error(`Invalid strategy ${commander.strategy}`);
++if (options.strategy !== 'highest' && options.strategy !== 'fewer') {
++    console.error(`Invalid strategy ${options.strategy}`);
+     commander.help();
+ }
+ 
+@@ -52,28 +54,28 @@ const file = commander.args.length ? commander.args[0] : 'yarn.lock';
+ 
+ try {
+     const yarnLock = fs.readFileSync(file, 'utf8');
+-    const useMostCommon = commander.strategy === 'fewer';
++    const useMostCommon = options.strategy === 'fewer';
+ 
+-    if (commander.list) {
++    if (options.list) {
+         const duplicates = listDuplicates(yarnLock, {
+             useMostCommon,
+-            includeScopes: commander.scopes,
+-            includePackages: commander.packages,
+-            excludePackages: commander.exclude,
++            includeScopes: options.scopes,
++            includePackages: options.packages,
++            excludePackages: options.exclude,
+         });
+         duplicates.forEach((logLine) => console.log(logLine));
+-        if (commander.fail && duplicates.length > 0) {
++        if (options.fail && duplicates.length > 0) {
+             process.exit(1);
+         }
+     } else {
+         let dedupedYarnLock = fixDuplicates(yarnLock, {
+             useMostCommon,
+-            includeScopes: commander.scopes,
+-            includePackages: commander.packages,
+-            excludePackages: commander.exclude,
++            includeScopes: options.scopes,
++            includePackages: options.packages,
++            excludePackages: options.exclude,
+         });
+ 
+-        if (commander.print) {
++        if (options.print) {
+             console.log(dedupedYarnLock);
+         } else {
+             const eolMatch = yarnLock.match(/(\r?\n)/);
+@@ -83,7 +85,7 @@ try {
+             fs.writeFileSync(file, dedupedYarnLock);
+         }
+ 
+-        if (commander.fail && yarnLock !== dedupedYarnLock) {
++        if (options.fail && yarnLock !== dedupedYarnLock) {
+             process.exit(1);
+         }
+     }
+diff --git a/package.json b/package.json
+index 0bebb10..a65efa6 100644
+--- a/package.json
++++ b/package.json
+@@ -31,7 +31,7 @@
+   },
+   "dependencies": {
+     "@yarnpkg/lockfile": "^1.1.0",
+-    "commander": "^5.1.0",
++    "commander": "6.1.0",
+     "semver": "^7.3.2"
+   },
+   "devDependencies": {
+@@ -47,5 +47,6 @@
+     "testPathIgnorePatterns": [
+       "<rootDir>/node_modules"
+     ]
+-  }
++  },
++  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+ }
+diff --git a/yarn.lock b/yarn.lock
+index 9bcf758..ac9ea8a 100644
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -981,10 +981,10 @@ combined-stream@^1.0.6, combined-stream@~1.0.6:
+   dependencies:
+     delayed-stream "~1.0.0"
+ 
+-commander@^5.1.0:
+-  version "5.1.0"
+-  resolved "https://registry.yarnpkg.com/commander/-/commander-5.1.0.tgz#46abbd1652f8e059bddaef99bbdcb2ad9cf179ae"
+-  integrity sha512-P0CysNDQ7rtVw4QIQtm+MRxV66vKFSvlsQvGYXZWR3qFU0jlMKHZZZgw8e+8DSah4UDKMqnknRDQz+xuQXQ/Zg==
++commander@6.1.0:
++  version "6.1.0"
++  resolved "https://registry.yarnpkg.com/commander/-/commander-6.1.0.tgz#f8d722b78103141006b66f4c7ba1e97315ba75bc"
++  integrity sha512-wl7PNrYWd2y5mp1OK/LhTlv8Ff4kQJQRXXAvF+uU/TPNiVJUxZLRYGj/B0y/lPGAVcSbJqH2Za/cvHmrPMC8mA==
+ 
+ component-emitter@^1.2.1:
+   version "1.3.0"

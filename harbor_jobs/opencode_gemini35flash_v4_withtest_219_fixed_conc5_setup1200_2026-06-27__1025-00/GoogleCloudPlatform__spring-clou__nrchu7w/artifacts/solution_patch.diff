@@ -1,0 +1,110 @@
+diff --git a/spring-cloud-gcp-autoconfigure/pom.xml b/spring-cloud-gcp-autoconfigure/pom.xml
+index 2d567b759..c7df52172 100644
+--- a/spring-cloud-gcp-autoconfigure/pom.xml
++++ b/spring-cloud-gcp-autoconfigure/pom.xml
+@@ -312,6 +312,12 @@
+             <scope>test</scope>
+         </dependency>
+ 
++        <dependency>
++            <groupId>org.apache.commons</groupId>
++            <artifactId>commons-lang3</artifactId>
++            <scope>test</scope>
++        </dependency>
++
+         <dependency>
+             <!-- Needed for making conditional expressions in logback files. -->
+             <groupId>org.codehaus.janino</groupId>
+diff --git a/spring-cloud-gcp-autoconfigure/src/main/java/com/google/cloud/spring/autoconfigure/firestore/GcpFirestoreEmulatorAutoConfiguration.java b/spring-cloud-gcp-autoconfigure/src/main/java/com/google/cloud/spring/autoconfigure/firestore/GcpFirestoreEmulatorAutoConfiguration.java
+index a88273906..62e1abb29 100644
+--- a/spring-cloud-gcp-autoconfigure/src/main/java/com/google/cloud/spring/autoconfigure/firestore/GcpFirestoreEmulatorAutoConfiguration.java
++++ b/spring-cloud-gcp-autoconfigure/src/main/java/com/google/cloud/spring/autoconfigure/firestore/GcpFirestoreEmulatorAutoConfiguration.java
+@@ -33,7 +33,6 @@ import com.google.firestore.v1.FirestoreGrpc;
+ import io.grpc.ManagedChannel;
+ import io.grpc.ManagedChannelBuilder;
+ import io.grpc.auth.MoreCallCredentials;
+-import org.apache.commons.lang3.StringUtils;
+ import reactor.core.publisher.Flux;
+ 
+ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+@@ -61,7 +60,7 @@ public class GcpFirestoreEmulatorAutoConfiguration {
+ 
+ 	GcpFirestoreEmulatorAutoConfiguration(GcpFirestoreProperties properties) {
+ 		this.hostPort = properties.getHostPort();
+-		this.projectId = StringUtils.defaultIfEmpty(properties.getProjectId(), "unused");
++		this.projectId = (properties.getProjectId() != null && !properties.getProjectId().isEmpty()) ? properties.getProjectId() : "unused";
+ 		this.rootPath = String.format("projects/%s/databases/(default)", this.projectId);
+ 	}
+ 
+diff --git a/spring-cloud-gcp-autoconfigure/src/test/java/com/google/cloud/spring/autoconfigure/core/UserAgentHeaderProviderIntegrationTests.java b/spring-cloud-gcp-autoconfigure/src/test/java/com/google/cloud/spring/autoconfigure/core/UserAgentHeaderProviderIntegrationTests.java
+index 4ce8d8be0..159c40fab 100644
+--- a/spring-cloud-gcp-autoconfigure/src/test/java/com/google/cloud/spring/autoconfigure/core/UserAgentHeaderProviderIntegrationTests.java
++++ b/spring-cloud-gcp-autoconfigure/src/test/java/com/google/cloud/spring/autoconfigure/core/UserAgentHeaderProviderIntegrationTests.java
+@@ -41,8 +41,8 @@ public class UserAgentHeaderProviderIntegrationTests {
+ 		UserAgentHeaderProvider subject = new UserAgentHeaderProvider(this.getClass());
+ 
+ 		String versionRegex = "\\d+\\.\\d+\\.\\d+(\\-RC\\d+)?(\\-SNAPSHOT)?";
+-		assertThat(subject.getHeaders()).containsKey("User-Agent");
+-		assertThat(subject.getHeaders().get("User-Agent")).matches(
++		assertThat(subject.getHeaders()).containsKey("user-agent");
++		assertThat(subject.getHeaders().get("user-agent")).matches(
+ 				Pattern.compile("Spring/" + versionRegex + " spring-cloud-gcp-core/" + versionRegex));
+ 		assertThat(subject.getHeaders()).hasSize(1);
+ 	}
+diff --git a/spring-cloud-gcp-core/src/main/java/com/google/cloud/spring/core/UserAgentHeaderProvider.java b/spring-cloud-gcp-core/src/main/java/com/google/cloud/spring/core/UserAgentHeaderProvider.java
+index 7a1f942e8..bb0071b72 100644
+--- a/spring-cloud-gcp-core/src/main/java/com/google/cloud/spring/core/UserAgentHeaderProvider.java
++++ b/spring-cloud-gcp-core/src/main/java/com/google/cloud/spring/core/UserAgentHeaderProvider.java
+@@ -37,7 +37,7 @@ public class UserAgentHeaderProvider implements HeaderProvider {
+ 
+ 	public UserAgentHeaderProvider(Class<?> clazz) {
+ 		this.userAgent = computeUserAgent(clazz);
+-		this.headers = Collections.singletonMap("User-Agent", this.userAgent);
++		this.headers = Collections.singletonMap("user-agent", this.userAgent);
+ 	}
+ 
+ 	/**
+diff --git a/spring-cloud-gcp-data-spanner/src/main/java/com/google/cloud/spring/data/spanner/core/SpannerTransactionManager.java b/spring-cloud-gcp-data-spanner/src/main/java/com/google/cloud/spring/data/spanner/core/SpannerTransactionManager.java
+index 9b1c77f5d..31551312e 100644
+--- a/spring-cloud-gcp-data-spanner/src/main/java/com/google/cloud/spring/data/spanner/core/SpannerTransactionManager.java
++++ b/spring-cloud-gcp-data-spanner/src/main/java/com/google/cloud/spring/data/spanner/core/SpannerTransactionManager.java
+@@ -110,22 +110,22 @@ public class SpannerTransactionManager extends AbstractPlatformTransactionManage
+ 				}
+ 
+ 				@Override
+-				public long executeUpdate(Statement statement) {
++				public long executeUpdate(Statement statement, Options.UpdateOption... updateOptions) {
+ 					throw new IllegalStateException(DML_ERROR_MSG);
+ 				}
+ 
+ 				@Override
+-				public ApiFuture<Long> executeUpdateAsync(Statement statement) {
++				public ApiFuture<Long> executeUpdateAsync(Statement statement, Options.UpdateOption... updateOptions) {
+ 					throw new IllegalStateException(DML_ERROR_MSG);
+ 				}
+ 
+ 				@Override
+-				public long[] batchUpdate(Iterable<Statement> iterable) {
++				public long[] batchUpdate(Iterable<Statement> iterable, Options.UpdateOption... updateOptions) {
+ 					throw new IllegalStateException(DML_ERROR_MSG);
+ 				}
+ 
+ 				@Override
+-				public ApiFuture<long[]> batchUpdateAsync(Iterable<Statement> iterable) {
++				public ApiFuture<long[]> batchUpdateAsync(Iterable<Statement> iterable, Options.UpdateOption... updateOptions) {
+ 					throw new IllegalStateException(DML_ERROR_MSG);
+ 				}
+ 
+diff --git a/spring-cloud-gcp-dependencies/pom.xml b/spring-cloud-gcp-dependencies/pom.xml
+index a2bf9cb64..54deb539a 100644
+--- a/spring-cloud-gcp-dependencies/pom.xml
++++ b/spring-cloud-gcp-dependencies/pom.xml
+@@ -29,7 +29,7 @@
+ 	</distributionManagement>
+ 
+ 	<properties>
+-		<gcp-libraries-bom.version>16.2.0</gcp-libraries-bom.version>
++		<gcp-libraries-bom.version>19.0.0</gcp-libraries-bom.version>
+ 		<cloud-sql-socket-factory.version>1.2.1</cloud-sql-socket-factory.version>
+ 		<guava.version>30.0-jre</guava.version>
+ 	</properties>

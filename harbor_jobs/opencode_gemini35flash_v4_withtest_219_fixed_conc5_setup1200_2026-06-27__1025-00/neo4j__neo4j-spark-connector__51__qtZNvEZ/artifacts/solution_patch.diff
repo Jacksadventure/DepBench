@@ -1,0 +1,51 @@
+diff --git a/common/src/main/scala/org/neo4j/spark/service/Neo4jQueryService.scala b/common/src/main/scala/org/neo4j/spark/service/Neo4jQueryService.scala
+index 589e4aa..1034b9a 100644
+--- a/common/src/main/scala/org/neo4j/spark/service/Neo4jQueryService.scala
++++ b/common/src/main/scala/org/neo4j/spark/service/Neo4jQueryService.scala
+@@ -174,8 +174,8 @@ class Neo4jQueryReadStrategy(filters: Array[Filter] = Array.empty[Filter],
+   private def buildStatementAggregation(options: Neo4jOptions,
+                                         query: StatementBuilder.OngoingReadingWithoutWhere,
+                                         entity: PropertyContainer,
+-                                        fields: Seq[Expression]) = {
+-    val ret: StatementBuilder.BuildableStatement = if (hasPartitons) {
++                                        fields: Seq[Expression]): Statement = {
++    val ret: StatementBuilder.BuildableStatement[_] = if (hasPartitons) {
+       val id = entity match {
+         case node: Node => Functions.id(node)
+         case rel: Relationship => Functions.id(rel)
+@@ -197,7 +197,7 @@ class Neo4jQueryReadStrategy(filters: Array[Filter] = Array.empty[Filter],
+           .ascending()
+         order
+           .returning(fields: _*)
+-          .asInstanceOf[StatementBuilder.BuildableStatement]
++          .asInstanceOf[StatementBuilder.BuildableStatement[_]]
+       }
+     }
+     ret.build()
+@@ -205,11 +205,11 @@ class Neo4jQueryReadStrategy(filters: Array[Filter] = Array.empty[Filter],
+ 
+   private def buildStatement(options: Neo4jOptions,
+                              returning: StatementBuilder.OngoingReadingAndReturn,
+-                             entity: PropertyContainer = null) = {
++                             entity: PropertyContainer = null): Statement = {
+ 
+     def addSkipLimit(ret: StatementBuilder.TerminalExposesSkip
+         with StatementBuilder.TerminalExposesLimit
+-        with StatementBuilder.BuildableStatement) = ret
++        with StatementBuilder.BuildableStatement[_]) = ret
+       .skip(partitionSkipLimit.skip).asInstanceOf[StatementBuilder.TerminalExposesLimit].limit(partitionSkipLimit.limit)
+ 
+     val ret = if (entity == null) {
+diff --git a/pom.xml b/pom.xml
+index 35a50c0..032930c 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -52,7 +52,7 @@
+         <neo4j.experimental>false</neo4j.experimental>
+         <testcontainers.version>1.18.3</testcontainers.version>
+         <xbean.version>4.10</xbean.version>
+-        <cypherdsl.version>2020.1.4</cypherdsl.version>
++        <cypherdsl.version>2022.8.5</cypherdsl.version>
+         <node.version>v12.16.0</node.version>
+         <npm.version>6.13.7</npm.version>
+         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

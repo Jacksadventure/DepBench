@@ -1,0 +1,127 @@
+diff --git a/go.mod b/go.mod
+index 7d76621..6a32d15 100644
+--- a/go.mod
++++ b/go.mod
+@@ -5,7 +5,7 @@ go 1.25.0
+ require (
+ 	github.com/sirupsen/logrus v1.9.3
+ 	github.com/stretchr/testify v1.11.1
+-	gitlab.com/gitlab-org/api/client-go v0.161.1
++	gitlab.com/gitlab-org/api/client-go v1.2.0
+ )
+ 
+ require (
+@@ -16,8 +16,8 @@ require (
+ 	github.com/pmezard/go-difflib v1.0.0 // indirect
+ 	github.com/stretchr/objx v0.5.3 // indirect
+ 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
+-	golang.org/x/oauth2 v0.32.0 // indirect
+-	golang.org/x/sys v0.37.0 // indirect
++	golang.org/x/oauth2 v0.33.0 // indirect
++	golang.org/x/sys v0.38.0 // indirect
+ 	golang.org/x/time v0.14.0 // indirect
+ 	gopkg.in/yaml.v3 v3.0.1 // indirect
+ )
+diff --git a/go.sum b/go.sum
+index b313c8c..e2243a4 100644
+--- a/go.sum
++++ b/go.sum
+@@ -30,13 +30,19 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
+ github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
+ gitlab.com/gitlab-org/api/client-go v0.161.1 h1:XX0EtVGL6cGEdNy9xnJ96CSciIzjCwAVsayItHY1YyU=
+ gitlab.com/gitlab-org/api/client-go v0.161.1/go.mod h1:YqKcnxyV9OPAL5U99mpwBVEgBPz1PK/3qwqq/3h6bao=
++gitlab.com/gitlab-org/api/client-go v1.2.0 h1:D8v1XDL/PahIMBKIPT5qiYa5CFUFTlwkpdVkEek4bi4=
++gitlab.com/gitlab-org/api/client-go v1.2.0/go.mod h1:RQfw64j1FE+KMZUAKsi1ZOOvwbWxHn9SkyZg+IAvjk4=
+ golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 h1:mgKeJMpvi0yx/sU5GsxQ7p6s2wtOnGAHZWCHUM4KGzY=
+ golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546/go.mod h1:j/pmGrbnkbPtQfxEe5D0VQhZC6qKbfKifgD0oM7sR70=
+ golang.org/x/oauth2 v0.32.0 h1:jsCblLleRMDrxMN29H3z/k1KliIvpLgCkE6R8FXXNgY=
+ golang.org/x/oauth2 v0.32.0/go.mod h1:lzm5WQJQwKZ3nwavOZ3IS5Aulzxi68dUSgRHujetwEA=
++golang.org/x/oauth2 v0.33.0 h1:4Q+qn+E5z8gPRJfmRy7C2gGG3T4jIprK6aSYgTXGRpo=
++golang.org/x/oauth2 v0.33.0/go.mod h1:lzm5WQJQwKZ3nwavOZ3IS5Aulzxi68dUSgRHujetwEA=
+ golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+ golang.org/x/sys v0.37.0 h1:fdNQudmxPjkdUTPnLn5mdQv7Zwvbvpaxqs831goi9kQ=
+ golang.org/x/sys v0.37.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
++golang.org/x/sys v0.38.0 h1:3yZWxaJjBmCWXqhN1qh02AkOnCQ1poK6oF+a7xWL6Gc=
++golang.org/x/sys v0.38.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+ golang.org/x/time v0.14.0 h1:MRx4UaLrDotUKUdCIqzPC48t1Y9hANFKIRpNx+Te8PI=
+ golang.org/x/time v0.14.0/go.mod h1:eL/Oa2bBBK0TkX57Fyni+NgnyQQN4LitPmob2Hjnqw4=
+ golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+diff --git a/internal/gitlab/client.go b/internal/gitlab/client.go
+index 2d8fb78..0a5fbe0 100644
+--- a/internal/gitlab/client.go
++++ b/internal/gitlab/client.go
+@@ -22,7 +22,7 @@ type Client interface {
+ 		repo string, opts *gitlab.ListProjectPipelinesOptions,
+ 	) ([]*gitlab.PipelineInfo, *gitlab.Response, error)
+ 	GetPipeline(
+-		repo string, pipelineID int,
++		repo string, pipelineID int64,
+ 	) (*gitlab.Pipeline, *gitlab.Response, error)
+ }
+ 
+@@ -50,7 +50,7 @@ func (w *ClientWrapper) ListProjectPipelines(
+ 
+ // GetPipeline fetches a specific pipeline by its ID for a given repository.
+ func (w *ClientWrapper) GetPipeline(
+-	repo string, pipelineID int,
++	repo string, pipelineID int64,
+ ) (*gitlab.Pipeline, *gitlab.Response, error) {
+ 	logrus.WithFields(logrus.Fields{
+ 		"repo":       repo,
+diff --git a/internal/mergerequests/create.go b/internal/mergerequests/create.go
+index 8729756..84c1f9e 100644
+--- a/internal/mergerequests/create.go
++++ b/internal/mergerequests/create.go
+@@ -2,7 +2,7 @@ package mergerequests
+ 
+ import gitlab "gitlab.com/gitlab-org/api/client-go"
+ 
+-func createMergeRequestNote(repo string, mr int, comment string, client *gitlab.Client) error {
++func createMergeRequestNote(repo string, mr int64, comment string, client *gitlab.Client) error {
+ 	noteOptions := &gitlab.CreateMergeRequestNoteOptions{
+ 		Body: gitlab.Ptr(comment),
+ 	}
+diff --git a/internal/mergerequests/list.go b/internal/mergerequests/list.go
+index d3ade27..7e31022 100644
+--- a/internal/mergerequests/list.go
++++ b/internal/mergerequests/list.go
+@@ -10,7 +10,7 @@ import (
+ const stateOpen string = "opened"
+ 
+ // listProjectMergeRequests fetches MRs and filters by branch regex and pipeline status.
+-func listProjectMergeRequests(config config.Config, repo string, client gl.Client) []int {
++func listProjectMergeRequests(config config.Config, repo string, client gl.Client) []int64 {
+ 	logrus.WithField("repository", repo).Debug("Listing merge requests")
+ 
+ 	options := &gitlab.ListProjectMergeRequestsOptions{
+@@ -31,7 +31,7 @@ func listProjectMergeRequests(config config.Config, repo string, client gl.Clien
+ 		logrus.WithError(err).WithField("repository", repo).Error("Failed to list MRs")
+ 	}
+ 
+-	var mrIIDs []int
++	var mrIIDs []int64
+ 
+ 	for _, mr := range mrs {
+ 		if shouldProcessMR(repo, mr, config, client) {
+diff --git a/internal/mergerequests/pipeline.go b/internal/mergerequests/pipeline.go
+index 2c59a33..744e82b 100644
+--- a/internal/mergerequests/pipeline.go
++++ b/internal/mergerequests/pipeline.go
+@@ -52,7 +52,7 @@ func listPipelines(client gl.Client, repo, branch string) ([]*gitlab.PipelineInf
+ 	return pipelines, nil
+ }
+ 
+-func getPipeline(client gl.Client, repo string, pipelineID int) (*gitlab.Pipeline, error) {
++func getPipeline(client gl.Client, repo string, pipelineID int64) (*gitlab.Pipeline, error) {
+ 	pipeline, _, err := client.GetPipeline(repo, pipelineID)
+ 	if err != nil {
+ 		logrus.WithError(err).WithFields(logrus.Fields{
+@@ -66,7 +66,7 @@ func getPipeline(client gl.Client, repo string, pipelineID int) (*gitlab.Pipelin
+ 	return pipeline, nil
+ }
+ 
+-func checkPipelineStatus(config config.Config, repo string, pipelineID int, pipeline *gitlab.Pipeline) bool {
++func checkPipelineStatus(config config.Config, repo string, pipelineID int64, pipeline *gitlab.Pipeline) bool {
+ 	if pipeline.Status != "success" {
+ 		logrus.WithFields(logrus.Fields{
+ 			"repository":      repo,

@@ -1,0 +1,185 @@
+diff --git a/apm-agent-core/pom.xml b/apm-agent-core/pom.xml
+index a8cd96111..42a4f7a4d 100644
+--- a/apm-agent-core/pom.xml
++++ b/apm-agent-core/pom.xml
+@@ -51,7 +51,7 @@
+         <dependency>
+             <groupId>org.jctools</groupId>
+             <artifactId>jctools-core</artifactId>
+-            <version>3.3.0</version>
++            <version>4.0.1</version>
+         </dependency>
+         <dependency>
+             <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+diff --git a/apm-agent-core/src/main/java/co/elastic/apm/agent/objectpool/ObjectPoolFactory.java b/apm-agent-core/src/main/java/co/elastic/apm/agent/objectpool/ObjectPoolFactory.java
+index f08e871d3..c12ad2427 100644
+--- a/apm-agent-core/src/main/java/co/elastic/apm/agent/objectpool/ObjectPoolFactory.java
++++ b/apm-agent-core/src/main/java/co/elastic/apm/agent/objectpool/ObjectPoolFactory.java
+@@ -24,14 +24,12 @@ import co.elastic.apm.agent.impl.transaction.Span;
+ import co.elastic.apm.agent.impl.transaction.TraceContext;
+ import co.elastic.apm.agent.impl.transaction.Transaction;
+ import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+-import org.jctools.queues.atomic.AtomicQueueFactory;
+-
+-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
++import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
+ 
+ public class ObjectPoolFactory {
+ 
+     protected <T extends Recyclable> ObjectPool<T> createRecyclableObjectPool(int maxCapacity, Allocator<T> allocator) {
+-        return QueueBasedObjectPool.ofRecyclable(AtomicQueueFactory.<T>newQueue(createBoundedMpmc(maxCapacity)), false, allocator);
++        return QueueBasedObjectPool.ofRecyclable(new MpmcAtomicArrayQueue<T>(maxCapacity), false, allocator);
+     }
+ 
+     public ObjectPool<Transaction> createTransactionPool(int maxCapacity, final ElasticApmTracer tracer) {
+diff --git a/apm-agent-plugins/apm-apache-httpclient-plugin/src/main/java/co/elastic/apm/agent/httpclient/helper/ApacheHttpAsyncClientHelper.java b/apm-agent-plugins/apm-apache-httpclient-plugin/src/main/java/co/elastic/apm/agent/httpclient/helper/ApacheHttpAsyncClientHelper.java
+index e67501649..746b41087 100644
+--- a/apm-agent-plugins/apm-apache-httpclient-plugin/src/main/java/co/elastic/apm/agent/httpclient/helper/ApacheHttpAsyncClientHelper.java
++++ b/apm-agent-plugins/apm-apache-httpclient-plugin/src/main/java/co/elastic/apm/agent/httpclient/helper/ApacheHttpAsyncClientHelper.java
+@@ -26,12 +26,10 @@ import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+ import org.apache.http.concurrent.FutureCallback;
+ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
+ import org.apache.http.protocol.HttpContext;
+-import org.jctools.queues.atomic.AtomicQueueFactory;
++import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
+ 
+ import javax.annotation.Nullable;
+ 
+-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
+-
+ public class ApacheHttpAsyncClientHelper {
+ 
+     private static final int MAX_POOLED_ELEMENTS = 256;
+@@ -41,11 +39,11 @@ public class ApacheHttpAsyncClientHelper {
+ 
+     public ApacheHttpAsyncClientHelper() {
+         requestProducerWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
+-            AtomicQueueFactory.<HttpAsyncRequestProducerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
++            new MpmcAtomicArrayQueue<HttpAsyncRequestProducerWrapper>(MAX_POOLED_ELEMENTS),
+             false, new RequestProducerWrapperAllocator());
+ 
+         futureCallbackWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
+-            AtomicQueueFactory.<FutureCallbackWrapper<?>>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
++            new MpmcAtomicArrayQueue<FutureCallbackWrapper<?>>(MAX_POOLED_ELEMENTS),
+             false, new FutureCallbackWrapperAllocator());
+     }
+ 
+diff --git a/apm-agent-plugins/apm-es-restclient-plugin/apm-es-restclient-plugin-common/src/main/java/co/elastic/apm/agent/esrestclient/ElasticsearchRestClientInstrumentationHelper.java b/apm-agent-plugins/apm-es-restclient-plugin/apm-es-restclient-plugin-common/src/main/java/co/elastic/apm/agent/esrestclient/ElasticsearchRestClientInstrumentationHelper.java
+index b5f3fa79b..beb756cda 100644
+--- a/apm-agent-plugins/apm-es-restclient-plugin/apm-es-restclient-plugin-common/src/main/java/co/elastic/apm/agent/esrestclient/ElasticsearchRestClientInstrumentationHelper.java
++++ b/apm-agent-plugins/apm-es-restclient-plugin/apm-es-restclient-plugin-common/src/main/java/co/elastic/apm/agent/esrestclient/ElasticsearchRestClientInstrumentationHelper.java
+@@ -33,7 +33,7 @@ import org.apache.http.HttpHost;
+ import org.elasticsearch.client.Response;
+ import org.elasticsearch.client.ResponseException;
+ import org.elasticsearch.client.ResponseListener;
+-import org.jctools.queues.atomic.AtomicQueueFactory;
++import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
+ import co.elastic.apm.agent.sdk.logging.Logger;
+ import co.elastic.apm.agent.sdk.logging.LoggerFactory;
+ 
+@@ -43,8 +43,6 @@ import java.util.Arrays;
+ import java.util.List;
+ import java.util.concurrent.CancellationException;
+ 
+-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
+-
+ public class ElasticsearchRestClientInstrumentationHelper {
+ 
+     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchRestClientInstrumentationHelper.class);
+@@ -71,7 +69,7 @@ public class ElasticsearchRestClientInstrumentationHelper {
+     private ElasticsearchRestClientInstrumentationHelper(ElasticApmTracer tracer) {
+         this.tracer = tracer;
+         responseListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
+-            AtomicQueueFactory.<ResponseListenerWrapper>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
++            new MpmcAtomicArrayQueue<ResponseListenerWrapper>(MAX_POOLED_ELEMENTS),
+             false,
+             new ResponseListenerAllocator());
+     }
+diff --git a/apm-agent-plugins/apm-kafka-plugin/apm-kafka-base-plugin/src/main/java/co/elastic/apm/agent/kafka/helper/KafkaInstrumentationHelper.java b/apm-agent-plugins/apm-kafka-plugin/apm-kafka-base-plugin/src/main/java/co/elastic/apm/agent/kafka/helper/KafkaInstrumentationHelper.java
+index dadb98c34..ccd377c30 100644
+--- a/apm-agent-plugins/apm-kafka-plugin/apm-kafka-base-plugin/src/main/java/co/elastic/apm/agent/kafka/helper/KafkaInstrumentationHelper.java
++++ b/apm-agent-plugins/apm-kafka-plugin/apm-kafka-base-plugin/src/main/java/co/elastic/apm/agent/kafka/helper/KafkaInstrumentationHelper.java
+@@ -33,13 +33,11 @@ import org.apache.kafka.clients.producer.KafkaProducer;
+ import org.apache.kafka.clients.producer.ProducerRecord;
+ import org.apache.kafka.common.Node;
+ import org.apache.kafka.common.PartitionInfo;
+-import org.jctools.queues.atomic.AtomicQueueFactory;
++import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
+ 
+ import javax.annotation.Nullable;
+ import java.util.List;
+ 
+-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
+-
+ public class KafkaInstrumentationHelper {
+ 
+     public static final Logger logger = LoggerFactory.getLogger(KafkaInstrumentationHelper.class);
+@@ -57,7 +55,7 @@ public class KafkaInstrumentationHelper {
+         this.tracer = tracer;
+         messagingConfiguration = tracer.getConfig(MessagingConfiguration.class);
+         this.callbackWrapperObjectPool = QueueBasedObjectPool.ofRecyclable(
+-            AtomicQueueFactory.<CallbackWrapper>newQueue(createBoundedMpmc(256)),
++            new MpmcAtomicArrayQueue<CallbackWrapper>(256),
+             false,
+             new CallbackWrapperAllocator()
+         );
+diff --git a/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JakartaAsyncContextAdviceHelper.java b/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JakartaAsyncContextAdviceHelper.java
+index a4dafa942..5ea196dd3 100644
+--- a/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JakartaAsyncContextAdviceHelper.java
++++ b/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JakartaAsyncContextAdviceHelper.java
+@@ -25,7 +25,7 @@ import co.elastic.apm.agent.objectpool.Allocator;
+ import co.elastic.apm.agent.objectpool.ObjectPool;
+ import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+ import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+-import org.jctools.queues.atomic.AtomicQueueFactory;
++import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
+ 
+ import jakarta.servlet.AsyncContext;
+ import jakarta.servlet.ServletRequest;
+@@ -34,7 +34,6 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIB
+ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+ import static co.elastic.apm.agent.servlet.helper.AsyncConstants.ASYNC_LISTENER_ADDED;
+ import static co.elastic.apm.agent.servlet.helper.AsyncConstants.MAX_POOLED_ELEMENTS;
+-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
+ 
+ public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper<AsyncContext> {
+ 
+@@ -47,7 +46,7 @@ public class JakartaAsyncContextAdviceHelper implements AsyncContextAdviceHelper
+         servletTransactionHelper = new ServletTransactionHelper(tracer);
+ 
+         asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
+-            AtomicQueueFactory.<JakartaApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
++            new MpmcAtomicArrayQueue<JakartaApmAsyncListener>(MAX_POOLED_ELEMENTS),
+             false,
+             new JakartaAsyncContextAdviceHelper.JakartaApmAsyncListenerAllocator());
+     }
+diff --git a/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JavaxAsyncContextAdviceHelper.java b/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JavaxAsyncContextAdviceHelper.java
+index fecd1e140..585be25c4 100644
+--- a/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JavaxAsyncContextAdviceHelper.java
++++ b/apm-agent-plugins/apm-servlet-plugin/src/main/java/co/elastic/apm/agent/servlet/helper/JavaxAsyncContextAdviceHelper.java
+@@ -25,7 +25,7 @@ import co.elastic.apm.agent.objectpool.Allocator;
+ import co.elastic.apm.agent.objectpool.ObjectPool;
+ import co.elastic.apm.agent.objectpool.impl.QueueBasedObjectPool;
+ import co.elastic.apm.agent.servlet.ServletTransactionHelper;
+-import org.jctools.queues.atomic.AtomicQueueFactory;
++import org.jctools.queues.atomic.MpmcAtomicArrayQueue;
+ 
+ import javax.servlet.AsyncContext;
+ import javax.servlet.ServletRequest;
+@@ -34,7 +34,6 @@ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.ASYNC_ATTRIB
+ import static co.elastic.apm.agent.servlet.ServletTransactionHelper.TRANSACTION_ATTRIBUTE;
+ import static co.elastic.apm.agent.servlet.helper.AsyncConstants.ASYNC_LISTENER_ADDED;
+ import static co.elastic.apm.agent.servlet.helper.AsyncConstants.MAX_POOLED_ELEMENTS;
+-import static org.jctools.queues.spec.ConcurrentQueueSpec.createBoundedMpmc;
+ 
+ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<AsyncContext> {
+ 
+@@ -47,7 +46,7 @@ public class JavaxAsyncContextAdviceHelper implements AsyncContextAdviceHelper<A
+         servletTransactionHelper = new ServletTransactionHelper(tracer);
+ 
+         asyncListenerObjectPool = QueueBasedObjectPool.ofRecyclable(
+-            AtomicQueueFactory.<JavaxApmAsyncListener>newQueue(createBoundedMpmc(MAX_POOLED_ELEMENTS)),
++            new MpmcAtomicArrayQueue<JavaxApmAsyncListener>(MAX_POOLED_ELEMENTS),
+             false,
+             new JavaxAsyncContextAdviceHelper.ApmAsyncListenerAllocator());
+     }

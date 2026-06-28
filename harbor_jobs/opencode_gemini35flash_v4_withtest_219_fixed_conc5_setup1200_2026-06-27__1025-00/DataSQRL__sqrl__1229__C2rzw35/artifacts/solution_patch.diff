@@ -1,0 +1,441 @@
+diff --git a/pom.xml b/pom.xml
+index 84b57c481..869a13688 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -75,7 +75,7 @@
+     <maven.compiler.target>17</maven.compiler.target>
+     <mockito.version>4.8.0</mockito.version>
+     <jackson.version>2.19.0</jackson.version>
+-    <vertx.version>4.5.14</vertx.version>
++    <vertx.version>5.0.0</vertx.version>
+     <agroal.version>2.7.1</agroal.version>
+     <kafka.version>3.4.0</kafka.version>
+     <flink.version>1.19.2</flink.version>
+diff --git a/sqrl-server/sqrl-server-vertx-base/pom.xml b/sqrl-server/sqrl-server-vertx-base/pom.xml
+index 4fe66a1b2..1850b4dbf 100644
+--- a/sqrl-server/sqrl-server-vertx-base/pom.xml
++++ b/sqrl-server/sqrl-server-vertx-base/pom.xml
+@@ -36,10 +36,7 @@
+       <groupId>io.vertx</groupId>
+       <artifactId>vertx-auth-jwt</artifactId>
+     </dependency>
+-    <dependency>
+-      <groupId>io.vertx</groupId>
+-      <artifactId>vertx-web-openapi</artifactId>
+-    </dependency>
++    <!-- Removed vertx-web-openapi -->
+     <dependency>
+       <groupId>jakarta.annotation</groupId>
+       <artifactId>jakarta.annotation-api</artifactId>
+diff --git a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/GraphQLServer.java b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/GraphQLServer.java
+index efa660ae3..e9004f28d 100644
+--- a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/GraphQLServer.java
++++ b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/GraphQLServer.java
+@@ -37,7 +37,7 @@ import io.vertx.core.VertxOptions;
+ import io.vertx.core.http.HttpMethod;
+ import io.vertx.core.json.JsonObject;
+ import io.vertx.ext.auth.jwt.JWTAuth;
+-import io.vertx.ext.healthchecks.HealthCheckHandler;
++import io.vertx.ext.web.healthchecks.HealthCheckHandler;
+ import io.vertx.ext.web.Router;
+ import io.vertx.ext.web.handler.BodyHandler;
+ import io.vertx.ext.web.handler.CorsHandler;
+@@ -49,8 +49,6 @@ import io.vertx.ext.web.handler.graphql.ws.GraphQLWSHandler;
+ import io.vertx.jdbcclient.JDBCPool;
+ import io.vertx.micrometer.MicrometerMetricsOptions;
+ import io.vertx.micrometer.backends.BackendRegistries;
+-import io.vertx.pgclient.PgPool;
+-import io.vertx.pgclient.impl.PgPoolOptions;
+ import io.vertx.sqlclient.SqlClient;
+ import java.io.File;
+ import java.util.HashMap;
+@@ -77,19 +75,19 @@ public class GraphQLServer extends AbstractVerticle {
+     var prometheusMeterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+     var metricsOptions =
+         new MicrometerMetricsOptions()
+-            .setMicrometerRegistry(prometheusMeterRegistry)
+             .setEnabled(true);
++    io.vertx.micrometer.backends.BackendRegistries.setupBackend(metricsOptions, prometheusMeterRegistry);
+     var vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOptions));
+ 
+-    vertx.deployVerticle(
+-        new GraphQLServer(),
+-        res -> {
+-          if (res.succeeded()) {
+-            System.out.println("Deployment id is: " + res.result());
+-          } else {
+-            System.out.println("Deployment failed!");
+-          }
+-        });
++    vertx.deployVerticle(new GraphQLServer())
++        .onComplete(
++            res -> {
++              if (res.succeeded()) {
++                System.out.println("Deployment id is: " + res.result());
++              } else {
++                System.out.println("Deployment failed!");
++              }
++            });
+   }
+ 
+   public GraphQLServer() {
+@@ -145,8 +143,8 @@ public class GraphQLServer extends AbstractVerticle {
+     Promise<JsonObject> promise = Promise.promise();
+     vertx
+         .fileSystem()
+-        .readFile(
+-            "server-config.json",
++        .readFile("server-config.json")
++        .onComplete(
+             result -> {
+               if (result.succeeded()) {
+                 try {
+@@ -304,7 +302,10 @@ public class GraphQLServer extends AbstractVerticle {
+             .put("url", url)
+             .put("CLIENT_SESSION_KEEP_ALIVE", "true");
+ 
+-    JDBCPool pool = JDBCPool.pool(vertx, config);
++    io.vertx.sqlclient.Pool pool = io.vertx.jdbcclient.JDBCPool.pool(
++        vertx,
++        new io.vertx.jdbcclient.JDBCConnectOptions(config),
++        new io.vertx.sqlclient.PoolOptions());
+     return pool;
+   }
+ 
+@@ -327,16 +328,19 @@ public class GraphQLServer extends AbstractVerticle {
+             //        .put("max_pool_size", 1)
+             .put(DuckDBDriver.JDBC_STREAM_RESULTS, String.valueOf(true));
+ 
+-    JDBCPool pool = JDBCPool.pool(vertx, config);
++    io.vertx.sqlclient.Pool pool = io.vertx.jdbcclient.JDBCPool.pool(
++        vertx,
++        new io.vertx.jdbcclient.JDBCConnectOptions(config),
++        new io.vertx.sqlclient.PoolOptions());
+ 
+     return pool;
+   }
+ 
+   private CorsHandler toCorsHandler(CorsHandlerOptions corsHandlerOptions) {
+-    var corsHandler =
+-        corsHandlerOptions.getAllowedOrigin() != null
+-            ? CorsHandler.create(corsHandlerOptions.getAllowedOrigin())
+-            : CorsHandler.create();
++    var corsHandler = CorsHandler.create();
++    if (corsHandlerOptions.getAllowedOrigin() != null) {
++      corsHandler.addOrigin(corsHandlerOptions.getAllowedOrigin());
++    }
+ 
+     // Empty allowed origin list means nothing is allowed vs null which is permissive
+     if (corsHandlerOptions.getAllowedOrigins() != null) {
+@@ -356,10 +360,11 @@ public class GraphQLServer extends AbstractVerticle {
+   }
+ 
+   private SqlClient getPostgresSqlClient() {
+-    return PgPool.client(
+-        vertx,
+-        this.config.getPgConnectOptions(),
+-        new PgPoolOptions(this.config.getPoolOptions()).setPipelined(true));
++    return io.vertx.pgclient.PgBuilder.pool()
++        .connectingTo(this.config.getPgConnectOptions())
++        .with(new io.vertx.pgclient.impl.PgPoolOptions(this.config.getPoolOptions()).setPipelined(true))
++        .using(vertx)
++        .build();
+   }
+ 
+   public GraphQL createGraphQL(Map<DatabaseType, SqlClient> client, Promise<Void> startPromise) {
+diff --git a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/MutationConfigurationImpl.java b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/MutationConfigurationImpl.java
+index 67133bd75..8e8644c7b 100644
+--- a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/MutationConfigurationImpl.java
++++ b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/MutationConfigurationImpl.java
+@@ -34,7 +34,6 @@ import com.google.common.base.Preconditions;
+ import graphql.schema.DataFetcher;
+ import graphql.schema.DataFetchingEnvironment;
+ import io.vertx.core.Vertx;
+-import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
+ import io.vertx.kafka.client.producer.KafkaProducer;
+ import io.vertx.sqlclient.Tuple;
+ import java.sql.Timestamp;
+@@ -83,62 +82,74 @@ public class MutationConfigurationImpl implements MutationConfiguration<DataFetc
+ 
+         Preconditions.checkNotNull(
+             emitter, "Could not find sink for field: %s", coords.getFieldName());
+-        return VertxDataFetcher.create(
+-            (env, fut) -> {
+-              var entry = getEntry(env, uuidColumns);
+-
+-              emitter
+-                  .send(entry)
+-                  .onSuccess(
+-                      sinkResult -> {
+-                        // Add timestamp from sink to result
+-                        var dateTime =
+-                            ZonedDateTime.ofInstant(sinkResult.getSourceTime(), ZoneOffset.UTC);
+-                        timestampColumns.forEach(
+-                            colName -> entry.put(colName, dateTime.toOffsetDateTime()));
+-
+-                        fut.complete(entry);
+-                      })
+-                  .onFailure((m) -> fut.fail(m));
+-            });
++        return new DataFetcher<java.util.concurrent.CompletableFuture<Object>>() {
++          @Override
++          public java.util.concurrent.CompletableFuture<Object> get(DataFetchingEnvironment env) {
++            java.util.concurrent.CompletableFuture<Object> fut = new java.util.concurrent.CompletableFuture<>();
++            var entry = getEntry(env, uuidColumns);
++
++            emitter
++                .send(entry)
++                .onSuccess(
++                    sinkResult -> {
++                      // Add timestamp from sink to result
++                      var dateTime =
++                          ZonedDateTime.ofInstant(sinkResult.getSourceTime(), ZoneOffset.UTC);
++                      timestampColumns.forEach(
++                          colName -> entry.put(colName, dateTime.toOffsetDateTime()));
++
++                      fut.complete(entry);
++                    })
++                .onFailure((m) -> fut.completeExceptionally(m));
++            return fut;
++          }
++        };
+       }
+ 
+       @Override
+       public DataFetcher<?> visit(PostgresLogMutationCoords coords, Context context) {
+-        return VertxDataFetcher.create(
+-            (env, fut) -> {
+-              var entry = getEntry(env, List.of());
+-              entry.put(
+-                  "event_time", Timestamp.from(Instant.now())); // TODO: better to do it in the db
+-
+-              var paramObj = new Object[coords.getParameters().size()];
+-              for (var i = 0; i < coords.getParameters().size(); i++) {
+-                var param = coords.getParameters().get(i);
+-                var o = entry.get(param);
+-                if (o instanceof UUID iD) {
+-                  o = iD.toString();
+-                } else if (o instanceof Timestamp timestamp) {
+-                  o = timestamp.toLocalDateTime().atOffset(ZoneOffset.UTC);
+-                }
+-                paramObj[i] = o;
++        return new DataFetcher<java.util.concurrent.CompletableFuture<Object>>() {
++          @Override
++          public java.util.concurrent.CompletableFuture<Object> get(DataFetchingEnvironment env) {
++            java.util.concurrent.CompletableFuture<Object> fut = new java.util.concurrent.CompletableFuture<>();
++            var entry = getEntry(env, List.of());
++            entry.put(
++                "event_time", Timestamp.from(Instant.now())); // TODO: better to do it in the db
++
++            var paramObj = new Object[coords.getParameters().size()];
++            for (var i = 0; i < coords.getParameters().size(); i++) {
++              var param = coords.getParameters().get(i);
++              var o = entry.get(param);
++              if (o instanceof UUID iD) {
++                o = iD.toString();
++              } else if (o instanceof Timestamp timestamp) {
++                o = timestamp.toLocalDateTime().atOffset(ZoneOffset.UTC);
+               }
+-
+-              var insertStatement = coords.getInsertStatement();
+-
+-              var preparedQuery =
+-                  ((VertxJdbcClient) context.getClient())
+-                      .getClients()
+-                      .get("postgres")
+-                      .preparedQuery(insertStatement);
+-              preparedQuery
+-                  .execute(Tuple.from(paramObj))
+-                  .onComplete(e -> fut.complete(entry))
+-                  .onFailure(
+-                      e ->
+-                          log.error(
+-                              "An error happened while executing the query: " + insertStatement,
+-                              e));
+-            });
++              paramObj[i] = o;
++            }
++
++            var insertStatement = coords.getInsertStatement();
++
++            var preparedQuery =
++                ((VertxJdbcClient) context.getClient())
++                    .getClients()
++                    .get("postgres")
++                    .preparedQuery(insertStatement);
++            preparedQuery
++                .execute(Tuple.from(paramObj))
++                .onComplete(e -> {
++                  if (e.succeeded()) {
++                    fut.complete(entry);
++                  } else {
++                    log.error(
++                        "An error happened while executing the query: " + insertStatement,
++                        e.cause());
++                    fut.completeExceptionally(e.cause());
++                  }
++                });
++            return fut;
++          }
++        };
+       }
+     };
+   }
+diff --git a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxContext.java b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxContext.java
+index 29ffa7be9..dd8475628 100644
+--- a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxContext.java
++++ b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxContext.java
+@@ -26,7 +26,6 @@ import graphql.schema.DataFetcher;
+ import graphql.schema.DataFetchingEnvironment;
+ import graphql.schema.PropertyDataFetcher;
+ import io.vertx.core.json.JsonObject;
+-import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
+ import java.util.Set;
+ import java.util.stream.Collectors;
+ import lombok.Value;
+@@ -83,16 +82,20 @@ public class VertxContext implements Context {
+   @Override
+   public DataFetcher<?> createArgumentLookupFetcher(
+       GraphQLEngineBuilder server, Set<Argument> arguments, ResolvedQuery resolvedQuery) {
+-    return VertxDataFetcher.create(
+-        (env, future) -> {
+-          Set<Argument> argumentSet =
+-              env.getArguments().entrySet().stream()
+-                  .map(argument -> new VariableArgument(argument.getKey(), argument.getValue()))
+-                  .collect(Collectors.toSet());
+-          // Execute
+-          QueryExecutionContext context =
+-              new VertxQueryExecutionContext(this, env, argumentSet, future);
+-          resolvedQuery.accept(server, context);
+-        });
++    return new DataFetcher<java.util.concurrent.CompletableFuture<Object>>() {
++      @Override
++      public java.util.concurrent.CompletableFuture<Object> get(DataFetchingEnvironment env) {
++        java.util.concurrent.CompletableFuture<Object> future = new java.util.concurrent.CompletableFuture<>();
++        Set<Argument> argumentSet =
++            env.getArguments().entrySet().stream()
++                .map(argument -> new VariableArgument(argument.getKey(), argument.getValue()))
++                .collect(Collectors.toSet());
++        // Execute
++        QueryExecutionContext context =
++            new VertxQueryExecutionContext(VertxContext.this, env, argumentSet, future);
++        resolvedQuery.accept(server, context);
++        return future;
++      }
++    };
+   }
+ }
+diff --git a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxQueryExecutionContext.java b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxQueryExecutionContext.java
+index 19fec3918..661a72b63 100644
+--- a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxQueryExecutionContext.java
++++ b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/VertxQueryExecutionContext.java
+@@ -48,7 +48,7 @@ public class VertxQueryExecutionContext extends AbstractQueryExecutionContext {
+   VertxContext context;
+   DataFetchingEnvironment environment;
+   Set<Argument> arguments;
+-  Promise<Object> future; // basically Vert.x completableFuture
++  CompletableFuture<Object> future; // basically Vert.x completableFuture
+ 
+   @Override
+   public CompletableFuture runQuery(ResolvedSqlQuery resolvedQuery, boolean isList) {
+@@ -103,7 +103,7 @@ public class VertxQueryExecutionContext extends AbstractQueryExecutionContext {
+         .onFailure(
+             f -> {
+               f.printStackTrace();
+-              this.future.fail(f);
++              this.future.completeExceptionally(f);
+             });
+     return new CompletableFuture();
+   }
+diff --git a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/postgres_log/PostgresListenNotifyConsumer.java b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/postgres_log/PostgresListenNotifyConsumer.java
+index f692c1274..22ef1c93d 100644
+--- a/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/postgres_log/PostgresListenNotifyConsumer.java
++++ b/sqrl-server/sqrl-server-vertx-base/src/main/java/com/datasqrl/graphql/postgres_log/PostgresListenNotifyConsumer.java
+@@ -49,10 +49,8 @@ public class PostgresListenNotifyConsumer {
+   @SneakyThrows
+   public void subscribe(Consumer<Object> listener) {
+     // Establish a direct PgConnection
+-    PgConnection.connect(
+-        vertx,
+-        pgConnectOptions,
+-        res -> {
++    PgConnection.connect(vertx, pgConnectOptions)
++        .onComplete(res -> {
+           if (res.succeeded()) {
+             PgConnection pgConnection = res.result();
+ 
+@@ -70,7 +68,8 @@ public class PostgresListenNotifyConsumer {
+             // Execute the LISTEN command to listen for notifications on a specific channel
+             pgConnection
+                 .query(listenQuery)
+-                .execute(
++                .execute()
++                .onComplete(
+                     queryResult -> {
+                       if (queryResult.succeeded()) {
+                         log.info("LISTEN command executed successfully: {}", listenQuery);
+diff --git a/sqrl-server/sqrl-server-vertx-base/src/main/java/io/vertx/pgclient/PgPool.java b/sqrl-server/sqrl-server-vertx-base/src/main/java/io/vertx/pgclient/PgPool.java
+new file mode 100644
+index 000000000..0c4676490
+--- /dev/null
++++ b/sqrl-server/sqrl-server-vertx-base/src/main/java/io/vertx/pgclient/PgPool.java
+@@ -0,0 +1,46 @@
++/*
++ * Copyright © 2021 DataSQRL (contact@datasqrl.com)
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package io.vertx.pgclient;
++
++import io.vertx.core.Vertx;
++import io.vertx.sqlclient.Pool;
++import io.vertx.sqlclient.PoolOptions;
++import java.lang.reflect.Proxy;
++
++public interface PgPool extends Pool {
++    static PgPool pool(Vertx vertx, PgConnectOptions connectOptions, PoolOptions poolOptions) {
++        Pool pool = PgBuilder.pool()
++            .connectingTo(connectOptions)
++            .with(poolOptions)
++            .using(vertx)
++            .build();
++        return (PgPool) Proxy.newProxyInstance(
++            PgPool.class.getClassLoader(),
++            new Class<?>[]{PgPool.class},
++            (proxy, method, args) -> {
++                try {
++                    return method.invoke(pool, args);
++                } catch (java.lang.reflect.InvocationTargetException e) {
++                    throw e.getCause();
++                }
++            }
++        );
++    }
++
++    static PgPool client(Vertx vertx, PgConnectOptions connectOptions, PoolOptions poolOptions) {
++        return pool(vertx, connectOptions, poolOptions);
++    }
++}
+diff --git a/sqrl-tools/sqrl-packager/pom.xml b/sqrl-tools/sqrl-packager/pom.xml
+index bc1b20be4..943ca10a0 100644
+--- a/sqrl-tools/sqrl-packager/pom.xml
++++ b/sqrl-tools/sqrl-packager/pom.xml
+@@ -28,7 +28,7 @@
+ 
+   <properties>
+     <lombok.version>1.18.24</lombok.version>
+-    <vertx.version>4.5.14</vertx.version>
++    <vertx.version>5.0.0</vertx.version>
+   </properties>
+ 
+   <dependencies>

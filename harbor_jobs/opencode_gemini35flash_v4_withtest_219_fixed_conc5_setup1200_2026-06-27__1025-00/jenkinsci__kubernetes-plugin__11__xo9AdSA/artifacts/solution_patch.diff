@@ -1,0 +1,76 @@
+diff --git a/pom.xml b/pom.xml
+index f55e3c80..9ec0f926 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -56,7 +56,7 @@
+     <dependency>
+       <groupId>org.jenkins-ci.plugins</groupId>
+       <artifactId>kubernetes-client-api</artifactId>
+-      <version>5.10.1-171.vaa0774fb8c20</version>
++      <version>5.11.1-179.v12037658df90</version>
+     </dependency>
+     <dependency>
+       <groupId>org.jenkins-ci.plugins</groupId>
+diff --git a/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesClientProvider.java b/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesClientProvider.java
+index 259aa0ee..a331c42d 100644
+--- a/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesClientProvider.java
++++ b/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesClientProvider.java
+@@ -147,10 +147,13 @@ public class KubernetesClientProvider {
+             for (Client client : KubernetesClientProvider.clients.asMap().values()) {
+                 KubernetesClient kClient = client.getClient();
+                 if (kClient instanceof HttpClientAware) {
+-                    OkHttpClient httpClient = ((HttpClientAware) kClient).getHttpClient();
+-                    Dispatcher dispatcher = httpClient.dispatcher();
+-                    runningCallsCount += dispatcher.runningCallsCount();
+-                    queuedCallsCount += dispatcher.queuedCallsCount();
++                    io.fabric8.kubernetes.client.http.HttpClient httpClient = ((HttpClientAware) kClient).getHttpClient();
++                    if (httpClient instanceof io.fabric8.kubernetes.client.okhttp.OkHttpClientImpl) {
++                        OkHttpClient okHttpClient = ((io.fabric8.kubernetes.client.okhttp.OkHttpClientImpl) httpClient).getOkHttpClient();
++                        Dispatcher dispatcher = okHttpClient.dispatcher();
++                        runningCallsCount += dispatcher.runningCallsCount();
++                        queuedCallsCount += dispatcher.queuedCallsCount();
++                    }
+                 }
+             }
+             KubernetesClientProvider.runningCallsCount = runningCallsCount;
+diff --git a/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecorator.java b/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecorator.java
+index 66788882..e22dd9d8 100755
+--- a/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecorator.java
++++ b/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecorator.java
+@@ -389,7 +389,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
+                         .writingOutput(stream).writingError(stream).writingErrorChannel(error)
+                         .usingListener(new ExecListener() {
+                             @Override
+-                            public void onOpen(Response response) {
++                            public void onOpen() {
+                                 alive.set(true);
+                                 started.countDown();
+                                 startAlive.set(System.nanoTime());
+diff --git a/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/SecretsMasker.java b/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/SecretsMasker.java
+index 4fec4575..e74508bd 100644
+--- a/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/SecretsMasker.java
++++ b/src/main/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/SecretsMasker.java
+@@ -158,7 +158,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
+                             .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
+                             .usingListener(new ExecListener() {
+                                 @Override
+-                                public void onOpen(Response response) {
++                                public void onOpen() {
+                                 }
+                                 @Override
+                                 public void onFailure(Throwable t, Response response) {
+diff --git a/src/test/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecoratorTest.java b/src/test/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecoratorTest.java
+index a8085f63..740ce665 100644
+--- a/src/test/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecoratorTest.java
++++ b/src/test/java/org/csanchez/jenkins/plugins/kubernetes/pipeline/ContainerExecDecoratorTest.java
+@@ -353,7 +353,9 @@ public class ContainerExecDecoratorTest {
+     @Issue("JENKINS-55392")
+     public void testRejectedExecutionException() throws Exception {
+         assertTrue(client instanceof HttpClientAware);
+-        OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
++        io.fabric8.kubernetes.client.http.HttpClient httpClientWrapper = ((HttpClientAware) client).getHttpClient();
++        assertTrue(httpClientWrapper instanceof io.fabric8.kubernetes.client.okhttp.OkHttpClientImpl);
++        OkHttpClient httpClient = ((io.fabric8.kubernetes.client.okhttp.OkHttpClientImpl) httpClientWrapper).getOkHttpClient();
+         System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"
+                 + httpClient.dispatcher().getMaxRequestsPerHost());
+         System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "

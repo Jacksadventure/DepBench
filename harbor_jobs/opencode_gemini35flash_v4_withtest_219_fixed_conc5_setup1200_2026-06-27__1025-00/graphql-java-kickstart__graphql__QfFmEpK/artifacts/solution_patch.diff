@@ -1,0 +1,162 @@
+diff --git a/pom.xml b/pom.xml
+index 98835ea..d02a717 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -2,7 +2,7 @@
+ <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+     <modelVersion>4.0.0</modelVersion>
+ 
+-    <groupId>com.graphql-java-kickstart</groupId>
++    <groupId>io.github.graphql-java-kickstart</groupId>
+     <artifactId>graphql-java-tools</artifactId>
+     <version>14.0.2-SNAPSHOT</version>
+     <packaging>jar</packaging>
+@@ -17,7 +17,7 @@
+         <kotlin.version>2.3.10</kotlin.version>
+         <kotlin-coroutines.version>1.10.2</kotlin-coroutines.version>
+         <jackson.version>2.21.0</jackson.version>
+-        <graphql-java.version>23.1</graphql-java.version>
++        <graphql-java.version>25.0</graphql-java.version>
+         <reactive-streams.version>1.0.4</reactive-streams.version>
+ 
+         <maven.compiler.source>${java.version}</maven.compiler.source>
+diff --git a/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt b/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt
+index 8ebabb7..aae7e01 100644
+--- a/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt
++++ b/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt
+@@ -71,7 +71,7 @@ class RelayConnectionFactory : TypeDefinitionFactory {
+             .build()
+ 
+     private fun Directive.forTypeName(): String {
+-        return (this.getArgument("for").value as StringValue).value
++        return (this.getArgument("for").value as StringValue).value!!
+     }
+ 
+     private fun Directive.withField(field: FieldDefinition): DirectiveWithField {
+@@ -82,7 +82,7 @@ class RelayConnectionFactory : TypeDefinitionFactory {
+         return this.directives.map { it.withField(this) }
+     }
+ 
+-    class DirectiveWithField(val field: FieldDefinition, name: String, arguments: List<Argument>, sourceLocation: SourceLocation, comments: List<Comment>) : Directive(name, arguments, sourceLocation, comments, IgnoredChars.EMPTY, emptyMap()) {
++    class DirectiveWithField(val field: FieldDefinition, name: String, arguments: List<Argument>, sourceLocation: SourceLocation?, comments: List<Comment>) : Directive(name, arguments, sourceLocation, comments, IgnoredChars.EMPTY, emptyMap()) {
+         fun getTypeName(): String {
+             val type = field.type
+             if (type is NonNullType) {
+diff --git a/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt b/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt
+index 08ce160..80661b2 100644
+--- a/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt
++++ b/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt
+@@ -202,8 +202,9 @@ internal class FieldResolverScanner(val options: SchemaParserOptions) {
+             isSubscription = isSubscription || search.source is GraphQLSubscriptionResolver
+         }
+ 
+-        val sourceName = if (field.sourceLocation != null && field.sourceLocation.sourceName != null) field.sourceLocation.sourceName else "<unknown>"
+-        val sourceLocation = if (field.sourceLocation != null) "$sourceName:${field.sourceLocation.line}" else "<unknown>"
++        val location = field.sourceLocation
++        val sourceName = if (location != null && location.sourceName != null) location.sourceName else "<unknown>"
++        val sourceLocation = if (location != null) "$sourceName:${location.line}" else "<unknown>"
+         return "No method${if (scannedProperties) " or field" else ""} found as defined in schema $sourceLocation with any of the following signatures " +
+             "(with or without one of $allowedLastArgumentTypes as the last argument), in priority order:\n${signatures.joinToString("\n  ")}" +
+             if (isSubscription) "\n\nNote that a Subscription data fetcher must return a Publisher of events" else ""
+diff --git a/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt b/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt
+index 4b9317d..7e918c3 100644
+--- a/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt
+@@ -516,7 +516,7 @@ val customScalarMap = GraphQLScalarType.newScalar()
+             context: GraphQLContext,
+             locale: Locale
+         ): Map<String, Any> =
+-            (input as ObjectValue).objectFields.associateBy { it.name }.mapValues { (it.value.value as StringValue).value }
++            (input as ObjectValue).objectFields.associateBy { it.name }.mapValues { (it.value.value as StringValue).value!! }
+     })
+     .build()
+ 
+diff --git a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt
+index 481d2a4..b37e148 100644
+--- a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt
+@@ -296,15 +296,15 @@ class MethodFieldResolverDataFetcherTest {
+         return FieldResolverScanner(options).findFieldResolver(field, resolverInfo).createDataFetcher()
+     }
+ 
+-    private fun createEnvironment(source: Any = Object(), arguments: Map<String, Any> = emptyMap(), context: GraphQLContext? = null): DataFetchingEnvironment {
+-        return DataFetchingEnvironmentImpl.newDataFetchingEnvironment(buildExecutionContext())
++    private fun createEnvironment(source: Any = Object(), arguments: Map<String, Any> = emptyMap(), context: GraphQLContext = GraphQLContext.newContext().build()): DataFetchingEnvironment {
++        return DataFetchingEnvironmentImpl.newDataFetchingEnvironment(buildExecutionContext(context))
+             .source(source)
+             .arguments(arguments)
+             .graphQLContext(context)
+             .build()
+     }
+ 
+-    private fun buildExecutionContext(): ExecutionContext {
++    private fun buildExecutionContext(context: GraphQLContext): ExecutionContext {
+         val executionStrategy = object : ExecutionStrategy() {
+             override fun execute(executionContext: ExecutionContext, parameters: ExecutionStrategyParameters): CompletableFuture<ExecutionResult> {
+                 throw AssertionError("should not be called")
+@@ -317,6 +317,7 @@ class MethodFieldResolverDataFetcherTest {
+             .queryStrategy(executionStrategy)
+             .mutationStrategy(executionStrategy)
+             .subscriptionStrategy(executionStrategy)
++            .graphQLContext(context)
+             .build()
+     }
+ 
+diff --git a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt
+index 642fe6c..6f34292 100644
+--- a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt
+@@ -265,7 +265,7 @@ class MethodFieldResolverTest {
+             override fun parseValue(input: Any, context: GraphQLContext, locale: Locale) = CustomScalar.of(input)
+ 
+             override fun parseLiteral(input: Value<*>, variables: CoercedVariables, context: GraphQLContext, locale: Locale): CustomScalar = when (input) {
+-                is StringValue -> CustomScalar.of(input.value)
++                is StringValue -> CustomScalar.of(input.value!!)
+                 else -> throw CoercingParseLiteralException()
+             }
+ 
+diff --git a/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt b/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt
+index 10573c7..0906c36 100644
+--- a/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt
+@@ -45,7 +45,7 @@ class SchemaClassScannerDirectiveTest {
+             override fun parseValue(input: Any, context: GraphQLContext, locale: Locale) =
+                 CustomValue(input.toString())
+             override fun parseLiteral(input: Value<*>, variables: CoercedVariables, context: GraphQLContext, locale: Locale) =
+-                CustomValue((input as StringValue).value)
++                CustomValue((input as StringValue).value!!)
+         })
+         .build()
+ 
+diff --git a/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt b/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
+index 474c8bc..be7cc2e 100644
+--- a/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
+@@ -263,9 +263,10 @@ class SchemaParserTest {
+             .getFieldDefinition("id")
+             .definition!!.sourceLocation
+         assertNotNull(sourceLocation)
+-        assertEquals(sourceLocation.line, 2)
+-        assertEquals(sourceLocation.column, 5)
+-        assertNull(sourceLocation.sourceName)
++        val nonNullSourceLocation = sourceLocation!!
++        assertEquals(nonNullSourceLocation.line, 2)
++        assertEquals(nonNullSourceLocation.column, 5)
++        assertNull(nonNullSourceLocation.sourceName)
+     }
+ 
+     @Test
+@@ -280,9 +281,10 @@ class SchemaParserTest {
+             .getFieldDefinition("id")
+             .definition!!.sourceLocation
+         assertNotNull(sourceLocation)
+-        assertEquals(sourceLocation.line, 2)
+-        assertEquals(sourceLocation.column, 3)
+-        assertEquals(sourceLocation.sourceName, "Test.graphqls")
++        val nonNullSourceLocation = sourceLocation!!
++        assertEquals(nonNullSourceLocation.line, 2)
++        assertEquals(nonNullSourceLocation.column, 3)
++        assertEquals(nonNullSourceLocation.sourceName, "Test.graphqls")
+     }
+ 
+     @Test

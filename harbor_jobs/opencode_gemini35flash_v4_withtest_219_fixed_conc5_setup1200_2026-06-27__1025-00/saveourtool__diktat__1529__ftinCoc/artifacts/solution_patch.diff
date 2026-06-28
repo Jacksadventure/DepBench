@@ -1,0 +1,61 @@
+diff --git a/diktat-common/pom.xml b/diktat-common/pom.xml
+index 3d9c5f4c..58486d8d 100644
+--- a/diktat-common/pom.xml
++++ b/diktat-common/pom.xml
+@@ -38,10 +38,6 @@
+             <groupId>com.pinterest.ktlint</groupId>
+             <artifactId>ktlint-core</artifactId>
+         </dependency>
+-        <dependency>
+-            <groupId>org.slf4j</groupId>
+-            <artifactId>slf4j-api</artifactId>
+-        </dependency>
+         <dependency>
+             <groupId>org.apache.logging.log4j</groupId>
+             <artifactId>log4j-core</artifactId>
+diff --git a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt
+index 75feb2da..71391e89 100644
+--- a/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt
++++ b/diktat-common/src/main/kotlin/org/cqfn/diktat/common/utils/LoggingUtils.kt
+@@ -6,7 +6,6 @@ package org.cqfn.diktat.common.utils
+ 
+ import com.pinterest.ktlint.core.initKtLintKLogger
+ import mu.KotlinLogging
+-import org.slf4j.LoggerFactory
+ import kotlin.reflect.KClass
+ 
+ /**
+@@ -25,4 +24,4 @@ fun KotlinLogging.loggerWithKtlintConfig(func: () -> Unit) =
+  * @return a logger
+  */
+ fun KotlinLogging.loggerWithKtlintConfig(clazz: KClass<*>) =
+-    logger(LoggerFactory.getLogger(clazz.java)).initKtLintKLogger()
++    logger(clazz.java.name).initKtLintKLogger()
+diff --git a/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt b/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt
+index 46dbd1bb..7f1f6078 100644
+--- a/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt
++++ b/diktat-rules/src/main/kotlin/org/cqfn/diktat/ruleset/rules/chapter3/EmptyBlock.kt
+@@ -105,6 +105,10 @@ class EmptyBlock(configRules: List<RulesConfig>) : DiktatRule(
+         return when {
+             parents.any { it.elementType == CALL_EXPRESSION } -> {
+                 val callExpression = parents.find { it.elementType == CALL_EXPRESSION }!!
++                val identifier = callExpression.findLeafWithSpecificType(IDENTIFIER)?.text
++                if (identifier == "logger" || identifier == "loggerWithKtlintConfig") {
++                    return true
++                }
+                 // excepting cases like list.map { }. In this case call expression will not have value argument list
+                 // And in this case: Parser.parse({}, some, thing) it will have value argument list
+                 callExpression.hasChildOfType(VALUE_ARGUMENT_LIST)
+diff --git a/pom.xml b/pom.xml
+index fd97efd6..2d681240 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -196,7 +196,7 @@
+             <dependency>
+                 <groupId>io.github.microutils</groupId>
+                 <artifactId>kotlin-logging-jvm</artifactId>
+-                <version>2.1.23</version>
++                <version>3.0.5</version>
+             </dependency>
+             <dependency>
+                 <groupId>org.slf4j</groupId>

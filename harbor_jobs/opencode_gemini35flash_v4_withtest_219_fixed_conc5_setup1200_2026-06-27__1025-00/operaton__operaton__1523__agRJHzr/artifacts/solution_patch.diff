@@ -1,0 +1,184 @@
+diff --git a/engine-rest/engine-rest-openapi-generator/pom.xml b/engine-rest/engine-rest-openapi-generator/pom.xml
+index 55622cddcf..1d2683dc05 100644
+--- a/engine-rest/engine-rest-openapi-generator/pom.xml
++++ b/engine-rest/engine-rest-openapi-generator/pom.xml
+@@ -10,7 +10,7 @@
+   <name>Operaton - Engine - REST - OpenAPI (JSON Generator)</name>
+   <description>${project.name}</description>
+   <properties>
+-    <version.json-schema-validator>1.5.9</version.json-schema-validator>
++    <version.json-schema-validator>2.0.0</version.json-schema-validator>
+   </properties>
+   <dependencies>
+     <dependency>
+@@ -33,5 +33,16 @@
+       <artifactId>json-schema-validator</artifactId>
+       <version>${version.json-schema-validator}</version>
+     </dependency>
++    <!-- testing -->
++    <dependency>
++      <groupId>org.junit.jupiter</groupId>
++      <artifactId>junit-jupiter</artifactId>
++      <scope>test</scope>
++    </dependency>
++    <dependency>
++      <groupId>org.assertj</groupId>
++      <artifactId>assertj-core</artifactId>
++      <scope>test</scope>
++    </dependency>
+   </dependencies>
+ </project>
+\ No newline at end of file
+diff --git a/engine-rest/engine-rest-openapi-generator/src/main/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidator.java b/engine-rest/engine-rest-openapi-generator/src/main/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidator.java
+index f5fa8d4ed8..f250d23eae 100644
+--- a/engine-rest/engine-rest-openapi-generator/src/main/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidator.java
++++ b/engine-rest/engine-rest-openapi-generator/src/main/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidator.java
+@@ -17,17 +17,27 @@
+ package org.operaton.bpm.engine.rest.openapi.generator.impl;
+ 
+ import java.io.File;
+-import java.util.Set;
++import java.util.List;
+ import java.util.stream.Collectors;
+ 
+ import com.fasterxml.jackson.databind.JsonNode;
+ import com.fasterxml.jackson.databind.ObjectMapper;
+-import com.networknt.schema.JsonSchema;
+-import com.networknt.schema.JsonSchemaFactory;
+-import com.networknt.schema.SpecVersion;
+-import com.networknt.schema.ValidationMessage;
++import com.networknt.schema.Error;
++import com.networknt.schema.Schema;
++import com.networknt.schema.SchemaRegistry;
++import com.networknt.schema.dialect.Dialects;
+ 
++/**
++ * Validates JSON files against a Draft 4 JSON schema.
++ */
+ public class SchemaValidator {
++
++  /**
++   * Main entry point to execute the validation.
++   *
++   * @param args Must contain two arguments: the schema file path and the input JSON file path.
++   * @throws Exception If files cannot be read or are invalid.
++   */
+   public static void main(String[] args) throws Exception {
+     if (args.length != 2) {
+       throw new RuntimeException("Must provide two arguments: <json schema> <file to validate>");
+@@ -40,14 +50,14 @@ public class SchemaValidator {
+     JsonNode schemaNode = mapper.readTree(new File(jsonSchemaPath));
+     JsonNode inputNode = mapper.readTree(new File(inputFile));
+ 
+-    JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4);
+-    JsonSchema schema = factory.getSchema(schemaNode);
++    SchemaRegistry registry = SchemaRegistry.withDefaultDialect(Dialects.getDraft4());
++    Schema schema = registry.getSchema(schemaNode);
+ 
+-    Set<ValidationMessage> errors = schema.validate(inputNode);
++    List<Error> errors = schema.validate(inputNode);
+ 
+     if (!errors.isEmpty()) {
+       String messages = errors.stream()
+-                              .map(ValidationMessage::getMessage)
++                              .map(Error::getMessage)
+                               .collect(Collectors.joining("\n"));
+ 
+       throw new RuntimeException("Schema validation errors\n" + messages);
+diff --git a/engine-rest/engine-rest-openapi-generator/src/test/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidatorTest.java b/engine-rest/engine-rest-openapi-generator/src/test/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidatorTest.java
+new file mode 100644
+index 0000000000..65d1b8248d
+--- /dev/null
++++ b/engine-rest/engine-rest-openapi-generator/src/test/java/org/operaton/bpm/engine/rest/openapi/generator/impl/SchemaValidatorTest.java
+@@ -0,0 +1,91 @@
++/*
++ * Copyright 2025 the Operaton contributors.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at:
++ *
++ *     https://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.operaton.bpm.engine.rest.openapi.generator.impl;
++
++import java.io.IOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.io.TempDir;
++
++import static org.assertj.core.api.Assertions.assertThat;
++import static org.assertj.core.api.Assertions.assertThatThrownBy;
++
++/**
++ * Tests the {@link SchemaValidator} class.
++ */
++class SchemaValidatorTest {
++
++  @TempDir
++  Path tempDir;
++
++  @Test
++  void testValidationSuccess() throws Exception {
++    Path schemaFile = tempDir.resolve("schema.json");
++    Path inputFile = tempDir.resolve("input.json");
++
++    String schema = "{\n" +
++            "  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n" +
++            "  \"type\": \"object\",\n" +
++            "  \"properties\": {\n" +
++            "    \"name\": { \"type\": \"string\" }\n" +
++            "  },\n" +
++            "  \"required\": [\"name\"]\n" +
++            "}\n";
++    String input = "{\n" +
++            "  \"name\": \"Operaton\"\n" +
++            "}\n";
++
++    Files.writeString(schemaFile, schema);
++    Files.writeString(inputFile, input);
++
++    SchemaValidator.main(new String[]{schemaFile.toString(), inputFile.toString()});
++    // Should pass without throwing exception
++  }
++
++  @Test
++  void testValidationFailure() throws Exception {
++    Path schemaFile = tempDir.resolve("schema.json");
++    Path inputFile = tempDir.resolve("input.json");
++
++    String schema = "{\n" +
++            "  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n" +
++            "  \"type\": \"object\",\n" +
++            "  \"properties\": {\n" +
++            "    \"name\": { \"type\": \"string\" }\n" +
++            "  },\n" +
++            "  \"required\": [\"name\"]\n" +
++            "}\n";
++    String input = "{\n" +
++            "  \"number\": 123\n" +
++            "}\n";
++
++    Files.writeString(schemaFile, schema);
++    Files.writeString(inputFile, input);
++
++    assertThatThrownBy(() -> SchemaValidator.main(new String[]{schemaFile.toString(), inputFile.toString()}))
++        .isInstanceOf(RuntimeException.class)
++        .hasMessageContaining("Schema validation errors");
++  }
++
++  @Test
++  void testInvalidArguments() {
++    assertThatThrownBy(() -> SchemaValidator.main(new String[]{"only-one-arg"}))
++        .isInstanceOf(RuntimeException.class)
++        .hasMessageContaining("Must provide two arguments");
++  }
++}

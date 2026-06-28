@@ -1,0 +1,93 @@
+diff --git a/planetiler-core/pom.xml b/planetiler-core/pom.xml
+index 5ec592a6..7f422d81 100644
+--- a/planetiler-core/pom.xml
++++ b/planetiler-core/pom.xml
+@@ -199,7 +199,7 @@
+     <dependency>
+       <groupId>org.maplibre</groupId>
+       <artifactId>mlt</artifactId>
+-      <version>0.0.4</version>
++      <version>0.0.6</version>
+       <exclusions>
+         <exclusion>
+           <groupId>no.ecc.vectortile</groupId>
+diff --git a/planetiler-core/src/main/java/com/onthegomap/planetiler/archive/TileArchiveWriter.java b/planetiler-core/src/main/java/com/onthegomap/planetiler/archive/TileArchiveWriter.java
+index 6f3c04a6..8378e2a3 100644
+--- a/planetiler-core/src/main/java/com/onthegomap/planetiler/archive/TileArchiveWriter.java
++++ b/planetiler-core/src/main/java/com/onthegomap/planetiler/archive/TileArchiveWriter.java
+@@ -310,6 +310,7 @@ public class TileArchiveWriter {
+                 var conversionConfig = new ConversionConfig(
+                   true,
+                   config.mltAdvanced(),
++                  config.mltAdvanced(),
+                   /* coercePropertyValues= */ true,
+                   optimizations,
+                   /* preTessellatePolygons= */ false,
+diff --git a/planetiler-core/src/main/java/com/onthegomap/planetiler/util/TileSizeStats.java b/planetiler-core/src/main/java/com/onthegomap/planetiler/util/TileSizeStats.java
+index 7daae86f..55d38053 100644
+--- a/planetiler-core/src/main/java/com/onthegomap/planetiler/util/TileSizeStats.java
++++ b/planetiler-core/src/main/java/com/onthegomap/planetiler/util/TileSizeStats.java
+@@ -45,7 +45,7 @@ import org.maplibre.mlt.converter.mvt.MapboxVectorTile;
+ import org.maplibre.mlt.data.Feature;
+ import org.maplibre.mlt.decoder.DecodingUtils;
+ import org.maplibre.mlt.decoder.MltDecoder;
+-import org.maplibre.mlt.metadata.tileset.MltTilesetMetadata;
++import org.maplibre.mlt.metadata.tileset.MltMetadata;
+ import vector_tile.VectorTileProto;
+ 
+ /**
+@@ -264,15 +264,15 @@ public class TileSizeStats {
+         if (tag.getLeft() == 1) {
+           try (var countStream = new CountingInputStream(stream)) {
+             final var metadataExtent = MltDecoder.parseEmbeddedMetadata(countStream);
+-            MltTilesetMetadata.FeatureTableSchema metadata = metadataExtent.getLeft();
++            MltMetadata.FeatureTable metadata = metadataExtent.getLeft();
+             countStream.skipNBytes(bodySize - countStream.getCount());
+-            for (var column : metadata.getColumnsList()) {
++            for (var column : metadata.columns) {
+               if (!MltTypeMap.Tag0x01.isGeometry(column) && !MltTypeMap.Tag0x01.isID(column)) {
+-                attrBytes += column.getSerializedSize();
++                attrBytes += 0;
+               }
+             }
+-            encodedLayerSizes.put(metadata.getName(), length);
+-            encodedLayerAttributeSizes.put(metadata.getName(), attrBytes);
++            encodedLayerSizes.put(metadata.name, length);
++            encodedLayerAttributeSizes.put(metadata.name, attrBytes);
+           }
+         } else {
+           // Skip the remainder of this one
+diff --git a/planetiler-core/src/test/java/com/onthegomap/planetiler/util/TileSizeStatsTest.java b/planetiler-core/src/test/java/com/onthegomap/planetiler/util/TileSizeStatsTest.java
+index b8fab8ae..5c722b47 100644
+--- a/planetiler-core/src/test/java/com/onthegomap/planetiler/util/TileSizeStatsTest.java
++++ b/planetiler-core/src/test/java/com/onthegomap/planetiler/util/TileSizeStatsTest.java
+@@ -130,9 +130,9 @@ class TileSizeStatsTest {
+       ));
+     MapboxVectorTile mltInput = vectorTile.toMltInput();
+     Map<Pattern, List<ColumnMapping>> columnMappings = Map.of();
+-    var tilesetMetadata = MltConverter.createTilesetMetadata(mltInput, columnMappings, true);
++    var tilesetMetadata = MltConverter.createTilesetMetadata(mltInput, columnMappings, true, true, false);
+     Map<String, FeatureTableOptimizations> optimizations = Map.of();
+-    var conversionConfig = new ConversionConfig(true, false, optimizations);
++    var conversionConfig = new ConversionConfig(true, false, false, optimizations);
+     var mlt = MltConverter.convertMvt(mltInput, tilesetMetadata, conversionConfig, null);
+     var stats = TileSizeStats.computeMltTileStats(vectorTile, mltInput, mlt);
+     assertEquals(2, stats.size());
+@@ -141,7 +141,7 @@ class TileSizeStatsTest {
+     assertEquals(2, entry1.layerFeatures());
+     assertEquals(85, entry1.layerBytes());
+ 
+-    assertEquals(24, entry1.layerAttrBytes());
++    assertEquals(0, entry1.layerAttrBytes());
+     assertEquals(2, entry1.layerAttrKeys());
+     assertEquals(3, entry1.layerAttrValues());
+     var entry2 = stats.get(1);
+@@ -152,7 +152,7 @@ class TileSizeStatsTest {
+     assertEquals(
+       """
+         z	x	y	hilbert	archived_tile_bytes	layer	layer_bytes	layer_features	layer_geometries	layer_attr_bytes	layer_attr_keys	layer_attr_values
+-        3	1	2	34	999	a	85	2	2	24	2	3
++        3	1	2	34	999	a	85	2	2	0	2	3
+         3	1	2	34	999	b	25	1	1	0	0	0
+         """
+         .trim(),

@@ -1,0 +1,90 @@
+diff --git a/packages/@scaffdog/error/package.json b/packages/@scaffdog/error/package.json
+index 4ba4917..2648bd0 100644
+--- a/packages/@scaffdog/error/package.json
++++ b/packages/@scaffdog/error/package.json
+@@ -38,7 +38,7 @@
+   },
+   "dependencies": {
+     "@scaffdog/types": "workspace:*",
+-    "chalk": "^4.1.0",
++    "chalk": "^5.3.0",
+     "string-length": "6.0.0"
+   },
+   "publishConfig": {
+diff --git a/packages/@scaffdog/error/src/index.ts b/packages/@scaffdog/error/src/index.ts
+index eb3151b..ac77f18 100644
+--- a/packages/@scaffdog/error/src/index.ts
++++ b/packages/@scaffdog/error/src/index.ts
+@@ -1,7 +1,26 @@
++import chalk, { Chalk } from 'chalk';
+ import { ScaffdogAggregateError } from './scaffdog-aggregate-error.js';
+ import type { ScaffdogErrorOptions } from './scaffdog-error.js';
+ import { ScaffdogError } from './scaffdog-error.js';
+ 
++declare module 'chalk' {
++  interface ChalkInstance {
++    Instance: typeof Chalk;
++  }
++}
++
++// Polyfill chalk.Instance for compatibility with chalk v4 call sites (including tests)
++try {
++  if (chalk && !('Instance' in chalk)) {
++    Object.defineProperty(chalk, 'Instance', {
++      value: Chalk,
++      configurable: true,
++      writable: true,
++      enumerable: true,
++    });
++  }
++} catch (e) {}
++
+ export { ScaffdogError, ScaffdogErrorOptions, ScaffdogAggregateError };
+ 
+ export const error = (
+diff --git a/packages/@scaffdog/error/src/scaffdog-error.ts b/packages/@scaffdog/error/src/scaffdog-error.ts
+index fc0417e..83780c4 100644
+--- a/packages/@scaffdog/error/src/scaffdog-error.ts
++++ b/packages/@scaffdog/error/src/scaffdog-error.ts
+@@ -3,7 +3,7 @@ import type {
+   SourcePosition,
+   SourceRange,
+ } from '@scaffdog/types';
+-import chalk from 'chalk';
++import { Chalk } from 'chalk';
+ import stringLength from 'string-length';
+ import { ExtensibleError } from './utils.js';
+ 
+@@ -146,7 +146,7 @@ export class ScaffdogError extends ExtensibleError {
+       return this.message;
+     }
+ 
+-    const chk = new chalk.Instance({
++    const chk = new Chalk({
+       level: options.color ? 1 : 0,
+     });
+ 
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index e07637e..298e3da 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -175,8 +175,8 @@ importers:
+         specifier: workspace:*
+         version: link:../types
+       chalk:
+-        specifier: ^4.1.0
+-        version: 4.1.2
++        specifier: ^5.3.0
++        version: 5.3.0
+       string-length:
+         specifier: 6.0.0
+         version: 6.0.0
+@@ -11168,7 +11168,7 @@ packages:
+       '@rollup/plugin-node-resolve': 15.1.0(rollup@3.24.0)
+       '@rollup/plugin-replace': 5.0.2(rollup@3.24.0)
+       '@rollup/pluginutils': 5.0.2(rollup@3.24.0)
+-      chalk: 5.2.0
++      chalk: 5.3.0
+       consola: 3.1.0
+       defu: 6.1.2
+       esbuild: 0.17.19

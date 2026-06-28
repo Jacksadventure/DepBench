@@ -1,0 +1,219 @@
+diff --git a/packages/web3-provider-adapter/package.json b/packages/web3-provider-adapter/package.json
+index 0d368d1..27c7536 100644
+--- a/packages/web3-provider-adapter/package.json
++++ b/packages/web3-provider-adapter/package.json
+@@ -32,7 +32,7 @@
+   },
+   "dependencies": {
+     "@cloud-cryptographic-wallet/signer": "^0.0.5",
+-    "@ethereumjs/common": "^2.6.2",
++    "@ethereumjs/common": "^3.0.0",
+     "@ethereumjs/tx": "^3.5.0",
+     "@metamask/safe-event-emitter": "^2.0.0",
+     "eip1193-provider": "^1.0.1",
+diff --git a/packages/web3-provider-adapter/src/get-common.ts b/packages/web3-provider-adapter/src/get-common.ts
+index 4ec8c8a..42e9ee6 100644
+--- a/packages/web3-provider-adapter/src/get-common.ts
++++ b/packages/web3-provider-adapter/src/get-common.ts
+@@ -1,12 +1,46 @@
+-import CommonOriginal, { Hardfork } from "@ethereumjs/common";
+-import type { default as CommonType } from "@ethereumjs/common";
++/* eslint-disable @typescript-eslint/no-explicit-any */
++import { Common, Hardfork } from "@ethereumjs/common";
+ import { BN } from "ethereumjs-util";
+-import { interopImportCJSDefault } from "node-cjs-interop";
+ import { query } from "./query.js";
+ 
+-const Common = interopImportCJSDefault(CommonOriginal);
++if (typeof (Common.prototype as any).chainIdBN !== "function") {
++  (Common.prototype as any).chainIdBN = function (this: Common) {
++    return new BN(this.chainId().toString());
++  };
++}
++
++const originalParam = Common.prototype.param;
++Common.prototype.param = function (
++  this: Common,
++  topic: string,
++  name: string
++): any {
++  const value = originalParam.call(this, topic, name);
++  if (typeof value === "bigint") {
++    return Number(value);
++  }
++  return value;
++};
++
++const originalIsSupportedChainId = Common.isSupportedChainId;
++Common.isSupportedChainId = function (chainId: any): boolean {
++  if (
++    chainId &&
++    typeof chainId === "object" &&
++    typeof chainId.toString === "function"
++  ) {
++    try {
++      return originalIsSupportedChainId(BigInt(chainId.toString()));
++    } catch {
++      // fallback
++    }
++  }
++  return originalIsSupportedChainId(chainId);
++};
+ 
+-export async function getCommon(rpcUrl: string): Promise<CommonType> {
++export async function getCommon(
++  rpcUrl: string
++): Promise<Common & { chainIdBN(): BN }> {
+   const chainId = await query<string>(rpcUrl, "eth_chainId", []);
+ 
+   if (!chainId) {
+@@ -14,7 +48,7 @@ export async function getCommon(rpcUrl: string): Promise<CommonType> {
+   }
+ 
+   return Common.custom({
+-    chainId: new BN(chainId.slice(2), "hex"),
++    chainId: BigInt(chainId),
+     defaultHardfork: Hardfork.London,
+-  });
++  }) as any;
+ }
+diff --git a/packages/web3-provider-adapter/src/middlewares/create-wallet-middleware-from-signers.ts b/packages/web3-provider-adapter/src/middlewares/create-wallet-middleware-from-signers.ts
+index b402f8f..b89969f 100644
+--- a/packages/web3-provider-adapter/src/middlewares/create-wallet-middleware-from-signers.ts
++++ b/packages/web3-provider-adapter/src/middlewares/create-wallet-middleware-from-signers.ts
+@@ -62,7 +62,8 @@ export function createWalletMiddlewareFromSigners(
+       };
+ 
+       const unsignedTx = tx.TransactionFactory.fromTxData(txData, {
+-        common,
++        // eslint-disable-next-line @typescript-eslint/no-explicit-any
++        common: common as any,
+       });
+       const hash = unsignedTx.getMessageToSign(true);
+ 
+diff --git a/yarn.lock b/yarn.lock
+index cc52aca..3b22d2d 100644
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -1338,7 +1338,7 @@
+     minimatch "^3.0.4"
+     strip-json-comments "^3.1.1"
+ 
+-"@ethereumjs/common@^2.5.0", "@ethereumjs/common@^2.6.2", "@ethereumjs/common@^2.6.4":
++"@ethereumjs/common@^2.5.0", "@ethereumjs/common@^2.6.4":
+   version "2.6.5"
+   resolved "https://registry.yarnpkg.com/@ethereumjs/common/-/common-2.6.5.tgz#0a75a22a046272579d91919cb12d84f2756e8d30"
+   integrity sha512-lRyVQOeCDaIVtgfbowla32pzeDv2Obr8oR8Put5RdUBNRGr1VGPGQNGP6elWIpgK3YdpzqTOh4GyUGOureVeeA==
+@@ -1346,6 +1346,19 @@
+     crc-32 "^1.2.0"
+     ethereumjs-util "^7.1.5"
+ 
++"@ethereumjs/common@^3.0.0":
++  version "3.2.0"
++  resolved "https://registry.yarnpkg.com/@ethereumjs/common/-/common-3.2.0.tgz#b71df25845caf5456449163012074a55f048e0a0"
++  integrity sha512-pksvzI0VyLgmuEF2FA/JR/4/y6hcPq8OUail3/AvycBaW1d5VSauOZzqGvJ3RTmR4MU35lWE8KseKOsEhrFRBA==
++  dependencies:
++    "@ethereumjs/util" "^8.1.0"
++    crc-32 "^1.2.0"
++
++"@ethereumjs/rlp@^4.0.1":
++  version "4.0.1"
++  resolved "https://registry.yarnpkg.com/@ethereumjs/rlp/-/rlp-4.0.1.tgz#626fabfd9081baab3d0a3074b0c7ecaf674aaa41"
++  integrity sha512-tqsQiBQDQdmPWE1xkkBq4rlSW5QZpLOUJ5RJh2/9fug+q9tnUhuZoVLk7s0scUIKTOzEtR72DFBXI4WiZcMpvw==
++
+ "@ethereumjs/tx@^3.3.0", "@ethereumjs/tx@^3.3.2", "@ethereumjs/tx@^3.5.0":
+   version "3.5.2"
+   resolved "https://registry.yarnpkg.com/@ethereumjs/tx/-/tx-3.5.2.tgz#197b9b6299582ad84f9527ca961466fce2296c1c"
+@@ -1354,6 +1367,15 @@
+     "@ethereumjs/common" "^2.6.4"
+     ethereumjs-util "^7.1.5"
+ 
++"@ethereumjs/util@^8.1.0":
++  version "8.1.0"
++  resolved "https://registry.yarnpkg.com/@ethereumjs/util/-/util-8.1.0.tgz#299df97fb6b034e0577ce9f94c7d9d1004409ed4"
++  integrity sha512-zQ0IqbdX8FZ9aw11vP+dZkKDkS+kgIvQPHnSAXzP9pLu+Rfu3D3XEeLbicvoXJTYnhZiPmsZUxgdzXwNKxRPbA==
++  dependencies:
++    "@ethereumjs/rlp" "^4.0.1"
++    ethereum-cryptography "^2.0.0"
++    micro-ftch "^0.3.1"
++
+ "@ethersproject/abi@5.7.0", "@ethersproject/abi@^5.6.3", "@ethersproject/abi@^5.7.0":
+   version "5.7.0"
+   resolved "https://registry.yarnpkg.com/@ethersproject/abi/-/abi-5.7.0.tgz#b3f3e045bbbeed1af3947335c247ad625a44e449"
+@@ -2716,6 +2738,18 @@
+     strict-event-emitter "^0.2.4"
+     web-encoding "^1.1.5"
+ 
++"@noble/curves@1.4.2", "@noble/curves@~1.4.0":
++  version "1.4.2"
++  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.4.2.tgz#40309198c76ed71bc6dbf7ba24e81ceb4d0d1fe9"
++  integrity sha512-TavHr8qycMChk8UwMld0ZDRvatedkzWfH8IiaeGCfymOP5i0hSCozz9vHOL0nkwk7HRMlFnAiKpS2jrUmSybcw==
++  dependencies:
++    "@noble/hashes" "1.4.0"
++
++"@noble/hashes@1.4.0", "@noble/hashes@~1.4.0":
++  version "1.4.0"
++  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.4.0.tgz#45814aa329f30e4fe0ba49426f49dfccdd066426"
++  integrity sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==
++
+ "@node-lightning/checksum@^0.27.0":
+   version "0.27.0"
+   resolved "https://registry.yarnpkg.com/@node-lightning/checksum/-/checksum-0.27.0.tgz#d2beb2661834a236cb9092ecc83a1faa074f981e"
+@@ -3100,6 +3134,28 @@
+   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
+   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
+ 
++"@scure/base@~1.1.6":
++  version "1.1.9"
++  resolved "https://registry.yarnpkg.com/@scure/base/-/base-1.1.9.tgz#e5e142fbbfe251091f9c5f1dd4c834ac04c3dbd1"
++  integrity sha512-8YKhl8GHiNI/pU2VMaofa2Tor7PJRAjwQLBBuilkJ9L5+13yVbC7JO/wS7piioAvPSwR3JKM1IJ/u4xQzbcXKg==
++
++"@scure/bip32@1.4.0":
++  version "1.4.0"
++  resolved "https://registry.yarnpkg.com/@scure/bip32/-/bip32-1.4.0.tgz#4e1f1e196abedcef395b33b9674a042524e20d67"
++  integrity sha512-sVUpc0Vq3tXCkDGYVWGIZTRfnvu8LoTDaev7vbwh0omSvVORONr960MQWdKqJDCReIEmTj3PAr73O3aoxz7OPg==
++  dependencies:
++    "@noble/curves" "~1.4.0"
++    "@noble/hashes" "~1.4.0"
++    "@scure/base" "~1.1.6"
++
++"@scure/bip39@1.3.0":
++  version "1.3.0"
++  resolved "https://registry.yarnpkg.com/@scure/bip39/-/bip39-1.3.0.tgz#0f258c16823ddd00739461ac31398b4e7d6a18c3"
++  integrity sha512-disdg7gHuTDZtY+ZdkmLpPCk7fxZSu3gBiEGuoC1XYxv9cGx3Z6cpTggCgW6odSOOIXCiDjuGejW+aJKCY/pIQ==
++  dependencies:
++    "@noble/hashes" "~1.4.0"
++    "@scure/base" "~1.1.6"
++
+ "@sindresorhus/is@^4.6.0":
+   version "4.6.0"
+   resolved "https://registry.yarnpkg.com/@sindresorhus/is/-/is-4.6.0.tgz#3c7c9c46e678feefe7a2e5bb609d3dbd665ffb3f"
+@@ -6128,6 +6184,16 @@ ethereum-cryptography@^0.1.3:
+     secp256k1 "^4.0.1"
+     setimmediate "^1.0.5"
+ 
++ethereum-cryptography@^2.0.0:
++  version "2.2.1"
++  resolved "https://registry.yarnpkg.com/ethereum-cryptography/-/ethereum-cryptography-2.2.1.tgz#58f2810f8e020aecb97de8c8c76147600b0b8ccf"
++  integrity sha512-r/W8lkHSiTLxUxW8Rf3u4HGB0xQweG2RyETjywylKZSzLWoWAijRz8WCuOtJ6wah+avllXBqZuk29HCCvhEIRg==
++  dependencies:
++    "@noble/curves" "1.4.2"
++    "@noble/hashes" "1.4.0"
++    "@scure/bip32" "1.4.0"
++    "@scure/bip39" "1.3.0"
++
+ "ethereumjs-abi@git+https://github.com/ethereumjs/ethereumjs-abi.git":
+   version "0.6.8"
+   resolved "git+https://github.com/ethereumjs/ethereumjs-abi.git#ee3994657fa7a427238e6ba92a84d0b529bbcde0"
+@@ -9132,6 +9198,11 @@ methods@~1.1.2:
+   resolved "https://registry.yarnpkg.com/methods/-/methods-1.1.2.tgz#5529a4d67654134edcc5266656835b0f851afcee"
+   integrity sha1-VSmk1nZUE07cxSZmVoNbD4Ua/O4=
+ 
++micro-ftch@^0.3.1:
++  version "0.3.1"
++  resolved "https://registry.yarnpkg.com/micro-ftch/-/micro-ftch-0.3.1.tgz#6cb83388de4c1f279a034fb0cf96dfc050853c5f"
++  integrity sha512-/0LLxhzP0tfiR5hcQebtudP56gUurs2CLkGarnCiB/OqEyUFQ6U3paQi/tgLv0hBJYt2rnr9MNpxz4fiiugstg==
++
+ micromatch@^4.0.4, micromatch@^4.0.5:
+   version "4.0.5"
+   resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-4.0.5.tgz#bc8999a7cbbf77cdc89f132f6e467051b49090c6"
