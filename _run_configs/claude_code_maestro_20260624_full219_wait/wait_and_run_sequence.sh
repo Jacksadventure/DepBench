@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -uo pipefail
+cd /Data2/v-zijianluo/depbot_v4_with_tests
+mkdir -p _run_logs harbor_jobs
+echo $$ > _run_logs/claude_code_maestro_v4_withtest_219_wait_sequence_20260624.pid
+export DOCKER_HOST=${DOCKER_HOST:-unix:///run/user/1900/docker.sock}
+export PATH="$HOME/.local/bin:$PATH"
+endpoint_host=172.26.171.38
+endpoint_port=23333
+summary="_run_logs/claude_code_maestro_v4_withtest_219_wait_sequence_20260624.summary.tsv"
+log="_run_logs/claude_code_maestro_v4_withtest_219_wait_sequence_20260624.log"
+configs=(
+  "_run_configs/claude_code_maestro_20260624_full219_wait/claude_code_maestro_gpt55_v4_withtest_219_conc10_2026-06-24__1230-00.json"
+  "_run_configs/claude_code_maestro_20260624_full219_wait/claude_code_maestro_gemini35flash_v4_withtest_219_conc10_2026-06-24__1230-00.json"
+)
+echo -e "timestamp	status	config	exit_code" >> "$summary"
+cleanup_docker() {
+  ids=$(docker ps -a -q)
+  if [ -n "$ids" ]; then docker rm -f $ids >/dev/null 2>&1 || true; fi
+  docker network prune -f >/dev/null 2>&1 || true
+}
+echo "[$(date -Is)] waiting for $endpoint_host:$endpoint_port" | tee -a "$log"
+until timeout 5 bash -c "</dev/tcp/$endpoint_host/$endpoint_port" >/dev/null 2>&1; do
+  echo "[$(date -Is)] endpoint unavailable; retrying in 60s" | tee -a "$log"
+  sleep 60
+done
+echo "[$(date -Is)] endpoint available; starting sequence" | tee -a "$log"
+for cfg in "${configs[@]}"; do
+  cleanup_docker
+  job=$(python3 - <<'PYJOB' "$cfg"
+import json,sys
+print(json.load(open(sys.argv[1]))['job_name'])
+PYJOB
+)
+  joblog="_run_logs/${job}.log"
+  echo "[$(date -Is)] START $cfg ($job)" | tee -a "$log" "$joblog"
+  ~/.local/bin/harbor run --config "$cfg" >> "$joblog" 2>&1
+  code=$?
+  cleanup_docker
+  if [ "$code" -eq 0 ]; then status=ok; else status=failed; fi
+  echo -e "$(date -Is)	${status}	${cfg}	${code}" >> "$summary"
+  echo "[$(date -Is)] END $cfg exit=$code" | tee -a "$log" "$joblog"
+done
