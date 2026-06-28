@@ -1,6 +1,6 @@
 # LLM x Harness trajectory exports
 
-Generated: 2026-06-27T09:18:33.750475+00:00
+Generated: 2026-06-28T12:27:24.614968+00:00
 
 Each `.jsonl.gz` file contains one JSON object per task/trial with reward metadata and trajectory JSON.
 
@@ -12,7 +12,7 @@ Each `.jsonl.gz` file contains one JSON object per task/trial with reward metada
 | gpt55 | claude_code | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gpt55__claude_code.jsonl.gz` |
 | gemini35flash | codex | 219 | 219 | 219 | 0 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__codex.jsonl.gz` |
 | gemini35flash | copilot_cli | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__copilot_cli.jsonl.gz` |
-| gemini35flash | opencode | 219 | 0 | 0 | 0 | 219 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__opencode.jsonl.gz` |
+| gemini35flash | opencode | 219 | 79 | 78 | 1 | 140 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__opencode.jsonl.gz` |
 | gemini35flash | claude_code | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__claude_code.jsonl.gz` |
 | claude48 | codex | 219 | 217 | 217 | 0 | 2 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__codex.jsonl.gz` |
 | claude48 | copilot_cli | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__copilot_cli.jsonl.gz` |

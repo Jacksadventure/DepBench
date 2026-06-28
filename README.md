@@ -65,9 +65,9 @@ The tables below follow the numbers already documented in checked-in result file
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.434** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Codex | Claude 4.8 | v4-with-test219 | **0.359** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Codex | Gemini 3.5 Flash | v4-with-test219 | **0.279** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.248** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
-| OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.174** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 
 Claude Code GPT-5.5/Gemini rows are full 219-task Copilot API runs and supersede
 older Maestro summaries that had auth/nonzero-exit reliability concerns. The
@@ -114,9 +114,9 @@ The most meaningful completed current-dataset comparison already documented in-r
 | OpenCode | GPT-5.5 | **0.434** |
 | Codex | Claude 4.8 | **0.359** |
 | Codex | Gemini 3.5 Flash | **0.279** |
+| OpenCode | Gemini 3.5 Flash | **0.248** |
 | Copilot CLI | Gemini 3.5 Flash | **0.225** |
 | Claude Code | Gemini 3.5 Flash | **0.224** |
-| OpenCode | Gemini 3.5 Flash | **0.174** |
 
 ## Source map
 
@@ -136,3 +136,4 @@ The most meaningful completed current-dataset comparison already documented in-r
 - v4-with-test219 Claude 4.8 multi-agent per-task results: `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_results_2026-06-27.csv`
 - v4-with-test219 Claude Code Copilot API summary: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.md`
 - v4-with-test219 Claude Code Copilot API per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_results_2026-06-25.csv`
+- v4-with-test219 OpenCode Gemini rerun summary: `harbor_benchmark/reports/v4_with_test219_opencode_gemini_rerun_summary_2026-06-28.md`

@@ -1,6 +1,6 @@
 # Unified trajectory behavior scan
 
-Generated: 2026-06-27T13:15:05.309028+00:00
+Generated: 2026-06-28T12:27:58.448765+00:00
 
 The scanner uses one rule set for every LLM--harness pair and excludes user/system prompt text.
 
@@ -13,7 +13,7 @@ The scanner uses one rule set for every LLM--harness pair and excludes user/syst
 | gemini35flash | claude_code | 219 | 219 | 154 | 219 | 205 | 105 |
 | gemini35flash | codex | 219 | 219 | 108 | 132 | 114 | 114 |
 | gemini35flash | copilot_cli | 219 | 219 | 3 | 50 | 44 | 28 |
-| gemini35flash | opencode | 219 | 0 | 0 | 0 | 0 | 0 |
+| gemini35flash | opencode | 219 | 79 | 58 | 76 | 62 | 69 |
 | gpt55 | claude_code | 219 | 219 | 148 | 219 | 207 | 196 |
 | gpt55 | codex | 219 | 219 | 194 | 219 | 175 | 203 |
 | gpt55 | copilot_cli | 219 | 216 | 6 | 142 | 116 | 119 |
