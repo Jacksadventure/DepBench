@@ -1,0 +1,108 @@
+Hit:1 http://deb.debian.org/debian bullseye InRelease
+Hit:2 http://deb.debian.org/debian-security bullseye-security InRelease
+Hit:3 http://deb.debian.org/debian bullseye-updates InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.74.0-1.3+deb11u16).
+0 upgraded, 0 newly installed, 0 to remove and 90 not upgraded.
+downloading uv 0.9.7 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 16ms
+============================= test session starts ==============================
+platform linux -- Python 3.11.13, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 1 item
+
+../tests/test_state.py F                                                 [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_dependency_upgrade_fix __________________________
+
+    def test_dependency_upgrade_fix():
+        """Test that the dependency upgrade fix makes all tests pass."""
+        _apply_test_patch()
+    
+        result = subprocess.run(
+            'pytest tests/ext/test_applicationbuilder.py::TestApplicationBuilder::test_default_values tests/ext/test_applicationbuilder.py::TestApplicationBuilder::test_all_bot_args_custom tests/request/test_request.py::TestHTTPXRequestWithoutRequest::test_init -v',
+            shell=True,
+            cwd="/app",
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PATH": "/usr/local/bin:/usr/bin:/bin:" + os.environ.get("PATH", "")},
+            timeout=240,
+        )
+    
+>       assert result.returncode == 0, (
+            f"Test command failed with exit code {result.returncode}\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+E       AssertionError: Test command failed with exit code 1
+E         STDOUT:
+E          <tests.request.test_request.TestHTTPXRequestWithoutRequest object at 0x7f466c9cc910>
+E         monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f466ca85d50>
+E         proxy_argument = 'proxy_url'
+E         
+E             @pytest.mark.parametrize("proxy_argument", ["proxy", "proxy_url"])
+E             def test_init(self, monkeypatch, proxy_argument):
+E                 @dataclass
+E                 class Client:
+E                     timeout: object
+E                     proxy: object
+E                     limits: object
+E                     http1: object
+E                     http2: object
+E                     transport: object = None
+E             
+E                 monkeypatch.setattr(httpx, "AsyncClient", Client)
+E             
+E         >       request = HTTPXRequest()
+E         
+E         tests/request/test_request.py:449: 
+E         _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+E         telegram/request/_httpxrequest.py:178: in __init__
+E             self._client = self._build_client()
+E         _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+E         
+E         self = <telegram.request._httpxrequest.HTTPXRequest object at 0x7f466caf0960>
+E         
+E             def _build_client(self) -> httpx.AsyncClient:
+E                 # Starting with httpx 0.26.0, passing the `proxies` argument to `httpx.AsyncClient`
+E                 # emits a `DeprecationWarning` in favor of the new `proxy` argument. We still rely on
+E                 # `proxies` to keep supporting the full range of allowed values (str/Proxy/URL) across
+E                 # the httpx versions that we support, so we suppress that specific warning here.
+E                 with warnings.catch_warnings():
+E                     warnings.filterwarnings(
+E                         "ignore",
+E                         message="The 'proxies' argument is now deprecated.",
+E                         category=DeprecationWarning,
+E                     )
+E         >           return httpx.AsyncClient(**self._client_kwargs)  # type: ignore[arg-type]
+E         E           TypeError: TestHTTPXRequestWithoutRequest.test_init.<locals>.Client.__init__() got an unexpected keyword argument 'proxies'
+E         
+E         telegram/request/_httpxrequest.py:223: TypeError
+E         ============================== 5 failed in 0.56s ===============================
+E         
+E         STDERR:
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args='pytest tests/ext/test_applicationbuilder.py::TestApplicationBuilder::test_default_values tests/...uest.py:223: TypeError\n============================== 5 failed in 0.56s ===============================\n', stderr='').returncode
+
+/tests/test_state.py:48: AssertionError
+=========================== short test summary info ============================
+FAILED ../tests/test_state.py::test_dependency_upgrade_fix - AssertionError: ...
+============================== 1 failed in 1.31s ===============================

@@ -1,0 +1,81 @@
+Hit:1 http://deb.debian.org/debian bullseye InRelease
+Hit:2 http://deb.debian.org/debian-security bullseye-security InRelease
+Hit:3 http://deb.debian.org/debian bullseye-updates InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.74.0-1.3+deb11u16).
+0 upgraded, 0 newly installed, 0 to remove and 71 not upgraded.
+downloading uv 0.9.7 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+Downloading cpython-3.14.0-linux-x86_64-gnu (download) (33.7MiB)
+ Downloading cpython-3.14.0-linux-x86_64-gnu (download)
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 18ms
+============================= test session starts ==============================
+platform linux -- Python 3.14.0, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 1 item
+
+../tests/test_state.py F                                                 [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_dependency_upgrade_fix __________________________
+
+    def test_dependency_upgrade_fix():
+        """Test that the dependency upgrade fix makes all tests pass."""
+        _apply_test_patch()
+    
+        result = subprocess.run(
+            'go test -count=1 ./pkg/common/catalog/... ./pkg/agent/plugin/workloadattestor/docker/...',
+            shell=True,
+            cwd="/app",
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+    
+>       assert result.returncode == 0, (
+            f"Test command failed with exit code {result.returncode}\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+E       AssertionError: Test command failed with exit code 1
+E         STDOUT:
+E         ?   	github.com/spiffe/spire/pkg/common/catalog/testplugin	[no test files]
+E         --- FAIL: TestExternalPlugin (9.69s)
+E             catalog_test.go:429: Elapsed time to build plugin: 3.976s
+E             --- FAIL: TestExternalPlugin/not_a_plugin (0.21s)
+E                 catalog_test.go:372: 
+E                     	Error Trace:	/app/pkg/common/catalog/catalog_test.go:372
+E                     	            				/app/pkg/common/catalog/catalog_test.go:84
+E                     	Error:      	Error "failed to load plugin \"test\": failed to launch plugin: Unrecognized remote plugin message: \n\nThis usually means that the plugin is either invalid or simply\nneeds to be recompiled to support the latest protocol." does not contain "failed to load plugin \"test\": failed to launch plugin: Unrecognized remote plugin message: \nThis usually means\n  the plugin was not compiled for this architecture,\n  the plugin is missing dynamic-link libraries necessary to run,\n  the plugin is not executable by this process due to file permissions, or\n  the plugin failed to negotiate the initial go-plugin protocol handshake"
+E                     	Test:       	TestExternalPlugin/not_a_plugin
+E                     	Messages:   	load should have failed
+E         FAIL
+E         FAIL	github.com/spiffe/spire/pkg/common/catalog	9.775s
+E         ok  	github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/docker	0.292s
+E         ok  	github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/docker/cgroup	0.004s
+E         FAIL
+E         
+E         STDERR:
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args='go test -count=1 ./pkg/common/catalog/... ./pkg/agent/plugin/workloadattestor/docker/...', retu...ker\t0.292s\nok  \tgithub.com/spiffe/spire/pkg/agent/plugin/workloadattestor/docker/cgroup\t0.004s\nFAIL\n', stderr='').returncode
+
+/tests/test_state.py:48: AssertionError
+=========================== short test summary info ============================
+FAILED ../tests/test_state.py::test_dependency_upgrade_fix - AssertionError: ...
+============================== 1 failed in 15.63s ==============================
