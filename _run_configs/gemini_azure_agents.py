@@ -25,6 +25,13 @@ stock Harbor adapter with `--model=gemini-3.1-pro-preview`.
 Codex and Claude Code do not natively support GitHub Copilot's private endpoint;
 use the Azure/OpenAI-compatible wrappers below, or run a separate OpenAI/Anthropic
 compatible proxy backed by GitHub Copilot.
+
+Claude Code can also use `ClaudeCodeClaudeGPT` with a ClaudeGPT/Anthropic-
+compatible endpoint:
+
+  CLAUDEGPT_ANTHROPIC_BASE_URL
+  CLAUDEGPT_API_KEY
+  CLAUDEGPT_MODEL
 """
 
 from __future__ import annotations
@@ -205,6 +212,37 @@ class ClaudeCodeAzureGemini(_AzureGeminiMixin, ClaudeCode):
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
+
+
+class ClaudeCodeClaudeGPT(ClaudeCodeAzureGemini):
+    """Run Claude Code against a ClaudeGPT Anthropic-compatible endpoint."""
+
+    def _gemini_base_url(self) -> str:
+        base_url = (
+            self._get_env("CLAUDEGPT_ANTHROPIC_BASE_URL")
+            or self._get_env("CLAUDEGPT_BASE_URL")
+            or self._get_env("ANTHROPIC_BASE_URL")
+        )
+        if base_url:
+            return _strip_slash(base_url)
+        return super()._gemini_base_url()
+
+    def _gemini_token(self) -> str:
+        return (
+            self._get_env("CLAUDEGPT_API_KEY")
+            or self._get_env("CLAUDEGPT_AUTH_TOKEN")
+            or self._get_env("ANTHROPIC_API_KEY")
+            or self._get_env("ANTHROPIC_AUTH_TOKEN")
+            or super()._gemini_token()
+        )
+
+    def _gemini_model(self) -> str:
+        return (
+            self._get_env("CLAUDEGPT_MODEL")
+            or self._get_env("CLAUDEGPT_DEPLOYMENT")
+            or self._get_env("ANTHROPIC_MODEL")
+            or super()._gemini_model()
+        ).split("/")[-1]
 
 
 class CodexAzureGemini(_AzureGeminiMixin, CodexCloudGPT):
