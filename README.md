@@ -66,6 +66,7 @@ The tables below follow the numbers already documented in checked-in result file
 | OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.248** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
+| Copilot CLI | DeepSeek | v4-with-test219 | **0.174** | `harbor_benchmark/reports/copilot_deepseek_v4_with_test219_summary_2026-06-29.json` |
 | Claude Code | DeepSeek | v4-with-test219 | **0.164** | `harbor_benchmark/reports/claude_code_deepseek_fresh_v4_with_test219_summary_2026-06-29.json` |
 
 Claude Code GPT-5.5/Gemini rows are full 219-task Copilot API runs and supersede
@@ -120,6 +121,7 @@ The most meaningful completed current-dataset comparison already documented in-r
 | OpenCode | Gemini 3.5 Flash | **0.248** |
 | Copilot CLI | Gemini 3.5 Flash | **0.225** |
 | Claude Code | Gemini 3.5 Flash | **0.224** |
+| Copilot CLI | DeepSeek | **0.174** |
 | Claude Code | DeepSeek | **0.164** |
 
 ## Source map
@@ -142,3 +144,4 @@ The most meaningful completed current-dataset comparison already documented in-r
 - v4-with-test219 Claude Code Copilot API per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_results_2026-06-25.csv`
 - v4-with-test219 OpenCode Gemini rerun summary: `harbor_benchmark/reports/v4_with_test219_opencode_gemini_rerun_summary_2026-06-28.md`
 - v4-with-test219 Claude Code DeepSeek summary: `harbor_benchmark/reports/claude_code_deepseek_fresh_v4_with_test219_summary_2026-06-29.md`
+- v4-with-test219 Copilot DeepSeek summary: `harbor_benchmark/reports/copilot_deepseek_v4_with_test219_summary_2026-06-29.md`
