@@ -115,15 +115,25 @@ class CustomCodex(Artifacts, Hooked, HarborCodex):
 
     def _api_key(self) -> str:
         settings = self._settings()
-        return (
-            self._api_key_arg
-            or self._get_env("OPENAI_API_KEY")
+        configured_key = self._api_key_arg
+        env_key = (
+            self._get_env("OPENAI_API_KEY")
             or self._get_env("CODEX_API_KEY")
             or settings.get("OPENAI_API_KEY")
             or settings.get("ANTHROPIC_AUTH_TOKEN")
             or settings.get("ANTHROPIC_API_KEY")
-            or "dummy"
         )
+
+        if self._requires_openai_auth:
+            api_key = env_key or configured_key
+            if not api_key or api_key == "dummy":
+                raise ValueError(
+                    "CustomCodex requires a real OPENAI_API_KEY/CODEX_API_KEY "
+                    "when requires_openai_auth is true"
+                )
+            return api_key
+
+        return configured_key or env_key or "dummy"
 
     @staticmethod
     def _toml_bool(value: bool) -> str:
