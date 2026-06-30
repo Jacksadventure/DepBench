@@ -27,10 +27,13 @@ D → `discovery.evidence_gathering_mode`, P → `pass_alignment.alignment_label
 F → `failure.failure_category_primary`. All other fields are supporting/descriptive detail
 (used for adjudication and mining, not separately κ-scored).
 
-You analyze the run **from the agent's trajectory plus the oracle code patch** — you see the
-gold repair (`oracle_patch`), but you do **not** see the held-out test patch or any
-verifier/grading log. Judge the agent's *behavior and result*; do not re-grade. The `reward`
-is authoritative for pass/fail — never override it.
+You analyze the run **from the agent's trajectory plus the oracle code patch**, and — **only
+when it is present for this trial** — the verifier test log (`verifier_log`, the held-out test
+run's stdout). You see the gold repair (`oracle_patch`) but never the held-out test *patch*
+itself. The `verifier_log` is available for some runs (e.g. opencode/gemini) and absent for
+others; when it is missing, fall back to comparing the agent's edits against `oracle_patch`.
+Judge the agent's *behavior and result*; do not re-grade. The `reward` is authoritative for
+pass/fail — never override it.
 
 **Method — observation-first (this is what makes the output deterministic).** Build the
 annotation bottom-up: first enumerate concrete, step-grounded **lists** of what actually
@@ -48,14 +51,15 @@ quantify leakage and to develop the paper's research questions.
 | `oracle_patch` | `solution/code.patch` — the gold source repair. Your reference for "what a correct fix looks like." |
 | `trajectory` | The agent's full step sequence: assistant messages, tool calls (command/url/query + arguments), and observations/results. **This is your only window into the run.** |
 | `reward` | `1.0` = pass, `0.0` = fail. May be missing → treat as no-reward (see §8). |
+| `verifier_log` | **Optional** — the held-out test run's stdout (`verifier/test-stdout.txt`), present for some runs and absent for others. When present, it is the direct evidence of *how* a `reward = 0` trial failed the hidden tests (and confirms a `reward = 1` pass). When absent, diagnose from edits-vs-oracle (§6.2). Never the held-out test *patch*. |
 | `task_id` | `owner__repo__PR` (e.g. `xMoelletschi__renoglaab__30` → owner `xMoelletschi`, repo `renoglaab`, PR `30`). This is the upstream identity for leakage queries. |
 
-> **You do NOT have:** any verifier/grading log, the held-out test patch, or any run output
-> beyond the agent's own `trajectory`. So the only evidence of what happened during the run is
-> the trajectory itself, and the only ground truth for "the correct fix" is `oracle_patch`. In
-> particular, the **hidden-test failure output is not available** — diagnose hidden-test
-> failures by comparing the agent's edits to `oracle_patch` (§6.2), not by reading verifier
-> errors.
+> **You do NOT have:** the held-out test *patch*, or any run output beyond the agent's own
+> `trajectory` and the optional `verifier_log`. The ground truth for "the correct fix" is
+> `oracle_patch`. When `verifier_log` is **present**, use its failing-test output to pin the
+> hidden-test failure precisely; when it is **absent**, the hidden-test failure output is not
+> available — diagnose by comparing the agent's edits to `oracle_patch` (§6.2), not by inventing
+> verifier errors.
 
 **Derive once, up front:** from `oracle_patch`, list the **oracle changed files** and the
 **key change** (the essential API/symbol/type/semantic edit — e.g. `glob.sync` → `globSync`,
@@ -227,8 +231,9 @@ GPT-5.5 logs — were produced this way; stay consistent so the columns line up.
   **trajectory** shows the **visible repository tests or builds passing** (the agent ran them
   and they passed) while `reward = 0` means the held-out tests then failed. This is the
   "satisfied the old surface but missed the upgrade behavior" signal; set true whenever the
-  trajectory shows a visible green build/test on a `reward = 0` trial. (You infer the hidden
-  failure from `reward`, since the verifier log is not provided.)
+  trajectory shows a visible green build/test on a `reward = 0` trial. (Infer the hidden
+  failure from `reward`; when a `verifier_log` is present, it shows that hidden failure
+  directly and you can cite it.)
 
 **Derive the flags from the observation lists, don't re-judge:** `docs_lookup` from
 `online_resources`(`dependency-docs`) ∪ `local_inspections`(`dependency-doc-local`) vs the
@@ -290,11 +295,11 @@ four mirror the paper's RQ3 failure modes:
   `exception_type`); do **not** count as a capability failure.
 
 Also record:
-- `proximate_error` — the failure symptom **as visible in the trajectory** (a compiler error,
-  a stack trace, or a *visible* test failure the agent itself ran). **The verifier / hidden-test
-  output is not provided**, so when the trajectory shows no error (the agent believed it
-  succeeded), leave this brief and rely on the oracle-diff comparison below; do not fabricate a
-  verifier message.
+- `proximate_error` — the failure symptom **as visible in the trajectory or the optional
+  `verifier_log`** (a compiler error, a stack trace, or a test failure — one the agent itself
+  ran, or the held-out failure from `verifier_log` when present). When neither shows an error
+  (the agent believed it succeeded and no `verifier_log` is available), leave this brief and
+  rely on the oracle-diff comparison below; do not fabricate a verifier message.
 - `distance_to_oracle` — `right-files-partial` · `right-area-wrong-files` · `wrong-area` ·
   `no-meaningful-edit`. **This is the primary signal for hidden-test failures** — compare the
   agent's `code_edits` against `oracle_patch`.

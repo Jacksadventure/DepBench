@@ -17,13 +17,15 @@ This note is the *strategy / paper-linkage* layer; that protocol is what you act
 labelling agent. Keep them consistent.
 
 **Labelling-agent input bundle (per trial):** task description (`instruction.md`), the
-**oracle patch** (`solution/code.patch`), the `trajectory`, and the `reward`, plus the derived
-`task_id = owner__repo__PR` ground truth. **No verifier/grading log, no held-out test patch, no
-run output beyond the trajectory** — the trajectory is the only window into the run and
-`oracle_patch` is the only "correct fix" reference. Consequence: hidden-test failures are
-diagnosed by **agent-diff-vs-oracle** comparison, not by reading verifier errors; the
-`visible_then_hidden_overfit` signal is inferred from a visible-green build in the trajectory on
-a `reward = 0` trial. The labeller never re-grades (the `reward` is authoritative).
+**oracle patch** (`solution/code.patch`), the `trajectory`, the `reward`, plus the derived
+`task_id = owner__repo__PR` ground truth, and — **only when present for the run** — the
+verifier test log (`verifier_log.txt`, the held-out test stdout; available for opencode/gemini,
+absent elsewhere). **No held-out test *patch*, and no run output beyond the trajectory and the
+optional verifier log.** The trajectory is the primary window into the run and `oracle_patch` is
+the only "correct fix" reference. Consequence: hidden-test failures are pinned from
+`verifier_log.txt` when it is present, and otherwise diagnosed by **agent-diff-vs-oracle**
+comparison; the `visible_then_hidden_overfit` signal is inferred from a visible-green build in
+the trajectory on a `reward = 0` trial. The labeller never re-grades (the `reward` is authoritative).
 
 **Why P and F, and where they land in the paper:**
 - **P (pass alignment)** feeds **RQ2 (test quality / oracle strength)**: how many passes are
