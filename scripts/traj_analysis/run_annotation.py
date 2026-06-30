@@ -332,9 +332,11 @@ def main() -> int:
                 index["trials"][label][t["key"]]["skip_reason"] = skip
                 continue
             env = None
-            if label == "opencode" and not args.no_oc_isolate:
+            extra = ()
+            if label == "codex":
+                extra = codex_provider_retry_args()
+            elif label == "opencode" and not args.no_oc_isolate:
                 env = make_opencode_env(oc_state_root, t["key"])
-            extra = codex_provider_retry_args() if label == "codex" else ()
             specs.append(
                 RunSpec(
                     name=t["key"],
