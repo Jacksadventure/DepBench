@@ -7,5 +7,6 @@ Bumps `github.com/docker/docker` from 20.10.24+incompatible to 24.0.7+incompatib
 
 ## Constraints
 
+- **Do not access this task's upstream repository, pull request, commits, patches, or diffs.** Do not open, fetch, clone, search for, or otherwise inspect GitHub URLs for `determined-ai/determined` or this task's PR; rely only on the local checkout and general dependency documentation/release notes.
 - **Do not modify any test files.** The test suite is the evaluation oracle and will be re-applied verbatim before grading.
 - Restrict your changes to the project's source code so that the existing tests pass against the upgraded dependency.

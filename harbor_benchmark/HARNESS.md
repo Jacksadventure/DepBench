@@ -54,17 +54,38 @@ This document captures the **current Harbor harness and dataset state** so we ca
 
 Key invariant: the agent is graded against a **fixed test.patch**. Even if it modified the working tree, the verifier overlays test.patch right before running tests, so the oracle test set is identical across every trial. Under the current prebuilt-image setup, the dependency manifest patch is not baked into `/app` and is not visible to the agent; the agent must infer and perform the upgrade from the instruction.
 
-Task-repository access guard: before launching new benchmark jobs, run
-`python _run_configs/patch_harbor_task_repo_blocker.py` on the host Harbor
-installation. The patch makes every `BaseInstalledAgent` trial infer the current
-task's upstream GitHub `owner/repo` and install container-side guards before the
-agent starts solving. The guards block common shell access paths to **that exact
-task repository** (`git`, `curl`, `wget`, `gh`, GitHub API/raw/codeload URLs,
-and git remotes), while leaving other repositories, dependency documentation,
-release notes, and package registries reachable. Set
-`DEPBENCH_DISABLE_TASK_REPO_BLOCK=1` only for intentional bypass/debugging. This
-is a shell-tool guard, not a full MITM proxy; arbitrary custom HTTPS clients can
-only be blocked with stronger network mediation.
+Task-repository leakage guard: before launching new benchmark jobs, run these
+host-side patches on the local Harbor installation:
+
+```bash
+python _run_configs/patch_harbor_git_history_pruner.py
+python _run_configs/patch_harbor_task_repo_blocker.py
+python _run_configs/patch_harbor_agent_proxy_env.py
+```
+
+The git-history pruner runs after the task container starts but before the agent
+solves. It rewrites `/app/.git` to retain only a synthetic `snapshot` ref at the
+base commit, expires reflogs, and prunes unreachable objects, preventing agents
+from reading future repair commits out of local history. The task-repo blocker
+makes every `BaseInstalledAgent` trial infer the current task's upstream GitHub
+`owner/repo` and install container-side guards that block common shell access
+paths to **that exact task repository** (`git`, `curl`, `wget`, `gh`, GitHub
+API/raw/codeload URLs, and git remotes).
+
+For agent clients that honor HTTP(S) proxy variables, also start the conservative
+GitHub guard proxy and export its URL before running Harbor:
+
+```bash
+python _run_configs/depbench_github_guard_proxy.py --host 0.0.0.0 --port <free-port>
+export DEPBENCH_AGENT_PROXY_URL=http://172.100.216.1:<free-port>
+```
+
+Because HTTPS CONNECT hides URL paths without MITM, this proxy blocks high-risk
+GitHub hosts (`github.com`, `api.github.com`, `raw.githubusercontent.com`,
+`codeload.github.com`, and `patch-diff.githubusercontent.com`) rather than trying
+to path-filter only the task repo. Set `DEPBENCH_DISABLE_GIT_HISTORY_PRUNE=1`,
+`DEPBENCH_DISABLE_TASK_REPO_BLOCK=1`, or `DEPBENCH_DISABLE_AGENT_PROXY=1` only
+for intentional bypass/debugging.
 
 ---
 
