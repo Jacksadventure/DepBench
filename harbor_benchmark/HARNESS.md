@@ -332,9 +332,9 @@ For the 175 rescued tasks, `code.patch` and `test.patch` have been stripped of d
 ```bash
 nohup bash -c "
   export DOCKER_HOST=unix:///run/user/1900/docker.sock
-  export GH_TOKEN=\$(cat ~/.local/share/copilot-api/github_token)
-  export GITHUB_TOKEN=\$GH_TOKEN
-  export COPILOT_GITHUB_TOKEN=\$GH_TOKEN
+  export GH_TOKEN=<REDACTED_TOKEN>
+  export GITHUB_TOKEN=<REDACTED_TOKEN>
+  export COPILOT_GITHUB_TOKEN=<REDACTED_TOKEN>
   harbor run --config _run_configs/<config>.json
 " > harbor_jobs/<job>.stdout.log 2>&1 &
 ```
@@ -447,8 +447,8 @@ TOTAL :           45    109  154   29.2%
 - Post-audit current `tasks_v4` count: **219**. Ecosystem mix: npm/yarn 79 · Maven/Java 66 · Go 41 · Cargo/Rust 21 · Python 12.
 
 - Quality audit policy for imported tasks: keep only tasks with clean hidden-test paths, non-weak test deltas, and not solved by all three main GPT-5.5 agents (Copilot CLI, Codex, and OpenCode). Removed **38** imported tasks as weak/easy; retained **14** hard imports.
-- Full GPT-5.5 results for the current 219-task dataset: Codex **0.484** (106/219), Claude Code **0.452** (99/219, Copilot API route), Copilot CLI **0.454** (98/216 reward-bearing; 3 no-reward), OpenCode **0.434** (95/219). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`.
-- Full Gemini 3.5 Flash results for the current 219-task dataset: OpenCode **0.248** (54/218 reward-bearing; 1 no-reward, setup1200 base+resume rerun), Copilot CLI **0.225** (49/218 reward-bearing; 1 no-reward), Claude Code **0.224** (48/214 reward-bearing; 5 no-reward, Copilot API route). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`.
+- Full GPT-5.5 results for the current 219-task dataset after confirmed+both guarded replacement: Codex **0.384** (84/219), Claude Code **0.452** (99/219, Copilot API route), Copilot CLI **0.407** (88/216 reward-bearing; 3 no-reward), OpenCode **0.312** (68/218 reward-bearing; 1 no-reward). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`; replacement audit: `harbor_benchmark/reports/guarded_leak_replacement_audit_20260630.csv`.
+- Full Gemini 3.5 Flash results for the current 219-task dataset after confirmed+both guarded replacement: OpenCode **0.225** (49/218 reward-bearing; 1 no-reward), Claude Code **0.224** (48/214 reward-bearing; 5 no-reward, Copilot API route), Copilot CLI **0.205** (45/219 reward-bearing). Report: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`; replacement audit: `harbor_benchmark/reports/guarded_leak_replacement_audit_20260630.csv`.
 - Full Claude 4.8 results for the current 219-task dataset: Claude Code **0.463** (100/216 reward-bearing; 3 no-reward), Copilot CLI **0.461** (100/217 reward-bearing; 2 no-reward, BYOK provider mode), OpenCode **0.447** (98/219). Reports: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` and `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json`.
 - Codex non-GPT rows are excluded from the current comparison. Codex versions after v0.94.0 no longer support the chat-completions wire API (openai/codex#10157); this makes the Gemini Copilot-API route unavailable to current Codex, and the Claude 4.8 Codex run failed with provider-level tool message ordering errors under the responses wire API.
 - Historical Claude Code Maestro summaries from 2026-06-24 had auth/nonzero-exit reliability concerns and are superseded by the full 219-task Copilot API rows above.

@@ -1,8 +1,8 @@
 # Unified trajectory behavior scan
 
-Generated: 2026-06-28T14:29:14.926641+00:00
+Generated: 2026-07-01T00:07:41.113719+00:00
 
-The scanner uses one rule set for every LLM--harness pair and excludes user/system prompt text. Mean rows are arithmetic means across displayed harness rows, not pooled totals.
+The scanner uses one rule set for every LLM--harness pair and excludes user/system prompt text. Confirmed+both guarded rerun trajectories were substituted before this scan. Mean rows are arithmetic means over included harness rows with trajectories, not pooled counts.
 
 | LLM | Harness | Rows | With trajectory | Docs | API | Tests | BC hyp. |
 |---|---|---:|---:|---:|---:|---:|---:|
@@ -10,12 +10,12 @@ The scanner uses one rule set for every LLM--harness pair and excludes user/syst
 | claude48 | copilot_cli | 219 | 219 | 59 | 216 | 201 | 203 |
 | claude48 | opencode | 219 | 219 | 163 | 219 | 196 | 213 |
 | gemini35flash | claude_code | 219 | 219 | 154 | 219 | 205 | 105 |
-| gemini35flash | copilot_cli | 219 | 219 | 3 | 50 | 44 | 28 |
-| gemini35flash | opencode | 219 | 79 | 58 | 76 | 62 | 69 |
+| gemini35flash | copilot_cli | 219 | 219 | 2 | 54 | 44 | 32 |
+| gemini35flash | opencode | 219 | 79 | 55 | 70 | 56 | 62 |
 | gpt55 | claude_code | 219 | 219 | 148 | 219 | 207 | 196 |
-| gpt55 | codex | 219 | 219 | 194 | 219 | 175 | 203 |
-| gpt55 | copilot_cli | 219 | 216 | 6 | 142 | 116 | 119 |
-| gpt55 | opencode | 219 | 219 | 195 | 219 | 195 | 207 |
-| **claude48** | **mean** | 219.0 | 218.7 | 126.7 | 217.7 | 198.7 | 207.0 |
-| **gemini35flash** | **mean** | 219.0 | 172.3 | 71.7 | 115.0 | 103.7 | 67.3 |
-| **gpt55** | **mean** | 219.0 | 218.2 | 135.8 | 199.8 | 173.2 | 181.2 |
+| gpt55 | codex | 219 | 219 | 191 | 219 | 182 | 209 |
+| gpt55 | copilot_cli | 219 | 216 | 5 | 145 | 113 | 115 |
+| gpt55 | opencode | 219 | 218 | 161 | 190 | 177 | 182 |
+| gpt55 | Mean | 876 | 872 | 0.577 | 0.886 | 0.778 | 0.804 |
+| gemini35flash | Mean | 657 | 517 | 0.470 | 0.711 | 0.615 | 0.470 |
+| claude48 | Mean | 657 | 656 | 0.579 | 0.995 | 0.909 | 0.947 |

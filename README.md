@@ -56,16 +56,16 @@ The tables below follow the numbers already documented in checked-in result file
 
 | Agent | Model | Snapshot | Mean reward | Source |
 |---|---|---|---:|---|
-| Codex | GPT-5.5 | v4-with-test219 | **0.484** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Claude 4.8 | v4-with-test219 | **0.463** | `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` |
 | Copilot CLI | Claude 4.8 | v4-with-test219 | **0.461** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Claude Code | GPT-5.5 | v4-with-test219 | **0.452** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
-| Copilot CLI | GPT-5.5 | v4-with-test219 | **0.454** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | OpenCode | Claude 4.8 | v4-with-test219 | **0.447** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
-| OpenCode | GPT-5.5 | v4-with-test219 | **0.434** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
-| OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.248** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
-| Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Copilot CLI | GPT-5.5 | v4-with-test219 | **0.407** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Codex | GPT-5.5 | v4-with-test219 | **0.384** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | GPT-5.5 | v4-with-test219 | **0.312** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
+| Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.205** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | DeepSeek | v4-with-test219 | **0.174** | `harbor_benchmark/reports/copilot_deepseek_v4_with_test219_summary_2026-06-29.json` |
 | Claude Code | DeepSeek | v4-with-test219 | **0.164** | `harbor_benchmark/reports/claude_code_deepseek_fresh_v4_with_test219_summary_2026-06-29.json` |
 
@@ -79,6 +79,12 @@ v0.94.0 no longer support the chat-completions wire API
 (openai/codex#10157); this makes the Gemini Copilot-API route unavailable to
 current Codex, and the Claude 4.8 Codex run failed with provider-level tool
 message ordering errors under the responses wire API.
+
+Confirmed+agreement=both leakage reruns have been substituted into the affected
+v4-with-test219 rows. The replacement audit is
+`harbor_benchmark/reports/guarded_leak_replacement_audit_20260630.csv`; the
+combined rerun analysis is
+`harbor_benchmark/reports/guarded_leak_combined_rerun_summary_20260630.md`.
 
 ### Current clean witnessed baseline: v4-205
 
@@ -111,16 +117,16 @@ The most meaningful completed current-dataset comparison already documented in-r
 
 | Agent | Model | Mean reward |
 |---|---|---:|
-| Codex | GPT-5.5 | **0.484** |
 | Claude Code | Claude 4.8 | **0.463** |
 | Copilot CLI | Claude 4.8 | **0.461** |
 | Claude Code | GPT-5.5 | **0.452** |
-| Copilot CLI | GPT-5.5 | **0.454** |
 | OpenCode | Claude 4.8 | **0.447** |
-| OpenCode | GPT-5.5 | **0.434** |
-| OpenCode | Gemini 3.5 Flash | **0.248** |
-| Copilot CLI | Gemini 3.5 Flash | **0.225** |
+| Copilot CLI | GPT-5.5 | **0.407** |
+| Codex | GPT-5.5 | **0.384** |
+| OpenCode | GPT-5.5 | **0.312** |
+| OpenCode | Gemini 3.5 Flash | **0.225** |
 | Claude Code | Gemini 3.5 Flash | **0.224** |
+| Copilot CLI | Gemini 3.5 Flash | **0.205** |
 | Copilot CLI | DeepSeek | **0.174** |
 | Claude Code | DeepSeek | **0.164** |
 
