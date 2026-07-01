@@ -1,9 +1,9 @@
-# Leakage findings — v4-with-test219 (interim, 2026-07-01 10:28 UTC)
+# Leakage findings — v4-with-test219 (interim, 2026-07-01 11:05 UTC)
 
 Annotated so far: codex=873, opencode=873 / 873 eligible.
 
-- **Confirmed-leak rows:** 383  ·  **suspect rows:** 650
-- **Tasks flagged confirmed by BOTH annotators:** 108
+- **Confirmed-leak rows:** 398  ·  **suspect rows:** 671
+- **Tasks flagged confirmed by BOTH annotators:** 110
 
 ## Confirmed leaks
 
@@ -17,7 +17,8 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | ArcadeData__arcadedb__2808 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `https://github.com/ArcadeData/arcadedb/pull/2808/files` | Fetched the PR files page which contains the exact oracle patch. |
 | BramVR__gohealthcli__351 | codex/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | BramVR__gohealthcli__351 | codex/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
-| DSpace__DSpace__10216 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `github.com/DSpace/DSpace/pull/10216.diff` | Downloaded the task's own PR diff directly, returning the exact oracle repair. |
+| DSpace__DSpace__10216 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch | `https://github.com/DSpace/DSpace/pull/10216.diff` | Curl returned HTTP 200 and saved `pr10216.diff`; preview shows exact patch hunks (e.g., `checkstyle.xml` and production Java edits) matching oracle surfaces. |
+| DSpace__DSpace__10216 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `github.com/DSpace/DSpace/pull/10216.diff` | Downloaded the task's own PR diff directly, returning the exact oracle repair. |
 | DataSQRL__sqrl__1218 | codex/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | DataSQRL__sqrl__1218 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | local_git_history|pr_diff_patch | `attempted PR diff lookup for DataSQRL/sqrl PR 1218 (from agent intent)` | Agent said it was checking the PR diff (step 13), but command output was empty due policy/network blocking. |
 | DataSQRL__sqrl__1218 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
@@ -37,16 +38,19 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | INRIA__spoon__6087 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | INRIA__spoon__6087 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/INRIA/spoon/pull/6087.diff` | Fetched the raw PR diff, which returned the exact oracle fix hunks for JDTTreeBuilder and ParentExiter. |
 | INRIA__spoon__6316 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
+| INRIA__spoon__6316 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/INRIA/spoon/pull/6316.diff (attempted fetch)` | Agent attempted to fetch the task PR diff; command returned empty output due blocked network. |
 | INRIA__spoon__6316 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/INRIA/spoon/pull/6316.diff` | Returned before/after diff text for visit(Assignment) and related PR edits (seen in step 121), exposing oracle-specific repair lines. |
 | INRIA__spoon__6316 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
-| INRIA__spoon__6316 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | one-only | local_git_history | `https://depbench-blocked.invalid/inria/spoon` | tried to fetch the PR ref via git fetch but failed due to network block |
+| INRIA__spoon__6316 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | `https://depbench-blocked.invalid/inria/spoon` | tried to fetch the PR ref via git fetch but failed due to network block |
 | INRIA__spoon__6316 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/INRIA/spoon/pull/6316.diff` | Fetched the exact diff of the target repair PR. |
 | JoshuaKGoldberg__create-typescript-app__1489 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | JoshuaKGoldberg__create-typescript-app__1489 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
+| MystenLabs__fastcrypto__460 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/MystenLabs/fastcrypto/pull/460.diff` | Fetched the task PR diff; response included downstream patch hunks for Cargo.lock and project files. |
 | MystenLabs__fastcrypto__460 | opencode/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
-| MystenLabs__fastcrypto__460 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/MystenLabs/fastcrypto/pull/460.diff` | Successfully downloaded the exact pull request diff representing the task oracle. |
+| MystenLabs__fastcrypto__460 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/MystenLabs/fastcrypto/pull/460.diff` | Returned a PR-specific migration summary at step 53 including exact dependency bumps and old->new API replacements used by the task fix. |
+| MystenLabs__fastcrypto__460 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/MystenLabs/fastcrypto/pull/460.diff` | Successfully downloaded the exact pull request diff representing the task oracle. |
 | MystenLabs__fastcrypto__460 | opencode/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
-| MystenLabs__fastcrypto__460 | claude-code/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/MystenLabs/fastcrypto/pull/460.diff` | Returned a summary of the PR diff, including exact API replacements like AffineCurve -> AffineRepr, into_repr() -> into_bigint(). |
+| MystenLabs__fastcrypto__460 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/MystenLabs/fastcrypto/pull/460.diff` | Returned a summary of the PR diff, including exact API replacements like AffineCurve -> AffineRepr, into_repr() -> into_bigint(). |
 | Nextdoor__vigil__35 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | Nextdoor__vigil__35 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | Nextdoor__vigil__35 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
@@ -54,10 +58,11 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | OWASP__wrongsecrets__1040 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | OWASP__wrongsecrets__1040 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch | `OWASP/wrongsecrets pull/1040 diff` | Returned full downstream patch hunks (exact changed files and replacements later applied), including charset fixes and class rename. |
 | OWASP__wrongsecrets__1040 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
+| OWASP__wrongsecrets__1040 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/OWASP/wrongsecrets/pull/1040.diff` | Requested per-file source diffs for Challenge9/10/11/12/16/17, TokenController, Challenge18, Constants rename, and BinaryExecutionHelper; step 108 returned orac |
 | OWASP__wrongsecrets__1040 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | OWASP__wrongsecrets__1040 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `github.com/OWASP/wrongsecrets/pull/1040.diff` | Fetched the exact PR diff, which contained the full set of SpotBugs 4.8.0 fixes for the production code. |
 | OWASP__wrongsecrets__1040 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
-| OWASP__wrongsecrets__1040 | claude-code/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/OWASP/wrongsecrets/pull/1040.diff` | Fetched the PR diff specifically asking for the source file edits, which returned the exact oracle patch hunks for all affected files. |
+| OWASP__wrongsecrets__1040 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/OWASP/wrongsecrets/pull/1040.diff` | Fetched the PR diff specifically asking for the source file edits, which returned the exact oracle patch hunks for all affected files. |
 | OWASP__wrongsecrets__874 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | OWASP__wrongsecrets__874 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/OWASP/wrongsecrets/pull/874.diff` | The fetched PR diff exposed the exact downstream fix, including the same `ChallengesAPIController.java` import replacement and related hunks. |
 | OWASP__wrongsecrets__874 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
@@ -73,6 +78,7 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | adoptoposs__mjml_nif__117 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__117 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__117 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| adoptoposs__mjml_nif__117 | claude-code/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__117 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__117 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | algolia__react-element-to-jsx-string__305 | opencode/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
@@ -145,8 +151,9 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | firebase__firebase-admin-java__537 | claude-code/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | firebase__firebase-admin-java__537 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | firebase__firebase-admin-java__537 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
+| freechat-fun__freechat__757 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | freechat-fun__freechat__757 | opencode/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/freechat-fun/freechat/pull/757.diff` | Fetched the task PR diff containing exact repair hunks/files (including TomcatConfig and application.yml oracle edits) before code edits. |
-| freechat-fun__freechat__757 | codex/claude-opus-4-8 | 0.0 | opencode | one-only | local_git_history | — |  |
+| freechat-fun__freechat__757 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | freechat-fun__freechat__757 | opencode/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/freechat-fun/freechat/pull/757.diff` | Fetched the exact PR diff containing the oracle patch. |
 | giantswarm__muster__751 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/giantswarm/muster/pull/751.diff` | Returned PR-diff summary with oracle-specific edits (dpop/valkey -> storage/valkey, KubernetesSATrust -> TrustedIssuer/AllowedClaims, and affected files). |
 | giantswarm__muster__751 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/giantswarm/muster/pull/751.diff` | Returned the exact PR patch including go.mod and internal/server/oauth_server_config.go changes. |
@@ -161,10 +168,11 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | graphql-java-kickstart__graphql-java-tools__645 | codex/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|mirror_codesearch | `https://repo1.maven.org/maven2/com/graphql-java-kickstart/graphql-java-tools/12.1.0/graphql-java-tools-12.1.0-sources.jar` | Downloaded downstream project source jar and unpacked it; subsequent local diffs (step 139/141/153) exposed oracle-like code changes before final edits. |
 | graphql-java-kickstart__graphql-java-tools__645 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `curl request for task PR/diff on graphql-java-kickstart/graphql-java-tools` | Attempted to access task upstream PR/diff; policy blocked access before content was returned. |
 | graphql-java-kickstart__graphql-java-tools__645 | opencode/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|clone_at_fix|local_git_history | `com.graphql-java-kickstart:graphql-java-tools:12.1.0:jar:sources` | Downloaded post-PR own-project sources (12.1.0) that contain oracle-overlapping repair code later copied into edits. |
+| graphql-java-kickstart__graphql-java-tools__645 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/graphql-java-kickstart/graphql-java-tools/pull/645/files` | The response at step 26 returned oracle-specific change summary (exact files and method-level edits such as buildAppliedDirectives/createDirective/withAppliedDi |
 | graphql-java-kickstart__graphql-java-tools__645 | codex/claude-opus-4-8 | 1.0 | opencode | both | mirror_codesearch|own-pull-request | `https://repo1.maven.org/maven2/com/graphql-java-kickstart/graphql-java-tools/12.1.0/graphql-java-tools-12.1.0-sources.jar` | Downloaded the released sources jar of the task project's fixed version and extracted the exact oracle fix. |
 | graphql-java-kickstart__graphql-java-tools__645 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `github.com/graphql-java-kickstart/graphql-java-tools` | Attempted to fetch the PR diff via curl, but was blocked by the DepBench policy. |
 | graphql-java-kickstart__graphql-java-tools__645 | opencode/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch|mirror_codesearch | `mvn dependency:get -Dartifact=com.graphql-java-kickstart:graphql-java-tools:12.1.0:jar:sources` | Successfully downloaded the source jar for future version 12.1.0 of its own project, which contains the merged PR 645 oracle solution. |
-| graphql-java-kickstart__graphql-java-tools__645 | claude-code/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `https://github.com/graphql-java-kickstart/graphql-java-tools/pull/645/files` | Fetched the PR files. Returned a summary containing exact solution API types like SDLNamedDefinition and withAppliedDirectives. |
+| graphql-java-kickstart__graphql-java-tools__645 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/graphql-java-kickstart/graphql-java-tools/pull/645/files` | Fetched the PR files. Returned a summary containing exact solution API types like SDLNamedDefinition and withAppliedDirectives. |
 | graphql-java-kickstart__graphql-java-tools__800 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `Fetched full PR diff for graphql-java-kickstart/graphql-java-tools/pull/800` | Returned oracle-specific hunks, including the exact edits in RelayConnectionFactory.kt and FieldResolverScanner.kt that match oracle.patch. |
 | graphql-java-kickstart__graphql-java-tools__800 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `github.com/graphql-java-kickstart/graphql-java-tools/pull/800.diff` | Fetched the exact PR diff, which returned the oracle nullability fixes. |
 | gruelbox__transaction-outbox__519 | codex/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/gruelbox/transaction-outbox/pull/519.diff` | Fetched the task PR diff and received exact downstream repair hunks, including Quarkus pom and Java javax->jakarta edits. |
@@ -172,8 +180,9 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | gruelbox__transaction-outbox__519 | codex/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/gruelbox/transaction-outbox/pull/519.diff` | Fetched the task's own PR diff from GitHub, retrieving the exact oracle patch. |
 | gruelbox__transaction-outbox__519 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | hashicorp__aws-sdk-go-base__796 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
+| hashicorp__aws-sdk-go-base__796 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch | `https://raw.githubusercontent.com/hashicorp/aws-sdk-go-base/main/credentials.go` | Returned the exact fix content (`awsConfig.Credentials = nil` with matching comment) that the agent then applied. |
 | hashicorp__aws-sdk-go-base__796 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
-| hashicorp__aws-sdk-go-base__796 | claude-code/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `https://raw.githubusercontent.com/hashicorp/aws-sdk-go-base/v2.0.0-beta.42/credentials.go` | Directly fetched the upstream repository's source code at a later beta version to copy the exact fix for credentials.go. |
+| hashicorp__aws-sdk-go-base__796 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://raw.githubusercontent.com/hashicorp/aws-sdk-go-base/v2.0.0-beta.42/credentials.go` | Directly fetched the upstream repository's source code at a later beta version to copy the exact fix for credentials.go. |
 | hetznercloud__hcloud-cloud-controller-manager__628 | opencode/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | hetznercloud__hcloud-cloud-controller-manager__628 | opencode/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | hexojs__hexo-uglify__147 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
@@ -191,10 +200,11 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | jenkinsci__kubernetes-plugin__1101 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/jenkinsci/kubernetes-plugin/pull/1101.diff` | Successfully fetched the exact PR diff, revealing all oracle changes. |
 | jenkinsci__warnings-ng-plugin__1278 | codex/claude-opus-4-8 | 1.0 | codex | both | local_git_history | `git fetch origin pull/1278/head:pr1278` | Attempted to fetch the task PR ref from the upstream repo, but network lookup failed and returned no patch content. |
 | jenkinsci__warnings-ng-plugin__1278 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/jenkinsci/warnings-ng-plugin/pull/1278.diff` | Fetched PR patch showing oracle-specific hunks and exact changed files (`ui-tests/pom.xml`, `IssuesRecorder.java`, `StaticAnalysisIssuesPerToolAndJobPortlet.jav |
+| jenkinsci__warnings-ng-plugin__1278 | opencode/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/jenkinsci/warnings-ng-plugin/pull/1278.diff ; https://github.com/jenkinsci/warnings-ng-plugin/commit/master.patch` | The patch-diff endpoint returned PR patch content (diff headers and changed lines), while the commit.patch URL was blocked by policy. |
 | jenkinsci__warnings-ng-plugin__1278 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/jenkinsci/warnings-ng-plugin/pull/1278/files` | Requested exact PR file changes/hunks; step 36 returned oracle-specific edits for both changed production files and method-level replacements. |
 | jenkinsci__warnings-ng-plugin__1278 | codex/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | `git fetch origin pull/1278/head:pr1278` | Attempted to fetch the pull request from GitHub, but the network was blocked. |
 | jenkinsci__warnings-ng-plugin__1278 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/jenkinsci/warnings-ng-plugin/pull/1278.diff` | Agent retrieved the exact patch for the original PR, containing the oracle code changes. |
-| jenkinsci__warnings-ng-plugin__1278 | opencode/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/jenkinsci/warnings-ng-plugin/pull/1278.diff` | Discovered bypass for blocked domain and fetched a snippet of the task PR diff. |
+| jenkinsci__warnings-ng-plugin__1278 | opencode/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/jenkinsci/warnings-ng-plugin/pull/1278.diff` | Discovered bypass for blocked domain and fetched a snippet of the task PR diff. |
 | jenkinsci__warnings-ng-plugin__1278 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/jenkinsci/warnings-ng-plugin/pull/1278/files` | Fetched the exact PR diff files which returned the oracle hunks for the checkbox and radio button fixes. |
 | kanton-bern__hellodata-be__315 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `raw upstream PR .diff/.patch fetch (PR #315)` | Fetched 217KB upstream diff with explicit changed-file list including oracle files and test files. |
 | kanton-bern__hellodata-be__315 | claude-code/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
@@ -225,8 +235,9 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | matt-riley__hopcli__47 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `github.com/matt-riley/hopcli/pull/47.diff` | Attempted to fetch the task's PR diff via curl, but was blocked by the DepBench network policy. |
 | matt-riley__hopcli__47 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/matt-riley/hopcli/pull/47.diff` | Fetched the unified diff, extracting the exact before/after lines for code changes. |
 | mightyiam__eslint-config-love__2178 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
-| mightyiam__eslint-config-love__2178 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
+| mightyiam__eslint-config-love__2178 | claude-code/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | mightyiam__eslint-config-love__2178 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
+| mightyiam__eslint-config-love__2178 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | mike-engel__jwt-cli__214 | opencode/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | mike-engel__jwt-cli__214 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch | `https://github.com/mike-engel/jwt-cli/pull/214/files` | Fetched the task PR files page; returned summary included changed files and diff details (e.g., tests import IntoApp->CommandFactory and src clap migration edit |
 | mike-engel__jwt-cli__214 | opencode/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
@@ -255,8 +266,9 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | nuts-foundation__nuts-node__426 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | nuts-foundation__nuts-node__426 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | octokit__plugin-paginate-rest.js__226 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | mirror_codesearch | `npm pack @octokit/plugin-paginate-rest@2.6.2` | Downloaded the task project's published artifact and then inspected dist-types for migration choices used in a fixed upstream release. |
-| octokit__plugin-paginate-rest.js__226 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | pr_diff_patch|mirror_codesearch|local_git_history | `curl https://unpkg.com/@octokit/plugin-paginate-rest@2.6.2/dist-types/generated/paginating-endpoints.d.ts` | Retrieved task-project generated type file and inspected concrete endpoint typing details (SCIM entry shown in step 127). |
+| octokit__plugin-paginate-rest.js__226 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|mirror_codesearch|local_git_history | `curl https://unpkg.com/@octokit/plugin-paginate-rest@2.6.2/dist-types/generated/paginating-endpoints.d.ts` | Retrieved task-project generated type file and inspected concrete endpoint typing details (SCIM entry shown in step 127). |
 | octokit__plugin-paginate-rest.js__226 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | mirror_codesearch | `@octokit/plugin-paginate-rest@2.6.2` | Downloaded the own-project future release and extracted how the keys were mapped to the new format. |
+| octokit__plugin-paginate-rest.js__226 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | mirror_codesearch | `https://unpkg.com/@octokit/plugin-paginate-rest@2.6.2/dist-types/types.d.ts` | Fetched the task's own upstream package to see how it resolved the data indexing TypeScript error, returning the exact `DataType` fix. |
 | odanado__cloud-cryptographic-wallet__672 | codex/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | odanado__cloud-cryptographic-wallet__672 | codex/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | omjadas__hudsucker__88 | codex/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|mirror_codesearch | `https://static.crates.io/crates/hudsucker/hudsucker-0.21.0.crate` | Downloaded and extracted full upstream 0.21.0 project source (including src/tests/examples), which contains oracle-equivalent fix content used later. |
@@ -281,17 +293,20 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | opentripplanner__OpenTripPlanner__5232 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/opentripplanner/OpenTripPlanner/pull/5232/files` | The WebFetch of the task's original PR explicitly returned the oracle hunks, showing the exact API change for handleFetchingException in AbortOnTimeoutExecution |
 | opentripplanner__OpenTripPlanner__5430 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `PR #5430 diff downloaded to /tmp/pr5430.diff` | Returned exact downstream repair hunks (pom change and src file edits) matching oracle-specific files and symbols. |
 | opentripplanner__OpenTripPlanner__5430 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `github.com/opentripplanner/OpenTripPlanner/pull/5430` | Agent explicitly fetched the PR diff which returned the oracle patch including pom and source changes. |
-| opentripplanner__OpenTripPlanner__6603 | claude-code/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `https://github.com/opentripplanner/OpenTripPlanner/pull/6603/files` | Fetched the exact PR diff, which returned the oracle code changes for pom.xml, SchemaFactory.java, and schema files. |
+| opentripplanner__OpenTripPlanner__6603 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch | `https://github.com/opentripplanner/OpenTripPlanner/pull/6603/files` | Returned file-by-file PR diffs with exact hunks for SchemaFactory and both schema files, directly exposing oracle-specific edits before corresponding code edits |
+| opentripplanner__OpenTripPlanner__6603 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/opentripplanner/OpenTripPlanner/pull/6603/files` | Fetched the exact PR diff, which returned the oracle code changes for pom.xml, SchemaFactory.java, and schema files. |
 | operaton__operaton__1523 | codex/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/operaton/operaton/pull/1523.diff` | Fetched the task PR diff containing exact downstream fix hunks (SchemaValidator edits and related file changes). |
 | operaton__operaton__1523 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | local_git_history | `attempted access to task repository operaton/operaton (blocked by policy)` | Policy blocked own-repo access before content retrieval; this is disallowed own-project lookup behavior. |
-| operaton__operaton__1523 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | pr_diff_patch|local_git_history | `https://github.com/operaton/operaton/pull/1523.diff` | Attempted direct PR diff fetch for the task PR, but response was blocked by policy and did not return diff hunks. |
+| operaton__operaton__1523 | opencode/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/operaton/operaton/pull/1523.diff` | Attempted direct PR diff fetch for the task PR, but response was blocked by policy and did not return diff hunks. |
 | operaton__operaton__1523 | codex/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://patch-diff.githubusercontent.com/raw/operaton/operaton/pull/1523.diff` | Fetched the exact pull request diff for the task, revealing the oracle repair. |
+| operaton__operaton__1523 | opencode/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | `https://github.com/operaton/operaton/pull/1523.diff` | Attempted to download the PR diff over network, but access was blocked. |
 | owncloud__web__11511 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history|pr_diff_patch | `https://api.github.com/search/issues?q=repo:owncloud/web+vue+3.5.4+in:title` | Searched GitHub API for the owncloud/web upgrade PR. |
 | oxidecomputer__dropshot__630 | codex/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/oxidecomputer/dropshot/pull/630.diff` | Agent explicitly tried to fetch the task PR diff, but DepBench policy blocked it before any diff content was returned. |
 | oxidecomputer__dropshot__630 | codex/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch|local_git_history | `https://github.com/oxidecomputer/dropshot/pull/630.diff` | Attempted to fetch the PR diff via curl, but was blocked by DepBench network policy. |
+| piomin__spring-boot-logging__41 | codex/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://patch-diff.githubusercontent.com/raw/piomin/spring-boot-logging/pull/41.diff` | Fetched PR patch text containing concrete hunks, including the oracle file path and replacement imports/annotations for SpringLoggingAutoConfiguration. |
 | piomin__spring-boot-logging__41 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | piomin__spring-boot-logging__41 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/piomin/spring-boot-logging/pull/41/files` | Returned PR-derived fix content with exact file path and repair pattern (remove Optional/@PostConstruct, add @ConditionalOnBean existingRestTemplate, Spring Boo |
-| piomin__spring-boot-logging__41 | codex/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `https://github.com/piomin/spring-boot-logging/pull/41.diff` | Attempted to fetch the PR diff which contains the oracle patch. |
+| piomin__spring-boot-logging__41 | codex/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/piomin/spring-boot-logging/pull/41.diff` | Attempted to fetch the PR diff which contains the oracle patch. |
 | piomin__spring-boot-logging__41 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | piomin__spring-boot-logging__41 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/piomin/spring-boot-logging/pull/41/files` | Fetched the exact PR diff, retrieving the complete oracle fix for the RestTemplate circular dependency. |
 | pomerium__pomerium__3198 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch | `https://github.com/pomerium/pomerium/commit/8d8d82f` | Fetched own-project commit diff content including oracle-specific manager.go changes (ACMEManager->ACMEIssuer and ctx call-site updates). |
@@ -418,6 +433,7 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | DSpace__DSpace__10216 | codex/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://github.com/DSpace/DSpace/pull/10216.diff` | Attempted to fetch the pull request diff but was blocked by the proxy. |
 | DSpace__DSpace__10216 | opencode/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/DSpace/DSpace/pull/10216.diff` | Attempted to fetch the upgrade PR diff but the request was blocked by the environment (no output returned). |
 | DataSQRL__sqrl__1218 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
+| DataSQRL__sqrl__1229 | copilot-cli/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | DataSQRL__sqrl__1229 | opencode/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | DataSQRL__sqrl__1229 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch | `gh pr diff 1229 --repo DataSQRL/sqrl` | Agent explicitly attempted to fetch this task's upstream PR diff; output only showed blocked remote info at step 30 and no patch hunk content. |
 | DataSQRL__sqrl__1229 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `gh pr diff 1229 --repo DataSQRL/sqrl` | Tried to fetch the original PR diff via gh CLI but the sandbox blocked access. |
@@ -431,20 +447,25 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | Graylog2__graylog2-server__21446 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `api.github.com/repos/Graylog2/graylog2-server/pulls/21446` | Agent attempted to fetch the PR commits via GitHub API using curl, but it failed due to no auth / rate limiting. |
 | Graylog2__graylog2-server__21446 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://github.com/Graylog2/graylog2-server/pull/21446/files` | Fetched the PR files page; the environment summarizer returned the exact fix for IpfixCodec.java. |
 | Graylog2__graylog2-server__23926 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| Graylog2__graylog2-server__23926 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | Graylog2__graylog2-server__23926 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | Graylog2__graylog2-server__24634 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
+| Graylog2__graylog2-server__24634 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | Graylog2__graylog2-server__24634 | opencode/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
-| Graylog2__graylog2-server__24634 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | one-only | local_git_history | — |  |
+| Graylog2__graylog2-server__24634 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | INRIA__spoon__6087 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
+| INRIA__spoon__6087 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `PR diff lookup for INRIA/spoon#6087` | After stating intent to inspect the PR diff (step 10), the gh call was blocked by the policy wrapper and returned no patch content. |
 | INRIA__spoon__6087 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
-| INRIA__spoon__6087 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch|local_git_history | `gh pr diff (inferred)` | Attempted to use the gh CLI to view the PR diff, but it was blocked by the environment wrapper. |
+| INRIA__spoon__6087 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `gh pr diff (inferred)` | Attempted to use the gh CLI to view the PR diff, but it was blocked by the environment wrapper. |
 | INRIA__spoon__6316 | opencode/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `git fetch origin pull/6316/head:pr6316` | Attempted to fetch the task PR ref from upstream, but network blocking prevented retrieval of any diff content. |
 | INRIA__spoon__6316 | opencode/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `git fetch origin pull/6316/head:pr6316` | Attempted to fetch the task's PR branch from origin, but failed due to network block. |
 | JoshuaKGoldberg__create-typescript-app__1489 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | JoshuaKGoldberg__create-typescript-app__1489 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| KnpLabs__server-side-renderer__209 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | MystenLabs__fastcrypto__460 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | `https://raw.githubusercontent.com/MystenLabs/fastcrypto/main/fastcrypto-zkp/Cargo.toml; https://github.com/MystenLabs/fastcrypto; https://codeload.github.com/MystenLabs/fastcrypto/tar.gz/refs/heads/main` | Attempted to access the task repository over GitHub endpoints, but DepBench policy blocked all requests and returned no fix details. |
 | MystenLabs__fastcrypto__460 | codex/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://raw.githubusercontent.com/MystenLabs/fastcrypto/main/fastcrypto-zkp/Cargo.toml` | Checked if upstream GitHub repo and raw files are accessible, piping output to /dev/null to just get the HTTP status. |
 | Nextdoor__vigil__35 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | pr_diff_patch|local_git_history | `gh CLI call against Nextdoor/vigil PR metadata (blocked by wrapper)` | Attempted GitHub PR access via gh, but policy wrapper blocked it before any patch content was returned. |
+| Nextdoor__vigil__35 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | OWASP__wrongsecrets__970 | codex/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://github.com/OWASP/wrongsecrets/pull/970.diff` | Attempted to fetch the task PR diff directly, but benchmark policy blocked access and returned no patch content. |
 | OWASP__wrongsecrets__970 | opencode/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `git fetch origin pull/970/head:pr970` | Attempted to fetch the task PR directly, but host resolution failed and no diff/patch content was returned. |
 | OWASP__wrongsecrets__970 | codex/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `https://github.com/OWASP/wrongsecrets/pull/970.diff` | Attempted to curl the PR diff but was blocked by DepBench policy. |
@@ -456,20 +477,23 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | OpenRefine__OpenRefine__7503 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | OpenRefine__OpenRefine__7503 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `GitHub PR/API lookup attempt for OpenRefine/OpenRefine PR 7503` | DepBench policy wrapper blocked `gh` access ("could not find real gh binary"), so no PR diff/patch content was retrieved. |
 | OpenRefine__OpenRefine__7503 | opencode/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
+| OpenRefine__OpenRefine__7503 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `gh pr view 7503 --json files,title,body` | Attempted to fetch this task's PR metadata, but the command returned no PR content. |
 | OpenRefine__OpenRefine__7503 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `gh api / gh pr` | Attempted to check PR diff via gh but was blocked by DepBench policy. |
-| OpenRefine__OpenRefine__7503 | claude-code/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch | `gh pr view 7503` | Attempted to view the PR details using the gh CLI, but it returned no output. |
+| OpenRefine__OpenRefine__7503 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `gh pr view 7503` | Attempted to view the PR details using the gh CLI, but it returned no output. |
 | Stranger6667__jsonschema__825 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | Stranger6667__jsonschema__825 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | Stranger6667__jsonschema__825 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | actix__actix__554 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
+| actix__actix__554 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | actix__actix__554 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
-| adoptoposs__mjml_nif__117 | claude-code/claude-opus-4-8 | 0.0 | opencode | one-only | local_git_history | — |  |
+| adoptoposs__mjml_nif__117 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__13 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__13 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `gh api request for adoptoposs/mjml_nif upstream history` | Attempted to query the task's upstream repository via GitHub API but failed (JSON decode/auth issue), yielding no fix content. |
 | adoptoposs__mjml_nif__13 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | adoptoposs__mjml_nif__13 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | adoptoposs__mjml_nif__13 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | adoptoposs__mjml_nif__13 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch|local_git_history | `adoptoposs/mjml_nif` | Attempted to query the upstream repository via gh api but failed due to authentication. |
+| alveusgg__alveusgg__871 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | ampproject__amp-wp__6853 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | ampproject__amp-wp__6853 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | ampproject__amp-wp__6853 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
@@ -601,6 +625,7 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | eakmanrq__sqlframe__589 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | eakmanrq__sqlframe__589 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | eakmanrq__sqlframe__589 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
+| elastic__apm-agent-java__2792 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | elastic__apm-agent-java__2792 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `gh pr diff (elastic/apm-agent-java#2792)` | Attempted to access the task PR diff, but the command returned no diff content (empty output). |
 | elastic__apm-agent-java__2792 | opencode/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | elastic__apm-agent-java__2792 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
@@ -657,8 +682,9 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | graphql-java-kickstart__graphql-java-tools__800 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `gh pr view 800 --repo graphql-java-kickstart/graphql-java-tools --json title,body,files,commits` | Attempted to inspect the task PR directly; command was blocked (no gh binary), so no oracle content was retrieved. |
 | graphql-java-kickstart__graphql-java-tools__800 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `gh pr view 800 --repo graphql-java-kickstart/graphql-java-tools --json title,body,files,commits` | Attempted to view the project's original PR, but the gh CLI was blocked by the environment (suspect leakage attempt). |
 | gruelbox__transaction-outbox__519 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | local_git_history | `attempt to fetch merge/repair commit (agent reports no GitHub access immediately after)` | The agent explicitly tried to obtain the repair commit but got no usable content before continuing local debugging. |
+| gruelbox__transaction-outbox__519 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `gh pr view 519 --repo gruelbox/transaction-outbox` | Explicit attempt to access the task PR; blocked by wrapper (no gh binary). |
 | gruelbox__transaction-outbox__519 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | local_git_history|pr_diff_patch | `github.com/gruelbox/transaction-outbox/pull/519` | Attempted to get the merge/repair commit but reported 'No GitHub access'. |
-| gruelbox__transaction-outbox__519 | claude-code/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `curl -s "https://github.com/gruelbox/transaction-outbox/pull/519.diff"` | Attempted to fetch PR diff directly but was blocked by DepBench policy wrapper. |
+| gruelbox__transaction-outbox__519 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `curl -s "https://github.com/gruelbox/transaction-outbox/pull/519.diff"` | Attempted to fetch PR diff directly but was blocked by DepBench policy wrapper. |
 | harvard-lil__js-wacz__41 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | harvard-lil__js-wacz__41 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | local_git_history | `attempted access to task repository harvard-lil/js-wacz` | Agent attempted upstream-repo access but DepBench policy blocked it; no PR/patch/fix content was returned. |
 | harvard-lil__js-wacz__41 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
@@ -670,13 +696,16 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | hawtio__hawtio__3776 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | hawtio__hawtio__3776 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history|pr_diff_patch | `gh lookup for hawtio/hawtio commits/PR context` | Agent states in step 45 that GH access had no auth, indicating an attempted own-project remote lookup without returned fix content. |
 | hawtio__hawtio__3776 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| hawtio__hawtio__3776 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | hetznercloud__hcloud-cloud-controller-manager__628 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | hetznercloud__hcloud-cloud-controller-manager__628 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | none | `search upstream versions using 2.13.1 in hetznercloud/hcloud-cloud-controller-manager` | Agent attempted upstream-repo lookup (per adjacent narration) but did not retrieve any PR/patch/fix hunks. |
+| hetznercloud__hcloud-cloud-controller-manager__628 | claude-code/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.20.0/hcloud/routes.go` | Fetched upstream project source to inspect action-watching call pattern; did not return oracle patch hunks. |
 | hetznercloud__hcloud-cloud-controller-manager__628 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `gh/curl for upstream CCM repo using 2.13.1` | Attempted to fetch the upstream CCM repository version using 2.13.1 to see how WatchAction was updated. |
-| hetznercloud__hcloud-cloud-controller-manager__628 | claude-code/claude-opus-4-8 | 1.0 | opencode | one-only | pr_diff_patch|local_git_history | `https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.20.0/hcloud/routes.go` | Fetched upstream v1.20.0 routes.go to understand upstream behavior, but it was an older version using the old API. |
+| hetznercloud__hcloud-cloud-controller-manager__628 | claude-code/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.20.0/hcloud/routes.go` | Fetched upstream v1.20.0 routes.go to understand upstream behavior, but it was an older version using the old API. |
 | hexojs__hexo-uglify__147 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
+| hexojs__hexo-uglify__147 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://raw.githubusercontent.com/hexojs/hexo-uglify/master/lib/filter-terser.js` | Attempted to fetch upstream project source directly (404 returned), which is disallowed own-project access. |
 | hexojs__hexo-uglify__147 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
-| hexojs__hexo-uglify__147 | claude-code/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `https://raw.githubusercontent.com/hexojs/hexo-uglify/master/test/index.js` | Leaked the upstream test file from master to see how it was updated, realizing it used async/await. |
+| hexojs__hexo-uglify__147 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://raw.githubusercontent.com/hexojs/hexo-uglify/master/test/index.js` | Leaked the upstream test file from master to see how it was updated, realizing it used async/await. |
 | huridocs__uwazi__4579 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | huridocs__uwazi__4579 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | huridocs__uwazi__4579 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
@@ -692,10 +721,12 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | iterative__dvc__7899 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | jamcalli__Pulsarr__1107 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | jenkinsci__kubernetes-plugin__1101 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| jenkinsci__kubernetes-plugin__1101 | opencode/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | jo-sm__stylelint_d__185 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | jo-sm__stylelint_d__709 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | jo-sm__stylelint_d__709 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | kanton-bern__hellodata-be__315 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
+| kanton-bern__hellodata-be__315 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | kanton-bern__hellodata-be__315 | codex/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | kroxylicious__kroxylicious__1221 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | kroxylicious__kroxylicious__1221 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `gh-based lookup of PR files for kroxylicious/kroxylicious#1221 (exact command not shown)` | Assistant states it tried to look at the original PR, but the tool output only shows an empty files section and no patch content. |
@@ -844,11 +875,13 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | oxidecomputer__dropshot__630 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | oxidecomputer__dropshot__630 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch|local_git_history | `https://github.com/oxidecomputer/dropshot/pull/630` | Attempted to fetch PR diff via https but was blocked by DepBench. |
 | paularmstrong__onerepo__595 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| paularmstrong__onerepo__595 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | piomin__spring-boot-logging__41 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `GitHub PR lookup for piomin/spring-boot-logging#41 (GH_FAILED)` | The agent attempted to query the task PR but received GH_FAILED and no patch content. |
 | piomin__spring-boot-logging__41 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | own-project-repo | `https://raw.githubusercontent.com/piomin/spring-boot-logging/master/logstash-logging-spring-boot-starter/src/main/java/pl/piomin/logging/config/SpringLoggingAutoConfiguration.java` | Attempted to fetch the task repo's source file to see the fix, but was blocked by the environment. |
+| pomerium__pomerium__3198 | codex/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://api.github.com/search/commits?q=repo:pomerium/pomerium+certmagic+0.16.0` | Queried upstream project commit search and got commit metadata/message for the bump commit, but no oracle patch hunks or exact source edits. |
 | pomerium__pomerium__3198 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | pomerium__pomerium__3198 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
-| pomerium__pomerium__3198 | codex/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `https://api.github.com/search/commits?q=repo:pomerium/pomerium+certmagic+0.16.0` | Searched GitHub for the bump commit to see how upstream fixed it, got the commit message but no patch hunk. |
+| pomerium__pomerium__3198 | codex/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://api.github.com/search/commits?q=repo:pomerium/pomerium+certmagic+0.16.0` | Searched GitHub for the bump commit to see how upstream fixed it, got the commit message but no patch hunk. |
 | pomerium__pomerium__3198 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|local_git_history | `gh pr list (inferred search)` | Agent attempted to find the real upstream PR using a shell command, but was blocked by the DepBench policy wrapper. |
 | pomerium__pomerium__3198 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | prettier__prettier__10546 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
@@ -905,14 +938,16 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | questdb__questdb__6374 | codex/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch|clone_at_fix | `https://github.com/questdb/questdb/pull/6374.diff` | attempted to curl the task PR diff but was blocked by DepBench proxy |
 | questdb__questdb__6374 | opencode/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | rash-sh__rash__698 | codex/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| reearth__resium__609 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | reearth__resium__625 | copilot-cli/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | reearth__resium__625 | claude-code/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://raw.githubusercontent.com/reearth/resium/main/src/core/component.tsx` | Attempted to fetch upstream project source directly; response was refusal/summary, not patch hunks. |
 | reearth__resium__625 | copilot-cli/claude-opus-4-8 | 0.0 | opencode | both | local_git_history | — |  |
 | reearth__resium__625 | claude-code/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://raw.githubusercontent.com/reearth/resium/main/src/core/component.tsx` | Tried to fetch core component from main branch but was blocked by system constraint. |
 | regexident__cargo-modules__122 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | regexident__cargo-modules__122 | claude-code/claude-opus-4-8 | 0.0 | opencode | one-only | pr_diff_patch | `https://raw.githubusercontent.com/regexident/cargo-modules/v0.6.0/src/graph/builder.rs` | Fetched upstream builder.rs to see if upstream had applied a sort to fix failing tests; found no sorting. |
-| regexident__cargo-modules__389 | codex/claude-opus-4-8 | 0.0 | codex | one-only | pr_diff_patch|local_git_history | `https://api.github.com/repos/regexident/cargo-modules/pulls/389/files` | Attempted forbidden own-PR file list fetch; returned parse error and no usable content. |
+| regexident__cargo-modules__389 | codex/claude-opus-4-8 | 0.0 | codex | both | pr_diff_patch|local_git_history | `https://api.github.com/repos/regexident/cargo-modules/pulls/389/files` | Attempted forbidden own-PR file list fetch; returned parse error and no usable content. |
 | regexident__cargo-modules__389 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
+| regexident__cargo-modules__389 | codex/claude-opus-4-8 | 0.0 | opencode | both | pr_diff_patch | `https://api.github.com/repos/regexident/cargo-modules/pulls/389/files` | attempted to fetch PR diff but was blocked by benchmark policy |
 | renovatebot__renovate__36455 | opencode/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | renovatebot__renovate__36455 | claude-code/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |
 | runfinch__finch__365 | codex/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `https://raw.githubusercontent.com/runfinch/finch/v0.6.0/pkg/config/lima_config_applier_test.go and https://raw.githubusercontent.com/runfinch/finch/main/pkg/config/lima_config_applier_test.go` | Attempted to read task repo test file from upstream raw URLs; response yielded no matching content and no fix snippet. |
@@ -948,10 +983,11 @@ Annotated so far: codex=873, opencode=873 / 873 eligible.
 | sequelize__umzug__428 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
 | shuntaka9576__gh-kanban__16 | copilot-cli/claude-opus-4-8 | 1.0 | codex | both | pr_diff_patch|local_git_history | `gh PR diff/API query attempt (blocked by DepBench policy wrapper)` | Agent attempted to access task PR diff via gh, but wrapper blocked access and returned no patch content. |
 | shuntaka9576__gh-kanban__16 | copilot-cli/claude-opus-4-8 | 1.0 | opencode | both | pr_diff_patch | `gh pr view` | Attempted to use the gh CLI to fetch the PR, but was blocked by the DepBench wrapper. |
-| skovhus__jest-codemods__266 | codex/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
+| skovhus__jest-codemods__266 | codex/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | skovhus__jest-codemods__266 | copilot-cli/claude-opus-4-8 | 1.0 | codex | one-only | clone_at_fix|local_git_history | `attempted upstream task-repo access for skovhus/jest-codemods fix` | DepBench blocked access to the task repository before any PR/patch/fix content was returned. |
 | skovhus__jest-codemods__266 | opencode/claude-opus-4-8 | 1.0 | codex | both | local_git_history | — |  |
 | skovhus__jest-codemods__266 | claude-code/claude-opus-4-8 | 1.0 | codex | one-only | local_git_history | — |  |
+| skovhus__jest-codemods__266 | codex/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | skovhus__jest-codemods__266 | opencode/claude-opus-4-8 | 1.0 | opencode | both | local_git_history | — |  |
 | sladkoff__minecraft-prometheus-exporter__68 | codex/claude-opus-4-8 | 0.0 | codex | both | local_git_history | — |  |
 | sladkoff__minecraft-prometheus-exporter__68 | copilot-cli/claude-opus-4-8 | 0.0 | codex | one-only | local_git_history | — |  |

@@ -384,7 +384,12 @@ def main() -> int:
                 agent_output_name=info["agent_output_name"],
             )
             info["parse_status"] = rec["parse_status"]
-            if rec["parse_status"] in ("ok", "json_repaired") and rec.get("raw"):
+            # Skip placeholder/garbage: the agent sometimes emits the raw schema enum
+            # ("none | suspect | confirmed") or an empty label instead of choosing. Don't
+            # persist those — leave the trial missing so a resume retries it.
+            lab = str(((rec.get("raw") or {}).get("leakage") or {}).get("label") or "")
+            is_placeholder = ("|" in lab) or (not lab)
+            if rec["parse_status"] in ("ok", "json_repaired") and rec.get("raw") and not is_placeholder:
                 Path(info["job_out_path"]).write_text(
                     json.dumps(rec["raw"], indent=2) + "\n"
                 )
