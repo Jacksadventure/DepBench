@@ -69,7 +69,8 @@ def main() -> int:
     args = ap.parse_args()
     agents = [a.strip() for a in args.agents.split(",") if a.strip()]
 
-    trials = [t for t in R.discover_trials([args.jobs_glob]) if t["meta"]["has_trajectory"]]
+    globs = [g.strip() for g in args.jobs_glob.split(",") if g.strip()]
+    trials = [t for t in R.discover_trials(globs) if t["meta"]["has_trajectory"]]
     data = {a: load(a, trials) for a in agents}
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 

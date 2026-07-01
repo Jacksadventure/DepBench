@@ -31,6 +31,7 @@ import run_annotation as R  # noqa: E402
 
 AGENTS = ["codex", "opencode"]
 SCREEN = {"codex": "annot_gpt", "opencode": "annot_gemini"}
+DEFAULT_GLOB = "harbor_jobs/v4_withtest219*"
 
 
 def harvest(agent: str, trials: list[dict]) -> int:
@@ -64,11 +65,11 @@ def live(agent: str) -> bool:
     return f"--agents {agent}" in r.stdout
 
 
-def relaunch(agent: str) -> str:
-    tag = f"auto_{agent}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+def relaunch(agent: str, glob: str, conc: int, tag_prefix: str) -> str:
+    tag = f"{tag_prefix}_{agent}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     log = REPO_ROOT / "jobs" / f"trajannot_{agent}_{tag}.log"
     cmd = (f"python3 scripts/traj_analysis/run_annotation.py --agents {agent} "
-           f"--concurrency 4 --tag {tag} > {log} 2>&1")
+           f"--concurrency {conc} --tag {tag} --jobs-glob '{glob}' > {log} 2>&1")
     subprocess.run(["screen", "-dmS", SCREEN[agent], "bash", "-c", cmd], cwd=REPO_ROOT, check=True)
     return tag
 
@@ -76,15 +77,20 @@ def relaunch(agent: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--glob", default=DEFAULT_GLOB,
+                    help="jobs glob to discover trials + relaunch against (comma-separated)")
+    ap.add_argument("--concurrency", type=int, default=4, help="relaunch concurrency")
+    ap.add_argument("--tag-prefix", default="auto", help="relaunch tag prefix")
     args = ap.parse_args()
-    trials = [t for t in R.discover_trials(["harbor_jobs/v4_withtest219*"]) if t["meta"]["has_trajectory"]]
+    globs = [g.strip() for g in args.glob.split(",") if g.strip()]
+    trials = [t for t in R.discover_trials(globs) if t["meta"]["has_trajectory"]]
     n = len(trials)
     for agent in AGENTS:
         done = harvest(agent, trials)
         is_live = live(agent)
         status = f"{agent}: {done}/{n} harvested · live={is_live}"
         if args.resume and done < n and not is_live:
-            tag = relaunch(agent)
+            tag = relaunch(agent, args.glob, args.concurrency, args.tag_prefix)
             status += f" · RELAUNCHED tag={tag} (to-run≈{n - done})"
         elif done >= n:
             status += " · COMPLETE"

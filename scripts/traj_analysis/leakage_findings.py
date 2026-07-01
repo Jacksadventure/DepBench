@@ -47,11 +47,15 @@ def leaked_artifact(obj: dict) -> tuple[str, str, str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", default="harbor_benchmark/annotations/v4_withtest219_20260630")
+    ap.add_argument("--jobs-glob", default="harbor_jobs/v4_withtest219*",
+                    help="comma-separated jobs glob(s) to scan")
+    ap.add_argument("--prefix", default="", help="output filename prefix, e.g. 'claude48_'")
     args = ap.parse_args()
     out_dir = (REPO_ROOT / args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    globs = [g.strip() for g in args.jobs_glob.split(",") if g.strip()]
 
-    trials = [t for t in R.discover_trials(["harbor_jobs/v4_withtest219*"]) if t["meta"]["has_trajectory"]]
+    trials = [t for t in R.discover_trials(globs) if t["meta"]["has_trajectory"]]
     # label per (trial, annotator)
     labels: dict[str, dict[str, str]] = {}
     rows = []
@@ -93,7 +97,7 @@ def main() -> int:
     cols = ["task", "harness", "llm", "reward", "annotator", "label", "agreement",
             "leak_vectors", "retrieved_oracle", "leak_precedes_fix", "confidence",
             "leaked_host", "leaked_url", "finding", "key"]
-    csv_path = out_dir / "leakage_findings.csv"
+    csv_path = out_dir / f"{args.prefix}leakage_findings.csv"
     with csv_path.open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()
@@ -126,10 +130,10 @@ def main() -> int:
     md.append(table(confirmed))
     md.append("\n## Suspect leaks\n")
     md.append(table(suspect))
-    (out_dir / "leakage_findings.md").write_text("\n".join(md) + "\n")
+    (out_dir / f"{args.prefix}leakage_findings.md").write_text("\n".join(md) + "\n")
 
     print(f"wrote {csv_path}")
-    print(f"wrote {out_dir / 'leakage_findings.md'}")
+    print(f"wrote {out_dir / (args.prefix+'leakage_findings.md')}")
     print(f"rows: confirmed={len(confirmed)} suspect={len(suspect)} both-confirmed-tasks={len(both_conf)}")
     return 0
 
