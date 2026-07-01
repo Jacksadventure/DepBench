@@ -1,13 +1,13 @@
 # Unified trajectory behavior scan
 
-Generated: 2026-07-01T08:05:57.574257+00:00
+Generated: 2026-07-01T11:08:25.747083+00:00
 
 The scanner uses one rule set for every LLM--harness pair and excludes user/system prompt text.
 
 | LLM | Harness | Rows | With trajectory | Docs | API | Tests | BC hyp. |
 |---|---|---:|---:|---:|---:|---:|---:|
 | claude48 | claude_code | 219 | 218 | 158 | 218 | 199 | 205 |
-| claude48 | copilot_cli | 219 | 219 | 59 | 216 | 201 | 203 |
+| claude48 | copilot_cli | 219 | 219 | 73 | 216 | 200 | 207 |
 | claude48 | opencode | 219 | 219 | 163 | 219 | 196 | 213 |
 | gemini35flash | claude_code | 219 | 219 | 154 | 219 | 205 | 105 |
 | gemini35flash | copilot_cli | 219 | 219 | 2 | 54 | 44 | 32 |

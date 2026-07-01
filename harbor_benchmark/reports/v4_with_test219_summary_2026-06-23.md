@@ -1,6 +1,6 @@
 # v4-with-test219 summary
 
-Generated: 2026-07-01T08:01:11.467803+00:00
+Generated: 2026-07-01T11:06:54.480394+00:00
 
 ## GPT-5.5
 
@@ -24,13 +24,13 @@ Generated: 2026-07-01T08:01:11.467803+00:00
 | Agent | Pass | Fail | No reward | Reward tasks | Pass rate |
 |---|---:|---:|---:|---:|---:|
 | claude_code | 100 | 116 | 3 | 216 | 0.463 |
-| copilot | 100 | 117 | 2 | 217 | 0.461 |
+| copilot | 76 | 141 | 2 | 217 | 0.350 |
 | opencode | 98 | 121 | 0 | 219 | 0.447 |
 
 ## Excluded rows
 - Codex non-GPT rows are excluded: Codex versions after v0.94.0 no longer support the chat-completions wire API (openai/codex#10157), while the Gemini Copilot-API route requires chat completions and the Claude 4.8 Codex run produced provider-level tool-result ordering failures under the responses wire API.
 
 ## Guarded leakage replacement notes
-- Confirmed+agreement=both leakage rerun results were substituted into the displayed v4-with-test219 rows on 2026-06-30. Replacement scope: 165 runnable exact (task,harness,llm) rows; 16 Codex+Gemini rows remain excluded.
-- Claude Code + GPT-5.5 single-annotator confirmed segment1 guarded reruns were substituted on 2026-07-01. Replacement scope: 64 rows; audit: harbor_benchmark/reports/guarded_leak_claude_segment1_replacement_audit_20260701.csv.
-- Some replacement rows intentionally use different routed backends by user request (e.g. OpenCode GPT via native Copilot and Codex GPT mixed CloudGPT/Copilot API); see guarded leakage rerun summaries for endpoint provenance.
+- Confirmed+agreement=both leakage rerun results were substituted into the displayed v4-with-test219 rows on 2026-06-30.
+- Claude Code + GPT-5.5 single-annotator confirmed segment1 guarded reruns were substituted on 2026-07-01.
+- Copilot CLI + Claude 4.8 single-annotator confirmed guarded reruns were substituted on 2026-07-01.

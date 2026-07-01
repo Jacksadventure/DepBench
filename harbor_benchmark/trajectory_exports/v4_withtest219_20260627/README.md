@@ -1,6 +1,6 @@
 # LLM x Harness trajectory exports
 
-Generated: 2026-07-01T08:01:11.467803+00:00
+Generated: 2026-07-01T11:06:54.480394+00:00
 
 Each `.jsonl.gz` file contains one JSON object per task/trial with reward metadata and trajectory JSON.
 
@@ -20,3 +20,4 @@ Each `.jsonl.gz` file contains one JSON object per task/trial with reward metada
 Guarded replacement notes:
 - Confirmed+agreement=both replacements were applied on 2026-06-30 for non-Claude rows.
 - Claude Code + GPT-5.5 single-annotator confirmed segment1 replacements were applied on 2026-07-01.
+- Copilot CLI + Claude 4.8 single-annotator confirmed replacements were applied on 2026-07-01.
