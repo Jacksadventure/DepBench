@@ -1,6 +1,6 @@
 # v4-with-test219 summary
 
-Generated: 2026-07-01T11:06:54.480394+00:00
+Generated: 2026-07-02T08:55:55.835144+00:00
 
 ## GPT-5.5
 
@@ -17,15 +17,15 @@ Generated: 2026-07-01T11:06:54.480394+00:00
 |---|---:|---:|---:|---:|---:|
 | copilot | 45 | 174 | 0 | 219 | 0.205 |
 | opencode | 49 | 169 | 1 | 218 | 0.225 |
-| claude_code | 48 | 166 | 5 | 214 | 0.224 |
+| claude_code | 41 | 175 | 3 | 216 | 0.190 |
 
 ## Claude 4.8
 
 | Agent | Pass | Fail | No reward | Reward tasks | Pass rate |
 |---|---:|---:|---:|---:|---:|
-| claude_code | 100 | 116 | 3 | 216 | 0.463 |
+| claude_code | 71 | 146 | 2 | 217 | 0.327 |
 | copilot | 76 | 141 | 2 | 217 | 0.350 |
-| opencode | 98 | 121 | 0 | 219 | 0.447 |
+| opencode | 74 | 145 | 0 | 219 | 0.338 |
 
 ## Excluded rows
 - Codex non-GPT rows are excluded: Codex versions after v0.94.0 no longer support the chat-completions wire API (openai/codex#10157), while the Gemini Copilot-API route requires chat completions and the Claude 4.8 Codex run produced provider-level tool-result ordering failures under the responses wire API.
@@ -34,3 +34,4 @@ Generated: 2026-07-01T11:06:54.480394+00:00
 - Confirmed+agreement=both leakage rerun results were substituted into the displayed v4-with-test219 rows on 2026-06-30.
 - Claude Code + GPT-5.5 single-annotator confirmed segment1 guarded reruns were substituted on 2026-07-01.
 - Copilot CLI + Claude 4.8 single-annotator confirmed guarded reruns were substituted on 2026-07-01.
+- Remaining Claude-series single-annotator confirmed guarded reruns were substituted on 2026-07-02.

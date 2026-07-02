@@ -56,16 +56,16 @@ The tables below follow the numbers already documented in checked-in result file
 
 | Agent | Model | Snapshot | Mean reward | Source |
 |---|---|---|---:|---|
-| Claude Code | Claude 4.8 | v4-with-test219 | **0.463** | `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` |
-| OpenCode | Claude 4.8 | v4-with-test219 | **0.447** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
 | Copilot CLI | GPT-5.5 | v4-with-test219 | **0.407** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Codex | GPT-5.5 | v4-with-test219 | **0.384** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Copilot CLI | Claude 4.8 | v4-with-test219 | **0.350** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
+| OpenCode | Claude 4.8 | v4-with-test219 | **0.338** | `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.json` |
+| Claude Code | Claude 4.8 | v4-with-test219 | **0.327** | `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.json` |
 | OpenCode | GPT-5.5 | v4-with-test219 | **0.312** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
 | Claude Code | GPT-5.5 | v4-with-test219 | **0.279** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
 | OpenCode | Gemini 3.5 Flash | v4-with-test219 | **0.225** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
-| Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.224** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
 | Copilot CLI | Gemini 3.5 Flash | v4-with-test219 | **0.205** | `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json` |
+| Claude Code | Gemini 3.5 Flash | v4-with-test219 | **0.190** | `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.json` |
 | Copilot CLI | DeepSeek | v4-with-test219 | **0.174** | `harbor_benchmark/reports/copilot_deepseek_v4_with_test219_summary_2026-06-29.json` |
 | Claude Code | DeepSeek | v4-with-test219 | **0.164** | `harbor_benchmark/reports/claude_code_deepseek_fresh_v4_with_test219_summary_2026-06-29.json` |
 
@@ -105,7 +105,7 @@ guarded replacements; audit:
 | Agent | Model | Snapshot | Mean reward | Source |
 |---|---|---|---:|---|
 | OpenCode | Gemini 3.5 Flash | clean205 | **0.273** | `harbor_jobs/opencode_gemini35flash_clean205_frozen_conc6_2026-06-22__03-11-12/result.json` |
-| Claude Code | Gemini 3.5 Flash | clean205 | **0.176** | `harbor_benchmark/reports/claude_code_maestro_clean205_summary_2026-06-24.json` |
+| Claude Code | Gemini 3.5 Flash | **0.190** |
 
 ## Recommended comparison baseline
 
@@ -120,16 +120,16 @@ The most meaningful completed current-dataset comparison already documented in-r
 
 | Agent | Model | Mean reward |
 |---|---|---:|
-| Claude Code | Claude 4.8 | **0.463** |
-| OpenCode | Claude 4.8 | **0.447** |
 | Copilot CLI | GPT-5.5 | **0.407** |
 | Codex | GPT-5.5 | **0.384** |
 | Copilot CLI | Claude 4.8 | **0.350** |
+| OpenCode | Claude 4.8 | **0.338** |
+| Claude Code | Claude 4.8 | **0.327** |
 | OpenCode | GPT-5.5 | **0.312** |
 | Claude Code | GPT-5.5 | **0.279** |
 | OpenCode | Gemini 3.5 Flash | **0.225** |
-| Claude Code | Gemini 3.5 Flash | **0.224** |
 | Copilot CLI | Gemini 3.5 Flash | **0.205** |
+| Claude Code | Gemini 3.5 Flash | **0.190** |
 | Copilot CLI | DeepSeek | **0.174** |
 | Claude Code | DeepSeek | **0.164** |
 
@@ -145,8 +145,8 @@ The most meaningful completed current-dataset comparison already documented in-r
 
 - v4-with-test219 summary: `harbor_benchmark/reports/v4_with_test219_summary_2026-06-23.json`
 - v4-with-test219 result directory map: `harbor_benchmark/reports/v4_withtest219_result_directory_map_20260627.md`
-- v4-with-test219 Claude Code Claude 4.8 summary: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_summary_2026-06-26.md`
-- v4-with-test219 Claude Code Claude 4.8 per-task results: `harbor_benchmark/reports/v4_with_test219_claude_code_claude48_results_2026-06-26.csv`
+| Claude Code | Claude 4.8 | **0.327** |
+| Claude Code | Claude 4.8 | **0.327** |
 - v4-with-test219 Claude 4.8 multi-agent summary: `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_summary_2026-06-27.md`
 - v4-with-test219 Claude 4.8 multi-agent per-task results: `harbor_benchmark/reports/v4_with_test219_claude48_multi_agent_results_2026-06-27.csv`
 - v4-with-test219 Claude Code Copilot API summary: `harbor_benchmark/reports/v4_with_test219_claude_code_copilot_api_summary_2026-06-25.md`

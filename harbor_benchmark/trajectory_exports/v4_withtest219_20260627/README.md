@@ -1,14 +1,14 @@
 # LLM x Harness trajectory exports
 
-Generated: 2026-07-01T11:06:54.480394+00:00
+Generated: 2026-07-02T08:55:55.835144+00:00
 
 Each `.jsonl.gz` file contains one JSON object per task/trial with reward metadata and trajectory JSON.
 
 | LLM | Harness | Rows | With trajectory | Existing | Converted | Missing | Export |
 |---|---|---:|---:|---:|---:|---:|---|
-| claude48 | claude_code | 219 | 218 | 0 | 218 | 1 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__claude_code.jsonl.gz` |
+| claude48 | claude_code | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__claude_code.jsonl.gz` |
 | claude48 | copilot_cli | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__copilot_cli.jsonl.gz` |
-| claude48 | opencode | 219 | 219 | 219 | 0 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__opencode.jsonl.gz` |
+| claude48 | opencode | 219 | 171 | 171 | 48 | 48 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/claude48__opencode.jsonl.gz` |
 | gemini35flash | claude_code | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__claude_code.jsonl.gz` |
 | gemini35flash | copilot_cli | 219 | 219 | 0 | 219 | 0 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__copilot_cli.jsonl.gz` |
 | gemini35flash | opencode | 219 | 79 | 78 | 1 | 140 | `harbor_benchmark/trajectory_exports/v4_withtest219_20260627/gemini35flash__opencode.jsonl.gz` |
@@ -21,3 +21,4 @@ Guarded replacement notes:
 - Confirmed+agreement=both replacements were applied on 2026-06-30 for non-Claude rows.
 - Claude Code + GPT-5.5 single-annotator confirmed segment1 replacements were applied on 2026-07-01.
 - Copilot CLI + Claude 4.8 single-annotator confirmed replacements were applied on 2026-07-01.
+- Remaining Claude-series single-annotator confirmed replacements were applied on 2026-07-02.
