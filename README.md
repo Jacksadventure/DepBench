@@ -1,5 +1,7 @@
 # DepBench v4-with-test219 release
 
+DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. It is built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. DepBench separates dependency upgrades, developer repairs, and test patches, and uses a four-state executable oracle design to ensure that each task's failure is caused by the dependency upgrade and that the repair is causally validated. On this benchmark, current coding agents remain far from robust in realistic dependency-upgrade scenarios: the strongest configuration solves only 87/219 tasks (39.7%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs. DepBench provides a standard evaluation platform for future work on dependency-upgrade automation and code-agent research.
+
 This branch is a clean release snapshot of the DepBench dependency-upgrade benchmark. It contains the benchmark dataset, agent trajectories, verifier logs, result summaries, and analysis tables for the reported run.
 
 The release is updated live as final artifacts are refreshed. For reproducible experiments, pin the exact commit SHA of this branch.
