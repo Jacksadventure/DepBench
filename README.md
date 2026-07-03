@@ -51,6 +51,19 @@ The release also includes trajectories and verifier logs, so you can analyze the
 
 For runnable helper scripts, see `repro/README.md`. For Harbor-based execution, see `repro/HARBOR.md`.
 
+## Reproduce
+
+All reproduction helpers are in the top-level `repro/` folder:
+
+- `repro/README.md`: reproduction entry point.
+- `repro/HARBOR.md`: Harbor-based execution instructions.
+- `repro/examples/`: Harbor config templates for the reported configurations.
+- `repro/pull_task_images.sh`: pull task Docker images.
+- `repro/run_oracle_solution.sh`: verify an oracle solution for one task.
+- `repro/run_patch_verifier.sh`: verify a candidate patch for one task.
+- `repro/scan_trajectories.py`: scan the released trajectory files.
+- `repro/validate_release.py`: validate the release layout and row counts.
+
 ## Trajectories
 
 `trajectories/*.jsonl.gz` files are gzip-compressed JSONL. Each row is one reported trial and includes:
