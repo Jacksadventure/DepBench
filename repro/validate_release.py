@@ -51,6 +51,7 @@ def main() -> int:
         "repro/TASK_SCHEMA.md",
         "repro/run_oracle_solution.sh",
         "repro/run_patch_verifier.sh",
+        "repro/scan_trajectories.py",
         "repro/HARBOR.md",
         "repro/make_harbor_config.py",
         "custom_agents/codex.py",
@@ -69,6 +70,14 @@ def main() -> int:
         config = json.loads(path.read_text())
         if config["datasets"][0]["path"] != "dataset/tasks":
             raise SystemExit(f"{path}: expected dataset/tasks relative path")
+
+    for path in [
+        "analysis/trajectory_scan_detail.csv",
+        "analysis/trajectory_scan_summary.csv",
+        "analysis/trajectory_scan_summary.json",
+    ]:
+        if not (ROOT / path).exists():
+            raise SystemExit(f"missing trajectory scan output: {path}")
 
     print("DepBench release validation passed: 219 tasks, 10 configurations, 2190 reported trials.")
     return 0

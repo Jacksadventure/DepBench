@@ -13,8 +13,8 @@ The release is updated live as final artifacts are refreshed. For reproducible e
 | `trajectories/` | Trajectory exports as gzip JSONL, one file per harness/model configuration. |
 | `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |
 | `results/` | Configuration-level summary and per-trial reward metadata. |
-| `analysis/` | Aggregate result and coverage tables. |
-| `repro/` | Helper scripts and schema notes for pulling task images, verifying oracle solutions, verifying candidate patches, and validating this release. |
+| `analysis/` | Aggregate result, coverage, and trajectory-scan tables. |
+| `repro/` | Helper scripts and schema notes for pulling task images, verifying oracle solutions, verifying candidate patches, validating this release, and scanning trajectories. |
 | `custom_agents/` | Harbor agent adapters referenced by the provided Harbor config templates. |
 | `pyproject.toml` | Python package metadata declaring the Harbor dependency for local execution. |
 | `MANIFEST.json` | Machine-readable release manifest and source commit metadata. |
@@ -79,6 +79,7 @@ Use `verify_logs/index.csv` or `verify_logs/index.json` to check coverage.
 - `results/per_trial_results.jsonl.gz` contains one compact metadata row per trial, without embedding the full trajectory or verifier stdout.
 - `analysis/ecosystem_results.csv` contains result counts by configuration and ecosystem.
 - `analysis/coverage.csv` contains trajectory and verifier-log coverage by configuration.
+- `analysis/trajectory_scan_summary.csv` and `analysis/trajectory_scan_detail.csv` contain rule-based trajectory scan outputs.
 
 ## Release policy
 

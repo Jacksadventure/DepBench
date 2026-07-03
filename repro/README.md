@@ -81,3 +81,19 @@ python3 repro/read_trial.py --configuration gpt55__codex --task 29ki__29k__3418 
 ```
 
 Configuration names match the gzip JSONL filenames under `trajectories/` and `verify_logs/` without the `.jsonl.gz` suffix.
+
+## Scan trajectories
+
+Run the trajectory scanner:
+
+```bash
+python3 repro/scan_trajectories.py
+```
+
+By default, this reads `trajectories/*.jsonl.gz` and writes:
+
+- `analysis/trajectory_scan_detail.csv`
+- `analysis/trajectory_scan_summary.csv`
+- `analysis/trajectory_scan_summary.json`
+
+The scanner uses one rule set across all configurations and only scans agent-authored trajectory steps.
