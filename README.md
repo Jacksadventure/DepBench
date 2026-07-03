@@ -14,6 +14,9 @@ The release is updated live as final artifacts are refreshed. For reproducible e
 | `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |
 | `results/` | Configuration-level summary and per-trial reward metadata. |
 | `analysis/` | Aggregate result and coverage tables. |
+| `repro/` | Helper scripts and schema notes for pulling task images, verifying oracle solutions, verifying candidate patches, and validating this release. |
+| `custom_agents/` | Harbor agent adapters referenced by the provided Harbor config templates. |
+| `pyproject.toml` | Python package metadata declaring the Harbor dependency for local execution. |
 | `MANIFEST.json` | Machine-readable release manifest and source commit metadata. |
 
 ## Dataset layout
@@ -45,6 +48,8 @@ Docker images are referenced in each `task.toml` as `idk233333/depbench-task-ima
 6. Score reward as `1.0` if the verifier passes and `0.0` if it fails. Rows with no valid reward are reported as `no_reward`.
 
 The release also includes trajectories and verifier logs, so you can analyze the reported experiments directly.
+
+For runnable helper scripts, see `repro/README.md`. For Harbor-based execution, see `repro/HARBOR.md`.
 
 ## Agent results
 
