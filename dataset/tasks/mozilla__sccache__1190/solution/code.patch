@@ -1,0 +1,117 @@
+diff --git a/src/cache/gcs.rs b/src/cache/gcs.rs
+--- a/src/cache/gcs.rs
++++ b/src/cache/gcs.rs
+@@ -190,7 +190,7 @@ where
+         {
+             // -----BEGIN PRIVATE KEY-----\n<key_data_with_newlines>\n-----END PRIVATE KEY-----\n
+             let key_string = v
+-                .splitn(5, "-----")
++                .split("-----")
+                 .nth(2)
+                 .ok_or_else(|| E::custom("invalid private key format"))?;
+ 
+diff --git a/src/commands.rs b/src/commands.rs
+--- a/src/commands.rs
++++ b/src/commands.rs
+@@ -162,7 +162,7 @@ fn run_server_process() -> Result<ServerStartup> {
+ 
+     // Create a mini event loop and register our named pipe server
+     let runtime = Runtime::new()?;
+-    let pipe_name = format!(r"\\.\pipe\{}", Uuid::new_v4().to_simple_ref());
++    let pipe_name = format!(r"\\.\pipe\{}", Uuid::new_v4().as_simple());
+ 
+     // Spawn a server which should come back and connect to us
+     let exe_path = env::current_exe()?;
+diff --git a/src/compiler/compiler.rs b/src/compiler/compiler.rs
+--- a/src/compiler/compiler.rs
++++ b/src/compiler/compiler.rs
+@@ -1868,7 +1868,7 @@ LLVM version: 6.0",
+         assert_eq!(b"", res.stdout.as_slice());
+         assert_eq!(PREPROCESSOR_STDERR, res.stderr.as_slice());
+         // Errors in preprocessing should remove the object file.
+-        assert!(!fs::metadata(&obj).is_ok());
++        assert!(fs::metadata(&obj).is_err());
+     }
+ 
+     #[test]
+diff --git a/src/compiler/rust.rs b/src/compiler/rust.rs
+--- a/src/compiler/rust.rs
++++ b/src/compiler/rust.rs
+@@ -609,7 +609,7 @@ impl RustupProxy {
+         // `rustc +stable` returns retcode 1 (!=0) if it is installed via i.e. rpm packages
+ 
+         // verify rustc is proxy
+-        let mut child = creator.new_command_sync(compiler_executable.to_owned());
++        let mut child = creator.new_command_sync(compiler_executable);
+         child.env_clear().envs(ref_env(env)).args(&["+stable"]);
+         let state = run_input_output(child, None).await.map(move |output| {
+             if output.status.success() {
+@@ -672,7 +672,7 @@ impl RustupProxy {
+             Ok(ProxyPath::None) => Ok(Ok(None)),
+             Ok(ProxyPath::Candidate(proxy_executable)) => {
+                 // verify the candidate is a rustup
+-                let mut child = creator.new_command_sync(proxy_executable.to_owned());
++                let mut child = creator.new_command_sync(&proxy_executable);
+                 child.env_clear().envs(ref_env(env)).args(&["--version"]);
+                 let rustup_candidate_check = run_input_output(child, None).await?;
+ 
+diff --git a/src/dist/client_auth.rs b/src/dist/client_auth.rs
+--- a/src/dist/client_auth.rs
++++ b/src/dist/client_auth.rs
+@@ -513,7 +513,7 @@ pub fn get_token_oauth2_code_grant_pkce(
+     let port = server.local_addr().port();
+ 
+     let redirect_uri = format!("http://localhost:{}/redirect", port);
+-    let auth_state_value = Uuid::new_v4().to_simple_ref().to_string();
++    let auth_state_value = Uuid::new_v4().as_simple().to_string();
+     let (verifier, challenge) = code_grant_pkce::generate_verifier_and_challenge()?;
+     code_grant_pkce::finish_url(
+         client_id,
+@@ -567,7 +567,7 @@ pub fn get_token_oauth2_implicit(client_id: &str, mut auth_url: Url) -> Result<S
+     let port = server.local_addr().port();
+ 
+     let redirect_uri = format!("http://localhost:{}/redirect", port);
+-    let auth_state_value = Uuid::new_v4().to_simple_ref().to_string();
++    let auth_state_value = Uuid::new_v4().as_simple().to_string();
+     implicit::finish_url(client_id, &mut auth_url, &redirect_uri, &auth_state_value);
+ 
+     info!("Listening on http://localhost:{} with 1 thread.", port);
+diff --git a/src/simples3/credential.rs b/src/simples3/credential.rs
+--- a/src/simples3/credential.rs
++++ b/src/simples3/credential.rs
+@@ -353,7 +353,7 @@ impl ProvideAwsCredentials for IamProvider {
+                         .as_str()
+                         .expect("AccessKeyId value was not a string")
+                         .to_owned()
+-                        .replace("\"", ""),
++                        .replace('\"', ""),
+                 };
+ 
+                 let secret_key = match body.get("SecretAccessKey") {
+@@ -362,7 +362,7 @@ impl ProvideAwsCredentials for IamProvider {
+                         .as_str()
+                         .expect("SecretAccessKey value was not a string")
+                         .to_owned()
+-                        .replace("\"", ""),
++                        .replace('\"', ""),
+                 };
+ 
+                 let expiration = match body.get("Expiration") {
+@@ -371,7 +371,7 @@ impl ProvideAwsCredentials for IamProvider {
+                         .as_str()
+                         .expect("Expiration value was not a string")
+                         .to_owned()
+-                        .replace("\"", ""),
++                        .replace('\"', ""),
+                 };
+ 
+                 let expiration_time = expiration
+@@ -384,7 +384,7 @@ impl ProvideAwsCredentials for IamProvider {
+                         .as_str()
+                         .expect("Token value was not a string")
+                         .to_owned()
+-                        .replace("\"", ""),
++                        .replace('\"', ""),
+                 };
+ 
+                 Ok(AwsCredentials::new(

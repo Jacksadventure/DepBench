@@ -1,0 +1,44 @@
+diff --git a/pkg/golinters/sloglint/testdata/sloglint_forbidden_keys.go b/pkg/golinters/sloglint/testdata/sloglint_forbidden_keys.go
+new file mode 100644
+index 000000000000..b7ef720d110c
+--- /dev/null
++++ b/pkg/golinters/sloglint/testdata/sloglint_forbidden_keys.go
+@@ -0,0 +1,28 @@
++//golangcitest:args -Esloglint
++//golangcitest:config_path testdata/sloglint_forbidden_keys.yml
++package testdata
++
++import "log/slog"
++
++const (
++	snakeKey = "foo_bar"
++)
++
++func tests() {
++	slog.Info("msg")
++	slog.Info("msg", "foo-bar", 1)
++	slog.Info("msg", "foo_bar", 1)           // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", snakeKey, 1)            // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Int("foo_bar", 1)) // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Int(snakeKey, 1))  // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{})
++	slog.Info("msg", slog.Attr{"foo_bar", slog.IntValue(1)})             // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{snakeKey, slog.IntValue(1)})              // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Key: "foo_bar"})                          // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Key: snakeKey})                           // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Key: "foo_bar", Value: slog.IntValue(1)}) // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Key: snakeKey, Value: slog.IntValue(1)})  // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Value: slog.IntValue(1), Key: "foo_bar"}) // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Value: slog.IntValue(1), Key: snakeKey})  // want `"foo_bar" key is forbidden and should not be used`
++	slog.Info("msg", slog.Attr{Value: slog.IntValue(1), Key: `foo_bar`}) // want `"foo_bar" key is forbidden and should not be used`
++}
+diff --git a/pkg/golinters/sloglint/testdata/sloglint_forbidden_keys.yml b/pkg/golinters/sloglint/testdata/sloglint_forbidden_keys.yml
+new file mode 100644
+index 000000000000..2b0d969cd63c
+--- /dev/null
++++ b/pkg/golinters/sloglint/testdata/sloglint_forbidden_keys.yml
+@@ -0,0 +1,4 @@
++linters-settings:
++  sloglint:
++    forbidden-keys:
++      - foo_bar

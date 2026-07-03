@@ -1,0 +1,144 @@
+diff --git a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/ApplicationConfig.java b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/ApplicationConfig.java
+--- a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/ApplicationConfig.java
++++ b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/ApplicationConfig.java
+@@ -1,16 +1,10 @@
+ package com.gruelbox.transactionoutbox.quarkus.acceptance;
+ 
+-import com.gruelbox.transactionoutbox.CdiInstantiator;
+-import com.gruelbox.transactionoutbox.Dialect;
+-import com.gruelbox.transactionoutbox.Persistor;
+-import com.gruelbox.transactionoutbox.QuarkusTransactionManager;
+-import com.gruelbox.transactionoutbox.TransactionOutbox;
+-import com.gruelbox.transactionoutbox.TransactionOutboxEntry;
+-import com.gruelbox.transactionoutbox.TransactionOutboxListener;
++import com.gruelbox.transactionoutbox.*;
++import jakarta.enterprise.inject.Produces;
++import jakarta.ws.rs.core.Application;
+ import java.util.HashSet;
+ import java.util.Set;
+-import javax.enterprise.inject.Produces;
+-import javax.ws.rs.core.Application;
+ 
+ public class ApplicationConfig extends Application {
+ 
+diff --git a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessService.java b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessService.java
+--- a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessService.java
++++ b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessService.java
+@@ -1,19 +1,19 @@
+ package com.gruelbox.transactionoutbox.quarkus.acceptance;
+ 
+ import com.gruelbox.transactionoutbox.TransactionOutbox;
+-import javax.enterprise.context.ApplicationScoped;
+-import javax.inject.Inject;
+-import javax.transaction.Transactional;
++import jakarta.enterprise.context.ApplicationScoped;
++import jakarta.inject.Inject;
++import jakarta.transaction.Transactional;
+ 
+ @ApplicationScoped
+ public class BusinessService {
+-  private DaoImpl dao;
+-
+-  @Inject private TransactionOutbox outbox;
++  private final DaoImpl dao;
++  private final TransactionOutbox outbox;
+ 
+   @Inject
+-  public BusinessService(DaoImpl dao) {
++  public BusinessService(DaoImpl dao, TransactionOutbox outbox) {
+     this.dao = dao;
++    this.outbox = outbox;
+   }
+ 
+   @Transactional
+diff --git a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessServiceTest.java b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessServiceTest.java
+--- a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessServiceTest.java
++++ b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/BusinessServiceTest.java
+@@ -1,7 +1,7 @@
+ package com.gruelbox.transactionoutbox.quarkus.acceptance;
+ 
+ import io.quarkus.test.junit.QuarkusTest;
+-import javax.inject.Inject;
++import jakarta.inject.Inject;
+ import org.junit.jupiter.api.Assertions;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+diff --git a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/DaoImpl.java b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/DaoImpl.java
+--- a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/DaoImpl.java
++++ b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/DaoImpl.java
+@@ -1,27 +1,24 @@
+ package com.gruelbox.transactionoutbox.quarkus.acceptance;
+ 
+-import java.sql.Connection;
+-import java.sql.PreparedStatement;
+-import java.sql.ResultSet;
+-import java.sql.SQLException;
+-import java.sql.Statement;
++import jakarta.enterprise.context.ApplicationScoped;
++import jakarta.inject.Inject;
++import java.sql.*;
+ import java.util.ArrayList;
+ import java.util.List;
+-import javax.enterprise.context.ApplicationScoped;
+-import javax.inject.Inject;
+ import javax.sql.DataSource;
+ 
+ @ApplicationScoped
+ public class DaoImpl {
+   @Inject DataSource defaultDataSource;
+ 
++  @SuppressWarnings("UnusedReturnValue")
+   public int writeSomethingIntoDatabase(String something) {
+     if ("error".equals(something)) {
+       throw new RuntimeException("Persistence error");
+     }
+     String insertQuery = "insert into toto values (?);";
+     try (Connection connexion = defaultDataSource.getConnection();
+-        PreparedStatement statement = connexion.prepareStatement(insertQuery); ) {
++        PreparedStatement statement = connexion.prepareStatement(insertQuery)) {
+       statement.setString(1, something);
+       return statement.executeUpdate();
+     } catch (SQLException e) {
+@@ -32,7 +29,7 @@ public int writeSomethingIntoDatabase(String something) {
+   public List<String> getFromDatabase() {
+     List<String> values = new ArrayList<>();
+     try (Connection connexion = defaultDataSource.getConnection();
+-        Statement statement = connexion.createStatement(); ) {
++        Statement statement = connexion.createStatement()) {
+       ResultSet resultSet = statement.executeQuery("select * from toto;");
+       while (resultSet.next()) {
+         values.add(resultSet.getString(1));
+@@ -43,9 +40,10 @@ public List<String> getFromDatabase() {
+     }
+   }
+ 
++  @SuppressWarnings("UnusedReturnValue")
+   public int purge() {
+     try (Connection connexion = defaultDataSource.getConnection();
+-        Statement statement = connexion.createStatement(); ) {
++        Statement statement = connexion.createStatement()) {
+       return statement.executeUpdate("delete from toto;");
+     } catch (SQLException e) {
+       throw new RuntimeException(e);
+diff --git a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/RemoteCallService.java b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/RemoteCallService.java
+--- a/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/RemoteCallService.java
++++ b/transactionoutbox-quarkus/src/test/java/com/gruelbox/transactionoutbox/quarkus/acceptance/RemoteCallService.java
+@@ -1,6 +1,6 @@
+ package com.gruelbox.transactionoutbox.quarkus.acceptance;
+ 
+-import javax.enterprise.context.ApplicationScoped;
++import jakarta.enterprise.context.ApplicationScoped;
+ 
+ @ApplicationScoped
+ public class RemoteCallService {
+diff --git a/transactionoutbox-spring/src/test/java/com/gruelbox/transactionoutbox/spring/acceptance/EventuallyConsistentController.java b/transactionoutbox-spring/src/test/java/com/gruelbox/transactionoutbox/spring/acceptance/EventuallyConsistentController.java
+--- a/transactionoutbox-spring/src/test/java/com/gruelbox/transactionoutbox/spring/acceptance/EventuallyConsistentController.java
++++ b/transactionoutbox-spring/src/test/java/com/gruelbox/transactionoutbox/spring/acceptance/EventuallyConsistentController.java
+@@ -9,6 +9,7 @@
+ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RestController;
+ 
++@SuppressWarnings("unused")
+ @RestController
+ class EventuallyConsistentController {
+ 

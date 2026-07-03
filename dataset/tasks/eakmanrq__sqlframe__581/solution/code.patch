@@ -1,0 +1,76 @@
+diff --git a/docs/duckdb.md b/docs/duckdb.md
+--- a/docs/duckdb.md
++++ b/docs/duckdb.md
+@@ -290,6 +290,7 @@ See something that you would like to see supported? [Open an issue](https://gith
+ * [array_sort](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.array_sort.html)
+ * [array_union](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.array_union.html)
+ * [arrays_overlap](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.arrays_overlap.html)
++* [arrays_zip](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.arrays_zip.html)
+ * [asc](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.asc.html)
+ * [asc_nulls_first](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.asc_nulls_first.html)
+ * [asc_nulls_last](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.asc_nulls_last.html)
+diff --git a/sqlframe/base/functions.py b/sqlframe/base/functions.py
+--- a/sqlframe/base/functions.py
++++ b/sqlframe/base/functions.py
+@@ -2113,10 +2113,7 @@ def array_append(col: ColumnOrName, value: ColumnOrLiteral) -> Column:
+ 
+ @meta(unsupported_engines=["bigquery", "postgres", "snowflake"])
+ def array_compact(col: ColumnOrName) -> Column:
+-    if _get_session()._is_duckdb:
+-        filter_func = get_func_from_session("filter")
+-        return filter_func(col, lambda x: x.isNotNull())
+-    return Column.invoke_anonymous_function(col, "ARRAY_COMPACT")
++    return Column.invoke_expression_over_column(col, expression.ArrayCompact)
+ 
+ 
+ @meta(unsupported_engines="*")
+@@ -2126,7 +2123,12 @@ def array_insert(
+     value = value if isinstance(value, Column) else lit(value)
+     if isinstance(pos, int):
+         pos = lit(pos)
+-    return Column.invoke_anonymous_function(col, "ARRAY_INSERT", pos, value)  # type: ignore
++    return Column.invoke_expression_over_column(
++        col,
++        expression.ArrayInsert,
++        expression=value.column_expression,
++        position=Column.ensure_col(pos).column_expression,
++    )
+ 
+ 
+ @meta(unsupported_engines=["bigquery", "postgres", "snowflake"])
+@@ -2654,11 +2656,10 @@ def array_repeat(col: ColumnOrName, count: t.Union[ColumnOrName, int]) -> Column
+     return Column.invoke_anonymous_function(col, "ARRAY_REPEAT", count_col)
+ 
+ 
+-@meta(unsupported_engines=["bigquery", "duckdb", "postgres", "snowflake"])
++@meta(unsupported_engines=["bigquery", "postgres", "snowflake"])
+ def arrays_zip(*cols: ColumnOrName) -> Column:
+-    if len(cols) == 1:
+-        return Column.invoke_anonymous_function(cols[0], "ARRAYS_ZIP")
+-    return Column.invoke_anonymous_function(cols[0], "ARRAYS_ZIP", *cols[1:])
++    columns = Column.ensure_cols(list(cols))
++    return Column(expression.ArraysZip(expressions=[x.column_expression for x in columns]))
+ 
+ 
+ @meta(unsupported_engines=["bigquery", "duckdb", "postgres"])
+@@ -6548,7 +6549,7 @@ def try_element_at(col: ColumnOrName, extraction: ColumnOrName) -> Column:
+         lit = get_func_from_session("lit")
+         extraction = Column.ensure_col(extraction)
+         if (
+-            isinstance(extraction.column_expression, expression.Literal)
++            isinstance(extraction.column_expression, (expression.Literal, expression.Neg))
+             and extraction.column_expression.is_number
+         ):
+             extraction = extraction - lit(1)
+diff --git a/sqlframe/base/group.py b/sqlframe/base/group.py
+--- a/sqlframe/base/group.py
++++ b/sqlframe/base/group.py
+@@ -119,7 +119,7 @@ def agg(self, *exprs: t.Union[Column, t.Dict[str, str]]) -> DF:
+                 if isinstance(v, str):
+                     in_values.append(exp.Literal.string(v))
+                 else:
+-                    in_values.append(exp.Literal.number(v))
++                    in_values.append(exp.Literal.number(v))  # type: ignore
+ 
+             # Build the pivot node with the fields parameter
+             pivot = exp.Pivot(

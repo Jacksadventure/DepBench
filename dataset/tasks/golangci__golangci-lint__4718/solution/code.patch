@@ -1,0 +1,137 @@
+diff --git a/.golangci.next.reference.yml b/.golangci.next.reference.yml
+index 6938157dacbb..bdeed3cbb3ba 100644
+--- a/.golangci.next.reference.yml
++++ b/.golangci.next.reference.yml
+@@ -1995,12 +1995,15 @@ linters-settings:
+ 
+   sloglint:
+     # Enforce not mixing key-value pairs and attributes.
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#no-mixed-arguments
+     # Default: true
+     no-mixed-args: false
+     # Enforce using key-value pairs only (overrides no-mixed-args, incompatible with attr-only).
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#key-value-pairs-only
+     # Default: false
+     kv-only: true
+     # Enforce using attributes only (overrides no-mixed-args, incompatible with kv-only).
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#attributes-only
+     # Default: false
+     attr-only: true
+     # Enforce not using global loggers.
+@@ -2008,6 +2011,7 @@ linters-settings:
+     # - "": disabled
+     # - "all": report all global loggers
+     # - "default": report only the default slog logger
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#no-global
+     # Default: ""
+     no-global: "all"
+     # Enforce using methods that accept a context.
+@@ -2015,19 +2019,32 @@ linters-settings:
+     # - "": disabled
+     # - "all": report all contextless calls
+     # - "scope": report only if a context exists in the scope of the outermost function
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#context-only
+     # Default: ""
+     context: "all"
+     # Enforce using static values for log messages.
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#static-messages
+     # Default: false
+     static-msg: true
+     # Enforce using constants instead of raw keys.
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#no-raw-keys
+     # Default: false
+     no-raw-keys: true
+     # Enforce a single key naming convention.
+     # Values: snake, kebab, camel, pascal
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#key-naming-convention
+     # Default: ""
+     key-naming-case: snake
++    # Enforce not using specific keys.
++    # Default: []
++    forbidden-keys:
++      - time
++      - level
++      - msg
++      - source
++      - foo
+     # Enforce putting arguments on separate lines.
++    # https://github.com/go-simpler/sloglint?tab=readme-ov-file#forbidden-keys
+     # Default: false
+     args-on-sep-lines: true
+ 
+diff --git a/jsonschema/golangci.next.jsonschema.json b/jsonschema/golangci.next.jsonschema.json
+index e7684df3f395..ca1877ee4ec2 100644
+--- a/jsonschema/golangci.next.jsonschema.json
++++ b/jsonschema/golangci.next.jsonschema.json
+@@ -2468,6 +2468,13 @@
+               "type": "boolean",
+               "default": false
+             },
++            "forbidden-keys": {
++              "description": "Enforce not using specific keys.",
++              "type": "array",
++              "items": {
++                "type": "string"
++              }
++            },
+             "args-on-sep-lines": {
+               "description": "Enforce putting arguments on separate lines.",
+               "type": "boolean",
+diff --git a/pkg/config/linters_settings.go b/pkg/config/linters_settings.go
+index e204328421ce..876b40cfbf83 100644
+--- a/pkg/config/linters_settings.go
++++ b/pkg/config/linters_settings.go
+@@ -146,10 +146,10 @@ var defaultLintersSettings = LintersSettings{
+ 		AttrOnly:       false,
+ 		NoGlobal:       "",
+ 		Context:        "",
+-		ContextOnly:    false,
+ 		StaticMsg:      false,
+ 		NoRawKeys:      false,
+ 		KeyNamingCase:  "",
++		ForbiddenKeys:  nil,
+ 		ArgsOnSepLines: false,
+ 	},
+ 	TagAlign: TagAlignSettings{
+@@ -819,16 +819,19 @@ type RowsErrCheckSettings struct {
+ }
+ 
+ type SlogLintSettings struct {
+-	NoMixedArgs    bool   `mapstructure:"no-mixed-args"`
+-	KVOnly         bool   `mapstructure:"kv-only"`
+-	AttrOnly       bool   `mapstructure:"attr-only"`
+-	NoGlobal       string `mapstructure:"no-global"`
+-	Context        string `mapstructure:"context"`
+-	ContextOnly    bool   `mapstructure:"context-only"` // Deprecated: use Context instead.
+-	StaticMsg      bool   `mapstructure:"static-msg"`
+-	NoRawKeys      bool   `mapstructure:"no-raw-keys"`
+-	KeyNamingCase  string `mapstructure:"key-naming-case"`
+-	ArgsOnSepLines bool   `mapstructure:"args-on-sep-lines"`
++	NoMixedArgs    bool     `mapstructure:"no-mixed-args"`
++	KVOnly         bool     `mapstructure:"kv-only"`
++	AttrOnly       bool     `mapstructure:"attr-only"`
++	NoGlobal       string   `mapstructure:"no-global"`
++	Context        string   `mapstructure:"context"`
++	StaticMsg      bool     `mapstructure:"static-msg"`
++	NoRawKeys      bool     `mapstructure:"no-raw-keys"`
++	KeyNamingCase  string   `mapstructure:"key-naming-case"`
++	ForbiddenKeys  []string `mapstructure:"forbidden-keys"`
++	ArgsOnSepLines bool     `mapstructure:"args-on-sep-lines"`
++
++	// Deprecated: use Context instead.
++	ContextOnly bool `mapstructure:"context-only"`
+ }
+ 
+ type SpancheckSettings struct {
+diff --git a/pkg/golinters/sloglint/sloglint.go b/pkg/golinters/sloglint/sloglint.go
+index d3f567e9c7f7..486662577935 100644
+--- a/pkg/golinters/sloglint/sloglint.go
++++ b/pkg/golinters/sloglint/sloglint.go
+@@ -20,6 +20,7 @@ func New(settings *config.SlogLintSettings) *goanalysis.Linter {
+ 			StaticMsg:      settings.StaticMsg,
+ 			NoRawKeys:      settings.NoRawKeys,
+ 			KeyNamingCase:  settings.KeyNamingCase,
++			ForbiddenKeys:  settings.ForbiddenKeys,
+ 			ArgsOnSepLines: settings.ArgsOnSepLines,
+ 		}
+ 	}

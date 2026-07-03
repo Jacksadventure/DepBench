@@ -1,0 +1,54 @@
+diff --git a/tests/integration/engines/test_int_functions.py b/tests/integration/engines/test_int_functions.py
+--- a/tests/integration/engines/test_int_functions.py
++++ b/tests/integration/engines/test_int_functions.py
+@@ -7,6 +7,7 @@
+ from decimal import Decimal
+ 
+ import pytest
++import pytz
+ from pyspark.sql import SparkSession as PySparkSession
+ from sqlglot import exp
+ 
+@@ -3492,8 +3493,16 @@ def test_convert_timezone(get_session_and_func, get_func):
+     session, convert_timezone = get_session_and_func("convert_timezone")
+     lit = get_func("lit", session)
+     df = session.createDataFrame([("2015-04-08",)], ["dt"])
++    if isinstance(session, DuckDBSession):
++        expected = pytz.timezone("US/Pacific").localize(datetime.datetime(2015, 4, 7, 9, 0))
++    elif isinstance(session, PostgresSession):
++        expected = datetime.datetime(2015, 4, 7, 16, 0, tzinfo=datetime.timezone.utc)
++    elif isinstance(session, SnowflakeSession):
++        expected = datetime.datetime(2015, 4, 8, 15, 0, tzinfo=pytz.FixedOffset(480))
++    else:
++        expected = datetime.datetime(2015, 4, 8, 15, 0)
+     assert df.select(convert_timezone(None, lit("Asia/Hong_Kong"), "dt").alias("ts")).collect() == [
+-        Row(ts=datetime.datetime(2015, 4, 8, 15, 0))
++        Row(ts=expected)
+     ]
+     assert df.select(
+         convert_timezone(lit("America/Los_Angeles"), lit("Asia/Hong_Kong"), "dt").alias("ts")
+diff --git a/tests/unit/standalone/test_functions.py b/tests/unit/standalone/test_functions.py
+--- a/tests/unit/standalone/test_functions.py
++++ b/tests/unit/standalone/test_functions.py
+@@ -3309,9 +3309,18 @@ def test_contains(expression, expected):
+ @pytest.mark.parametrize(
+     "expression, expected",
+     [
+-        (SF.convert_timezone(None, SF.col("cola"), "colb"), "CONVERT_TIMEZONE(cola, colb)"),
+-        (SF.convert_timezone(None, SF.col("cola"), SF.col("colb")), "CONVERT_TIMEZONE(cola, colb)"),
+-        (SF.convert_timezone(SF.col("colc"), "cola", "colb"), "CONVERT_TIMEZONE(colc, cola, colb)"),
++        (
++            SF.convert_timezone(None, SF.col("cola"), "colb"),
++            "CONVERT_TIMEZONE(cola, CAST(colb AS TIMESTAMP))",
++        ),
++        (
++            SF.convert_timezone(None, SF.col("cola"), SF.col("colb")),
++            "CONVERT_TIMEZONE(cola, CAST(colb AS TIMESTAMP))",
++        ),
++        (
++            SF.convert_timezone(SF.col("colc"), "cola", "colb"),
++            "CONVERT_TIMEZONE(colc, cola, CAST(colb AS TIMESTAMP))",
++        ),
+     ],
+ )
+ def test_convert_timezone(expression, expected):

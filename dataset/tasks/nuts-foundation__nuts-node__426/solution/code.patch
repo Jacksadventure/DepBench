@@ -1,0 +1,82 @@
+diff --git a/crypto/jwx.go b/crypto/jwx.go
+index a92c3020a8..a3a942efa7 100644
+--- a/crypto/jwx.go
++++ b/crypto/jwx.go
+@@ -102,7 +102,7 @@ func SignJWT(key jwk.Key, claims map[string]interface{}, headers map[string]inte
+ 	}
+ 	hdr := convertHeaders(headers)
+ 
+-	sig, err = jwt.Sign(t, jwa.SignatureAlgorithm(key.Algorithm()), key, jws.WithHeaders(hdr))
++	sig, err = jwt.Sign(t, jwa.SignatureAlgorithm(key.Algorithm()), key, jwt.WithHeaders(hdr))
+ 	token = string(sig)
+ 
+ 	return
+diff --git a/vcr/test.go b/vcr/test.go
+index ae422ba54e..565c7477c0 100644
+--- a/vcr/test.go
++++ b/vcr/test.go
+@@ -34,7 +34,7 @@ import (
+ )
+ 
+ // keyID matches the keys in /test
+-const testKID = "did:nuts:t1DVVAs5fmNba8fdKoTSQNtiGcH49vicrkjZW2KRqpv#h22vbXHX7-lRd1qAJnU63liaehb9sAoBS7RavhvfgR8"
++const testKID = "did:nuts:CuE3qeFGGLhEAS3gKzhMCeqd1dGa9at5JCbmCfyMU2Ey#sNGDQ3NlOe6Icv0E7_ufviOLG6Y25bSEyS5EbXBgp8Y"
+ 
+ // NewTestVCRInstance returns a new vcr instance to be used for integration tests. Any data is stored in the
+ // specified test directory.
+diff --git a/vcr/vcr.go b/vcr/vcr.go
+index 0bd7f392e0..19b8d8c49a 100644
+--- a/vcr/vcr.go
++++ b/vcr/vcr.go
+@@ -443,7 +443,7 @@ func (c *vcr) Verify(subject vc.VerifiableCredential, at *time.Time) error {
+ 
+ 	verifier, _ := jws.NewVerifier(alg)
+ 	// the jws lib can't do this for us, so we concat hdr with payload for verification
+-	challenge := fmt.Sprintf("%s.%s", splittedJws[0], base64.RawURLEncoding.EncodeToString(payload))
++	challenge := fmt.Sprintf("%s.%s", splittedJws[0], payload)
+ 	if err = verifier.Verify([]byte(challenge), sig, pk); err != nil {
+ 		return err
+ 	}
+@@ -652,7 +652,6 @@ func (c *vcr) verifyRevocation(r credential.Revocation) error {
+ 	sig, err := base64.RawURLEncoding.DecodeString(splittedJws[1])
+ 	if err != nil {
+ 		return err
+-
+ 	}
+ 
+ 	// check if key is of issuer
+@@ -671,7 +670,7 @@ func (c *vcr) verifyRevocation(r credential.Revocation) error {
+ 	// the proof must be correct
+ 	verifier, _ := jws.NewVerifier(jwa.ES256)
+ 	// the jws lib can't do this for us, so we concat hdr with payload for verification
+-	challenge := fmt.Sprintf("%s.%s", splittedJws[0], base64.RawURLEncoding.EncodeToString(payload))
++	challenge := fmt.Sprintf("%s.%s", splittedJws[0], payload)
+ 	if err = verifier.Verify([]byte(challenge), sig, pk); err != nil {
+ 		return err
+ 	}
+@@ -808,9 +807,10 @@ func generateCredentialChallenge(credential vc.VerifiableCredential) ([]byte, er
+ 	proof.Jws = ""
+ 	prJSON, _ := json.Marshal(proof)
+ 
+-	tbs := append(hash.SHA256Sum(prJSON).Slice(), hash.SHA256Sum(payload).Slice()...)
++	sums := append(hash.SHA256Sum(prJSON).Slice(), hash.SHA256Sum(payload).Slice()...)
++	tbs := base64.RawURLEncoding.EncodeToString(sums)
+ 
+-	return tbs, nil
++	return []byte(tbs), nil
+ }
+ 
+ func generateRevocationChallenge(r credential.Revocation) []byte {
+@@ -824,9 +824,10 @@ func generateRevocationChallenge(r credential.Revocation) []byte {
+ 	// proof
+ 	prJSON, _ := json.Marshal(proof)
+ 
+-	tbs := append(hash.SHA256Sum(prJSON).Slice(), hash.SHA256Sum(payload).Slice()...)
++	sums := append(hash.SHA256Sum(prJSON).Slice(), hash.SHA256Sum(payload).Slice()...)
++	tbs := base64.RawURLEncoding.EncodeToString(sums)
+ 
+-	return tbs
++	return []byte(tbs)
+ }
+ 
+ // detachedJWSHeaders creates headers for JsonWebSignature2020

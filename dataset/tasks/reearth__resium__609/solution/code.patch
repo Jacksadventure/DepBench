@@ -1,0 +1,584 @@
+diff --git a/src/Cesium3DTileset/Cesium3DTileset.ts b/src/Cesium3DTileset/Cesium3DTileset.ts
+--- a/src/Cesium3DTileset/Cesium3DTileset.ts
++++ b/src/Cesium3DTileset/Cesium3DTileset.ts
+@@ -27,8 +27,7 @@ export type Cesium3DTilesetCesiumProps = PickCesiumProps<CesiumCesium3DTileset,
+ 
+ export type Cesium3DTilesetCesiumReadonlyProps = PickCesiumProps<
+   Merge<CesiumCesium3DTileset, ConstructorOptions<typeof CesiumCesium3DTileset>>,
+-  typeof cesiumReadonlyProps,
+-  "url"
++  typeof cesiumReadonlyProps
+ >;
+ 
+ export type Cesium3DTilesetCesiumEvents = {
+@@ -44,6 +43,8 @@ export type Cesium3DTilesetCesiumEvents = {
+ export type Cesium3DTilesetOtherProps = EventProps<Cesium3DTileFeature> & {
+   /** Calls when the tile set is completely loaded. */
+   onReady?: (tileset: CesiumCesium3DTileset) => void;
++  onError?: (err: unknown) => void;
++  url: string;
+ };
+ 
+ export type Cesium3DTilesetProps = Cesium3DTilesetCesiumProps &
+@@ -106,10 +107,11 @@ const cesiumProps = [
+   "instanceFeatureIdLabel",
+   "imageBasedLighting",
+   "outlineColor",
++  "cacheBytes",
++  "maximumCacheOverflowBytes",
+ ] as const;
+ 
+ const cesiumReadonlyProps = [
+-  "url",
+   "showOutline",
+   "cullWithChildrenBounds",
+   "debugHeatmapTilePropertyName",
+@@ -130,13 +132,21 @@ export const cesiumEventProps = {
+   onTileVisible: "tileVisible",
+ } as const;
+ 
+-export const otherProps = ["onReady"] as const;
++export const otherProps = ["onReady", "onError", "url"] as const;
+ 
+ const Cesium3DTileset = createCesiumComponent<CesiumCesium3DTileset, Cesium3DTilesetProps>({
+   name: "Cesium3DTileset",
+-  create(context, props) {
++  async create(context, props) {
+     if (!context.primitiveCollection) return;
+-    const element = new CesiumCesium3DTileset(props);
++    let element;
++    try {
++      element = await CesiumCesium3DTileset.fromUrl(props.url, props);
++      props.onReady?.(element);
++    } catch (e) {
++      props.onError?.(e);
++      return;
++    }
++
+     if (props.colorBlendAmount) {
+       element.colorBlendAmount = props.colorBlendAmount;
+     }
+@@ -146,9 +156,6 @@ const Cesium3DTileset = createCesiumComponent<CesiumCesium3DTileset, Cesium3DTil
+     if (props.style) {
+       element.style = props.style;
+     }
+-    if (props.onReady) {
+-      element.readyPromise.then(props.onReady);
+-    }
+     context.primitiveCollection.add(element);
+     return element;
+   },
+diff --git a/src/CesiumWidget/CesiumWidget.ts b/src/CesiumWidget/CesiumWidget.ts
+--- a/src/CesiumWidget/CesiumWidget.ts
++++ b/src/CesiumWidget/CesiumWidget.ts
+@@ -55,11 +55,12 @@ const cesiumProps = [
+   "useDefaultRenderLoop",
+   "targetFrameRate",
+   "useBrowserRecommendedResolution",
++  "creditDisplay",
+ ] as const;
+ 
+ const cesiumReadonlyProps = [
+   "clock",
+-  "imageryProvider",
++  "baseLayer",
+   "terrainProvider",
+   "skyBox",
+   "skyAtmosphere",
+@@ -75,6 +76,7 @@ const cesiumReadonlyProps = [
+   "creditViewport",
+   "shadows",
+   "terrainShadows",
++  "terrain",
+   "requestRenderMode",
+   "maximumRenderTimeChange",
+   "msaaSamples",
+diff --git a/src/ClassificationPrimitive/ClassificationPrimitive.ts b/src/ClassificationPrimitive/ClassificationPrimitive.ts
+--- a/src/ClassificationPrimitive/ClassificationPrimitive.ts
++++ b/src/ClassificationPrimitive/ClassificationPrimitive.ts
+@@ -70,12 +70,17 @@ const ClassificationPrimitive = createCesiumComponent<
+   ClassificationPrimitiveProps
+ >({
+   name: "ClassificationPrimitive",
+-  create(context, props) {
++  async create(context, props) {
+     if (!context.primitiveCollection) return;
+     const element = new CesiumClassificationPrimitive(props);
+     if (props.onReady) {
+-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+-      element.readyPromise.then(props.onReady);
++      const handlePostRender = () => {
++        if (element.ready) {
++          props.onReady?.(element);
++          context.scene?.postRender.removeEventListener(handlePostRender);
++        }
++      };
++      context.scene?.postRender.addEventListener(handlePostRender);
+     }
+     context.primitiveCollection.add(element);
+     return element;
+diff --git a/src/GroundPolylinePrimitive/GroundPolylinePrimitive.ts b/src/GroundPolylinePrimitive/GroundPolylinePrimitive.ts
+--- a/src/GroundPolylinePrimitive/GroundPolylinePrimitive.ts
++++ b/src/GroundPolylinePrimitive/GroundPolylinePrimitive.ts
+@@ -74,7 +74,13 @@ const GroundPolylinePrimitive = createCesiumComponent<
+     if (!context.primitiveCollection) return;
+     const element = new CesiumGroundPolylinePrimitive(props);
+     if (props.onReady) {
+-      element.readyPromise.then(props.onReady);
++      const handlePostRender = () => {
++        if (element.ready) {
++          props.onReady?.(element);
++          context.scene?.postRender.removeEventListener(handlePostRender);
++        }
++      };
++      context.scene?.postRender.addEventListener(handlePostRender);
+     }
+     context.primitiveCollection.add(element);
+     return element;
+diff --git a/src/GroundPrimitive/GroundPrimitive.ts b/src/GroundPrimitive/GroundPrimitive.ts
+--- a/src/GroundPrimitive/GroundPrimitive.ts
++++ b/src/GroundPrimitive/GroundPrimitive.ts
+@@ -71,7 +71,13 @@ const GroundPrimitive = createCesiumComponent<CesiumGroundPrimitive, GroundPrimi
+     if (!context.primitiveCollection) return;
+     const element = new CesiumGroundPrimitive(props);
+     if (props.onReady) {
+-      element.readyPromise.then(props.onReady);
++      const handlePostRender = () => {
++        if (element.ready) {
++          props.onReady?.(element);
++          context.scene?.postRender.removeEventListener(handlePostRender);
++        }
++      };
++      context.scene?.postRender.addEventListener(handlePostRender);
+     }
+     context.primitiveCollection.add(element);
+     return element;
+diff --git a/src/ImageryLayer/ImageLayer.stories.tsx b/src/ImageryLayer/ImageLayer.stories.tsx
+--- a/src/ImageryLayer/ImageLayer.stories.tsx
++++ b/src/ImageryLayer/ImageLayer.stories.tsx
+@@ -14,12 +14,10 @@ export const Basic: Story<ImageryLayerProps> = args => (
+   <Viewer full>
+     <ImageryLayer
+       {...args}
+-      imageryProvider={
+-        new ArcGisMapServerImageryProvider({
+-          url: "//services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+-        })
+-      }
++      imageryProvider={ArcGisMapServerImageryProvider.fromUrl(
++        "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
++      )}
+     />
+-    <ImageryLayer alpha={0.5} imageryProvider={new IonImageryProvider({ assetId: 3812 })} />
++    <ImageryLayer alpha={0.5} imageryProvider={IonImageryProvider.fromAssetId(3812, {})} />
+   </Viewer>
+ );
+diff --git a/src/ImageryLayer/ImageryLayer.ts b/src/ImageryLayer/ImageryLayer.ts
+--- a/src/ImageryLayer/ImageryLayer.ts
++++ b/src/ImageryLayer/ImageryLayer.ts
+@@ -1,4 +1,4 @@
+-import { ImageryLayer as CesiumImageryLayer } from "cesium";
++import { ImageryLayer as CesiumImageryLayer, ImageryProvider } from "cesium";
+ 
+ import { createCesiumComponent, PickCesiumProps, Merge, ConstructorOptions2 } from "../core";
+ 
+@@ -42,13 +42,15 @@ export type Target = Merge<CesiumImageryLayer, ConstructorOptions2<typeof Cesium
+ 
+ export type ImageryLayerCesiumProps = PickCesiumProps<Target, typeof cesiumProps>;
+ 
+-export type ImageryLayerCesiumReadonlyProps = PickCesiumProps<
+-  Target,
+-  typeof cesiumReadonlyProps,
+-  "imageryProvider"
+->;
++export type ImageryLayerCesiumReadonlyProps = PickCesiumProps<Target, typeof cesiumReadonlyProps>;
+ 
+-export type ImageryLayerProps = ImageryLayerCesiumProps & ImageryLayerCesiumReadonlyProps;
++export type ImageryLayerOtherProps = {
++  imageryProvider: ImageryProvider | Promise<ImageryProvider>;
++};
++
++export type ImageryLayerProps = ImageryLayerCesiumProps &
++  ImageryLayerCesiumReadonlyProps &
++  ImageryLayerOtherProps;
+ 
+ const cesiumProps = [
+   "alpha",
+@@ -70,18 +72,34 @@ const cesiumProps = [
+ ] as const;
+ 
+ const cesiumReadonlyProps = [
+-  "imageryProvider",
+   "rectangle",
+   "maximumAnisotropy",
+   "minimumTerrainLevel",
+   "maximumTerrainLevel",
++  "readyEvent",
+ ] as const;
+ 
++const otherProps = ["imageryProvider"] as const;
++
+ const ImageryLayer = createCesiumComponent<CesiumImageryLayer, ImageryLayerProps>({
+   name: "ImageryLayer",
+-  create(context, props) {
++  async create(context, props) {
+     if (!context.imageryLayerCollection) return;
+-    const element = new CesiumImageryLayer(props.imageryProvider, props);
++
++    const maybePromise = props.imageryProvider;
++
++    let result: ImageryProvider;
++    if (
++      maybePromise &&
++      typeof maybePromise === "object" &&
++      typeof (maybePromise as Promise<unknown>).then === "function"
++    ) {
++      result = await maybePromise;
++    } else {
++      result = maybePromise as ImageryProvider;
++    }
++
++    const element = new CesiumImageryLayer(result, props);
+     context.imageryLayerCollection.add(element, props.index);
+     return element;
+   },
+@@ -92,6 +110,7 @@ const ImageryLayer = createCesiumComponent<CesiumImageryLayer, ImageryLayerProps
+   },
+   cesiumProps,
+   cesiumReadonlyProps,
++  otherProps,
+ });
+ 
+ export default ImageryLayer;
+diff --git a/src/Model/Model.ts b/src/Model/Model.ts
+--- a/src/Model/Model.ts
++++ b/src/Model/Model.ts
+@@ -2,22 +2,23 @@ import { Model as CesiumModel, Primitive, ModelNode, ColorBlendMode } from "cesi
+ 
+ import { createCesiumComponent, EventProps, PickCesiumProps, Merge } from "../core";
+ 
+-export type Target = Merge<CesiumModel, Parameters<(typeof CesiumModel)["fromGltf"]>[0]>;
++export type Target = Merge<CesiumModel, Parameters<(typeof CesiumModel)["fromGltfAsync"]>[0]>;
+ 
+ export type ModelCesiumProps = PickCesiumProps<CesiumModel, typeof cesiumProps>;
+ 
+ export type ModelCesiumReadonlyProps = PickCesiumProps<Target, typeof cesiumReadonlyProps>;
+ 
+-export type ModalOtherProps = EventProps<{
++export type ModelOtherProps = EventProps<{
+   id?: string;
+   node: ModelNode;
+   primitive: Primitive;
+ }> & {
+   /** Calls when the model is completely loaded. */
+   onReady?: (model: CesiumModel) => void;
++  onError?: (err: unknown) => void;
+ };
+ 
+-export type ModelProps = ModelCesiumProps & ModelCesiumReadonlyProps & ModalOtherProps;
++export type ModelProps = ModelCesiumProps & ModelCesiumReadonlyProps & ModelOtherProps;
+ 
+ const cesiumProps = [
+   "backFaceCulling",
+@@ -72,23 +73,32 @@ const cesiumReadonlyProps = [
+   "enableShowOutline",
+   "projectTo2D",
+   "classificationType",
++  "errorEvent",
++  "readyEvent",
++  "texturesReadyEvent",
++  "gltfCallback",
+ ] as const;
+ 
+-export const otherProps = ["onReady"] as const;
++export const otherProps = ["onReady", "onError"] as const;
+ 
+ const Model = createCesiumComponent<CesiumModel, ModelProps>({
+   name: "Model",
+-  create(context, { scene, url, colorBlendMode, ...props }) {
++  async create(context, { scene, url, colorBlendMode, ...props }) {
+     if (!context.scene || !context.primitiveCollection || !url) return;
+-    const element = CesiumModel.fromGltf({
+-      ...props,
+-      url,
+-      colorBlendMode: colorBlendMode as ColorBlendMode,
+-      scene: scene || context.scene,
+-    });
+-    if (props.onReady) {
+-      element.readyPromise.then(props.onReady);
++    let element;
++    try {
++      element = await CesiumModel.fromGltfAsync({
++        ...props,
++        url,
++        colorBlendMode: colorBlendMode as ColorBlendMode,
++        scene: scene || context.scene,
++      });
++      props.onReady?.(element);
++    } catch (e) {
++      props.onError?.(e);
++      return;
+     }
++
+     context.primitiveCollection.add(element);
+     return element;
+   },
+diff --git a/src/ParticleSystem/ParticleSystem.stories.tsx b/src/ParticleSystem/ParticleSystem.stories.tsx
+--- a/src/ParticleSystem/ParticleSystem.stories.tsx
++++ b/src/ParticleSystem/ParticleSystem.stories.tsx
+@@ -5,7 +5,7 @@ import {
+   SphereEmitter,
+   Matrix4,
+   Color,
+-  createWorldTerrain,
++  createWorldTerrainAsync,
+   Math as CesiumMath,
+ } from "cesium";
+ import { useMemo, useRef, useCallback, FC } from "react";
+@@ -89,7 +89,7 @@ const SnowParticle: FC = () => {
+ };
+ 
+ export const Snow: Story = () => (
+-  <Viewer full shouldAnimate terrainProvider={createWorldTerrain({})}>
++  <Viewer full shouldAnimate terrainProvider={createWorldTerrainAsync({})}>
+     <CameraFlyTo
+       duration={0}
+       destination={pos}
+diff --git a/src/PostProcessStage/PostProcessStage.stories.tsx b/src/PostProcessStage/PostProcessStage.stories.tsx
+--- a/src/PostProcessStage/PostProcessStage.stories.tsx
++++ b/src/PostProcessStage/PostProcessStage.stories.tsx
+@@ -19,7 +19,7 @@ export default {
+ 
+ const shader = `
+ uniform sampler2D colorTexture;
+-varying vec2 v_textureCoordinates;
++in vec2 v_textureCoordinates;
+ const int KERNEL_WIDTH = 16;
+ void main(void)
+ {
+@@ -30,11 +30,11 @@ void main(void)
+     {
+         for (int j = 0; j < KERNEL_WIDTH; j++)
+         {
+-            averageValue += texture2D(colorTexture, integralPos + step * vec2(i, j)).rgb;
++            averageValue += texture(colorTexture, integralPos + step * vec2(i, j)).rgb;
+         }
+     }
+     averageValue /= float(KERNEL_WIDTH * KERNEL_WIDTH);
+-    gl_FragColor = vec4(averageValue, 1.0);
++    out_FragColor = vec4(averageValue, 1.0);
+ }
+ `;
+ 
+diff --git a/src/Primitive/Primitive.ts b/src/Primitive/Primitive.ts
+--- a/src/Primitive/Primitive.ts
++++ b/src/Primitive/Primitive.ts
+@@ -65,7 +65,13 @@ const Primitive = createCesiumComponent<CesiumPrimitive, PrimitiveProps>({
+     if (!context.primitiveCollection) return;
+     const element = new CesiumPrimitive(props);
+     if (props.onReady) {
+-      element.readyPromise.then(props.onReady);
++      const handlePostRender = () => {
++        if (element.ready) {
++          props.onReady?.(element);
++          context.scene?.postRender.removeEventListener(handlePostRender);
++        }
++      };
++      context.scene?.postRender.addEventListener(handlePostRender);
+     }
+     context.primitiveCollection.add(element);
+     return element;
+diff --git a/src/TimeDynamicPointCloud/TimeDynamicPointCloud.ts b/src/TimeDynamicPointCloud/TimeDynamicPointCloud.ts
+--- a/src/TimeDynamicPointCloud/TimeDynamicPointCloud.ts
++++ b/src/TimeDynamicPointCloud/TimeDynamicPointCloud.ts
+@@ -87,7 +87,11 @@ const TimeDynamicPointCloud = createCesiumComponent<
+       clock: props.clock ?? context.cesiumWidget.clock,
+     });
+     if (props.onReady) {
+-      element.readyPromise.then(props.onReady);
++      const handleFrameChanged = () => {
++        props.onReady?.(element);
++        element.frameChanged.removeEventListener(handleFrameChanged);
++      };
++      element.frameChanged.addEventListener(handleFrameChanged);
+     }
+     context.primitiveCollection.add(element);
+     return element;
+diff --git a/src/Viewer/Viewer.ts b/src/Viewer/Viewer.ts
+--- a/src/Viewer/Viewer.ts
++++ b/src/Viewer/Viewer.ts
+@@ -1,4 +1,4 @@
+-import { Viewer as CesiumViewer, ImageryProvider, Entity } from "cesium";
++import { Viewer as CesiumViewer, Entity, TerrainProvider } from "cesium";
+ import { ReactNode, CSSProperties } from "react";
+ 
+ import {
+@@ -30,21 +30,14 @@ export type Target = Merge<CesiumViewer, CesiumViewer.ConstructorOptions>;
+ 
+ export type ViewerCesiumProps = PickCesiumProps<CesiumViewer, typeof cesiumProps>;
+ 
+-export type ViewerCesiumReadonlyProps = Merge<
+-  PickCesiumProps<Target, typeof cesiumReadonlyProps>,
+-  {
+-    /** If false, the default imagery layer will be removed. */
+-    imageryProvider?: ImageryProvider | false;
+-  }
+->;
++export type ViewerCesiumReadonlyProps = PickCesiumProps<Target, typeof cesiumReadonlyProps>;
+ 
+ export type ViewerCesiumEvents = {
+   onSelectedEntityChange?: (entity: Entity) => void;
+   onTrackedEntityChange?: (entity: Entity) => void;
+ };
+ 
+ const cesiumProps = [
+-  "terrainProvider",
+   "terrainShadows",
+   "clockTrackedDataSource",
+   "targetFrameRate",
+@@ -55,9 +48,11 @@ const cesiumProps = [
+   "selectedEntity",
+   "shadows",
+   "useBrowserRecommendedResolution",
++  "creditDisplay",
+ ] as const;
+ 
+ const cesiumReadonlyProps = [
++  "baseLayer",
+   "animation",
+   "baseLayerPicker",
+   "fullscreenButton",
+@@ -77,7 +72,6 @@ const cesiumReadonlyProps = [
+   "imageryProviderViewModels",
+   "selectedTerrainProviderViewModel",
+   "terrainProviderViewModels",
+-  "imageryProvider",
+   "skyBox",
+   "skyAtmosphere",
+   "fullscreenElement",
+@@ -98,14 +92,23 @@ const cesiumReadonlyProps = [
+   "depthPlaneEllipsoidOffset",
+   "msaaSamples",
+   "blurActiveElementOnCanvasFocus",
++  "terrain",
+ ] as const;
+ 
+ export const cesiumEventProps = {
+   onSelectedEntityChange: "selectedEntityChanged",
+   onTrackedEntityChange: "trackedEntityChanged",
+ } as const;
+ 
+-export const otherProps = ["className", "id", "style", "full", "containerProps", "extend"] as const;
++export const otherProps = [
++  "className",
++  "id",
++  "style",
++  "full",
++  "containerProps",
++  "extend",
++  "terrainProvider",
++] as const;
+ 
+ export type ViewerOtherProps = RootEventProps &
+   RootComponentInternalProps & {
+@@ -122,6 +125,7 @@ export type ViewerOtherProps = RootEventProps &
+     /** It is applied in order from the top to Viewer as `viewer.extend(XXX);` after the viewer is mounted. Nothing happens even it is updated by itself. */
+     extend?: CesiumViewer.ViewerMixin[] | CesiumViewer.ViewerMixin;
+     children?: ReactNode;
++    terrainProvider?: TerrainProvider | Promise<TerrainProvider>;
+   };
+ 
+ export type ViewerProps = ViewerCesiumProps &
+@@ -131,15 +135,28 @@ export type ViewerProps = ViewerCesiumProps &
+ 
+ const Viewer = createCesiumComponent<CesiumViewer, ViewerProps, EventManager>({
+   name: "Viewer",
+-  create(_context, { imageryProvider, ...props }, wrapper) {
++  async create(_context, { baseLayer, terrainProvider, ...props }, wrapper) {
+     if (!wrapper) return;
++
++    let resultTerrainProvider: TerrainProvider;
++    if (
++      terrainProvider &&
++      typeof terrainProvider === "object" &&
++      typeof (terrainProvider as Promise<unknown>).then === "function"
++    ) {
++      resultTerrainProvider = await terrainProvider;
++    } else {
++      resultTerrainProvider = terrainProvider as TerrainProvider;
++    }
++
+     const v = new CesiumViewer(wrapper, {
+       ...props,
+-      imageryProvider: imageryProvider === false ? undefined : imageryProvider,
++      terrainProvider: resultTerrainProvider,
++      baseLayer: baseLayer === false ? undefined : baseLayer,
+     });
+     if (!v) return;
+ 
+-    if (imageryProvider === false) {
++    if (baseLayer === false) {
+       v.imageryLayers.removeAll();
+     }
+ 
+diff --git a/src/core/hooks.ts b/src/core/hooks.ts
+--- a/src/core/hooks.ts
++++ b/src/core/hooks.ts
+@@ -16,13 +16,15 @@ import { includes, shallowEquals, isDestroyed } from "./util";
+ 
+ export type EventkeyMap<T, P> = { [K in keyof P]?: keyof T };
+ 
++type CreateReturnType<Element, State = any> = Element | [Element, State] | undefined;
++
+ export type Options<Element, Props extends RootComponentInternalProps, State = any> = {
+   name: string;
+   create?: (
+     ctx: ResiumContext,
+     props: Props,
+     wrapperRef: HTMLDivElement | null,
+-  ) => Element | [Element, State] | undefined;
++  ) => Promise<CreateReturnType<Element, State>> | CreateReturnType<Element, State>;
+   destroy?: (
+     element: Element,
+     ctx: ResiumContext,
+@@ -150,9 +152,21 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
+     [], // eslint-disable-line react-hooks/exhaustive-deps
+   );
+ 
+-  const mount = useCallback(() => {
++  const mount = useCallback(async () => {
+     // Initialize cesium element
+-    const result = create?.(ctx, initialProps.current, wrapperRef.current);
++    const maybePromise = create?.(ctx, initialProps.current, wrapperRef.current);
++
++    let result: CreateReturnType<Element, State>;
++    if (
++      maybePromise &&
++      typeof maybePromise === "object" &&
++      typeof (maybePromise as Promise<unknown>).then === "function"
++    ) {
++      result = await maybePromise;
++    } else {
++      result = maybePromise as CreateReturnType<Element, State>;
++    }
++
+     if (Array.isArray(result)) {
+       element.current = result[0];
+       stateRef.current = result[1];
+@@ -194,6 +208,8 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
+     if (useCommonEvent && em && element.current) {
+       em.setEvents(useRootEvent ? null : element.current, initialProps.current);
+     }
++
++    setMounted(true);
+   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+ 
+   const unmount = useCallback(() => {
+@@ -245,7 +261,6 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
+       // first time
+       prevProps.current = propsWC;
+       initialProps.current = propsWC;
+-      setMounted(true);
+       mountedRef.current = true;
+     }
+   }, [ctx.__$internal, mounted, props, updateProperties]);

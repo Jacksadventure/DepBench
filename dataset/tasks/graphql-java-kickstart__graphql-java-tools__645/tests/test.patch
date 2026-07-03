@@ -1,0 +1,89 @@
+diff --git a/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerTest.kt b/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerTest.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerTest.kt
+@@ -434,6 +434,11 @@ class SchemaClassScannerTest {
+                 
+                 # these directives are defined in the Apollo Federation Specification: 
+                 # https://www.apollographql.com/docs/apollo-server/federation/federation-spec/
++                scalar _FieldSet
++                directive @key(fields: _FieldSet!) repeatable on OBJECT | INTERFACE
++                directive @extends on OBJECT | INTERFACE
++                directive @external on FIELD_DEFINITION
++                
+                 type User @key(fields: "id") @extends {
+                     id: ID! @external
+                     recentPurchasedProducts: [Product]
+@@ -449,6 +454,7 @@ class SchemaClassScannerTest {
+             })
+             .options(SchemaParserOptions.newOptions().includeUnusedTypes(true).build())
+             .dictionary(User::class)
++            .scalars(fieldSet)
+             .build()
+             .makeExecutableSchema()
+ 
+@@ -471,6 +477,16 @@ class SchemaClassScannerTest {
+         var street: String? = null
+     }
+ 
++    private val fieldSet: GraphQLScalarType = GraphQLScalarType.newScalar()
++        .name("_FieldSet")
++        .description("_FieldSet")
++        .coercing(object : Coercing<String, String> {
++            override fun parseValue(input: Any) = input.toString()
++            override fun serialize(dataFetcherResult: Any) = dataFetcherResult as String
++            override fun parseLiteral(input: Any) = input.toString()
++        })
++        .build()
++
+     @Test
+     fun `scanner should handle unused types with interfaces when option is true`() {
+         val schema = SchemaParser.newParser()
+diff --git a/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt b/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
+@@ -258,7 +258,7 @@ class SchemaParserTest {
+ 
+         val sourceLocation = schema.getObjectType("Query")
+             .getFieldDefinition("id")
+-            .definition.sourceLocation
++            .definition!!.sourceLocation
+         assertNotNull(sourceLocation)
+         assertEquals(sourceLocation.line, 2)
+         assertEquals(sourceLocation.column, 5)
+@@ -275,7 +275,7 @@ class SchemaParserTest {
+ 
+         val sourceLocation = schema.getObjectType("Query")
+             .getFieldDefinition("id")
+-            .definition.sourceLocation
++            .definition!!.sourceLocation
+         assertNotNull(sourceLocation)
+         assertEquals(sourceLocation.line, 2)
+         assertEquals(sourceLocation.column, 3)
+@@ -441,8 +441,8 @@ class SchemaParserTest {
+         assert(poodleTraitObject.interfaces.containsAll(listOf(mammalTraitInterface, traitInterface)))
+         assert(dogInterface.interfaces.contains(animalInterface))
+         assert(mammalTraitInterface.interfaces.contains(traitInterface))
+-        assert(traitInterface.definition.implements.isEmpty())
+-        assert(animalInterface.definition.implements.isEmpty())
++        assert(traitInterface.definition!!.implements.isEmpty())
++        assert(animalInterface.definition!!.implements.isEmpty())
+     }
+ 
+     class MultiLevelInterfaceResolver : GraphQLQueryResolver {
+diff --git a/src/test/resources/RelayConnection.graphqls b/src/test/resources/RelayConnection.graphqls
+--- a/src/test/resources/RelayConnection.graphqls
++++ b/src/test/resources/RelayConnection.graphqls
+@@ -1,8 +1,10 @@
++directive @connection(for: String!) on FIELD
++
+ type Query {
+-  users(first: Int, after: String): UserRelayConnection @connection(for: "User")
++    users(first: Int, after: String): UserRelayConnection @connection(for: "User")
+ }
+ 
+ type User {
+-  id: ID!
+-  name: String
++    id: ID!
++    name: String
+ }

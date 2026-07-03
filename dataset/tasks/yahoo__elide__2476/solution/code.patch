@@ -1,0 +1,231 @@
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Day.java
+@@ -11,6 +11,7 @@
+ 
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+ 
+@@ -36,6 +37,10 @@ public Day deserialize(Object val) {
+             if (val instanceof Date) {
+                 return new Day((Date) val);
+             }
++            if (val instanceof OffsetDateTime) {
++                OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                return new Day(offsetDateTime.toLocalDateTime());
++            }
+             LocalDate localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
+             LocalDateTime localDateTime = localDate.atTime(0, 0);
+             return new Day(localDateTime);
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Hour.java
+@@ -10,6 +10,7 @@
+ import com.yahoo.elide.datastores.aggregation.metadata.enums.TimeGrain;
+ 
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+@@ -38,6 +39,10 @@ public Hour deserialize(Object val) {
+             if (val instanceof Date) {
+                 return new Hour((Date) val);
+             }
++            if (val instanceof OffsetDateTime) {
++                OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                return new Hour(offsetDateTime.toLocalDateTime());
++            }
+             return new Hour(LocalDateTime.parse(val.toString(), FORMATTER));
+         }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/ISOWeek.java
+@@ -12,6 +12,7 @@
+ import java.time.DayOfWeek;
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+@@ -35,8 +36,14 @@ public ISOWeek deserialize(Object val) {
+             if (val instanceof Date) {
+                 date = LocalDateTime.ofInstant(((Date) val).toInstant(), ZoneOffset.systemDefault());
+             } else {
+-                LocalDate localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
+-                date = localDate.atTime(0, 0);
++                LocalDate localDate;
++                if (val instanceof OffsetDateTime) {
++                    OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                    date = offsetDateTime.toLocalDate().atTime(0, 0);
++                } else {
++                    localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
++                    date = localDate.atTime(0, 0);
++                }
+             }
+ 
+             if (date.getDayOfWeek() != DayOfWeek.MONDAY) {
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Minute.java
+@@ -10,6 +10,7 @@
+ import com.yahoo.elide.datastores.aggregation.metadata.enums.TimeGrain;
+ 
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+@@ -38,6 +39,10 @@ public Minute deserialize(Object val) {
+             if (val instanceof Date) {
+                 return new Minute((Date) val);
+             }
++            if (val instanceof OffsetDateTime) {
++                OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                return new Minute(offsetDateTime.toLocalDateTime());
++            }
+             return new Minute(LocalDateTime.parse(val.toString(), FORMATTER));
+         }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Month.java
+@@ -10,6 +10,7 @@
+ import com.yahoo.elide.datastores.aggregation.metadata.enums.TimeGrain;
+ 
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.YearMonth;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+@@ -39,6 +40,10 @@ public Month deserialize(Object val) {
+             if (val instanceof Date) {
+                 return new Month((Date) val);
+             }
++            if (val instanceof OffsetDateTime) {
++                OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                return new Month(offsetDateTime.toLocalDateTime());
++            }
+             YearMonth yearMonth = YearMonth.parse(val.toString(), FORMATTER);
+             LocalDateTime localDateTime = LocalDateTime.of(yearMonth.getYear(), yearMonth.getMonth(), 1, 0, 0);
+             return new Month(localDateTime);
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Quarter.java
+@@ -10,6 +10,7 @@
+ import com.yahoo.elide.datastores.aggregation.metadata.enums.TimeGrain;
+ 
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.YearMonth;
+ import java.time.ZoneId;
+ import java.time.ZoneOffset;
+@@ -37,7 +38,14 @@ public Quarter deserialize(Object val) {
+             if (val instanceof Date) {
+                 date = LocalDateTime.ofInstant(((Date) val).toInstant(), ZoneOffset.systemDefault());
+             } else {
+-                YearMonth yearMonth = YearMonth.parse(val.toString(), FORMATTER);
++                YearMonth yearMonth;
++                if (val instanceof OffsetDateTime) {
++                    OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                    yearMonth = YearMonth.from(offsetDateTime);
++                } else {
++                    yearMonth = YearMonth.parse(val.toString(), FORMATTER);
++                }
++
+                 date = LocalDateTime.of(yearMonth.getYear(), yearMonth.getMonth(), 1, 0, 0);
+             }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Second.java
+@@ -10,6 +10,7 @@
+ import com.yahoo.elide.datastores.aggregation.metadata.enums.TimeGrain;
+ 
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+@@ -38,6 +39,10 @@ public Second deserialize(Object val) {
+             if (val instanceof Date) {
+                 return new Second((Date) val);
+             }
++            if (val instanceof OffsetDateTime) {
++                OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                return new Second(offsetDateTime.toLocalDateTime());
++            }
+             return new Second(LocalDateTime.parse(val.toString(), FORMATTER));
+         }
+ 
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Week.java
+@@ -12,6 +12,7 @@
+ import java.time.DayOfWeek;
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
++import java.time.OffsetDateTime;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+@@ -35,10 +36,15 @@ public Week deserialize(Object val) {
+             if (val instanceof Date) {
+                 date = LocalDateTime.ofInstant(((Date) val).toInstant(), ZoneOffset.systemDefault());
+             } else {
+-                LocalDate localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
+-                date = localDate.atTime(0, 0);
++                LocalDate localDate;
++                if (val instanceof OffsetDateTime) {
++                    OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                    date = offsetDateTime.toLocalDate().atTime(0, 0);
++                } else {
++                    localDate = LocalDate.parse(val.toString(), DateTimeFormatter.ISO_LOCAL_DATE);
++                    date = localDate.atTime(0, 0);
++                }
+             }
+-
+             if (date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+                 throw new IllegalArgumentException("Date string not a Sunday");
+             }
+diff --git a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java
+--- a/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java
++++ b/elide-datastore/elide-datastore-aggregation/src/main/java/com/yahoo/elide/datastores/aggregation/timegrains/Year.java
+@@ -11,6 +11,7 @@
+ 
+ import java.time.LocalDateTime;
+ import java.time.Month;
++import java.time.OffsetDateTime;
+ import java.time.ZoneOffset;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Date;
+@@ -39,6 +40,11 @@ public Year deserialize(Object val) {
+             if (val instanceof Date) {
+                 return new Year((Date) val);
+             }
++            if (val instanceof OffsetDateTime) {
++                OffsetDateTime offsetDateTime = (OffsetDateTime) val;
++                return new Year(offsetDateTime.toLocalDateTime());
++            }
++
+             java.time.Year year = java.time.Year.parse(val.toString(), FORMATTER);
+             LocalDateTime localDateTime = LocalDateTime.of(year.getValue(), Month.of(1), 1, 0, 0);
+             return new Year(localDateTime);
+diff --git a/elide-datastore/elide-datastore-aggregation/src/test/java/example/TimeGrainDefinitions.java b/elide-datastore/elide-datastore-aggregation/src/test/java/example/TimeGrainDefinitions.java
+--- a/elide-datastore/elide-datastore-aggregation/src/test/java/example/TimeGrainDefinitions.java
++++ b/elide-datastore/elide-datastore-aggregation/src/test/java/example/TimeGrainDefinitions.java
+@@ -8,7 +8,7 @@
+ 
+ public class TimeGrainDefinitions {
+     public static final String DATE_FORMAT = "PARSEDATETIME(FORMATDATETIME({{$$column.expr}}, 'yyyy-MM-dd'), 'yyyy-MM-dd')";
+-    public static final String MONTH_FORMAT = "PARSEDATETIME(FORMATDATETIME({{$$column.expr}}, 'yyyy-MM'), 'yyyy-MM')";
++    public static final String MONTH_FORMAT = "PARSEDATETIME(FORMATDATETIME({{$$column.expr}}, 'yyyy-MM-01'), 'yyyy-MM-dd')";
+     public static final String QUARTER_FORMAT =
+-            "PARSEDATETIME(CONCAT(FORMATDATETIME({{$$column.expr}}, 'yyyy-'), 3 * QUARTER({{$$column.expr}}) - 2), 'yyyy-MM')";
++            "PARSEDATETIME(CONCAT(FORMATDATETIME({{$$column.expr}}, 'yyyy-'), LPAD(3 * QUARTER({{$$column.expr}}) - 2, 2, '0'), '-01'), 'yyyy-MM-dd')";
+ }

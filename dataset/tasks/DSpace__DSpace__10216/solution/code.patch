@@ -1,0 +1,776 @@
+diff --git a/checkstyle.xml b/checkstyle.xml
+--- a/checkstyle.xml
++++ b/checkstyle.xml
+@@ -92,7 +92,7 @@ For more information on CheckStyle configurations below, see: http://checkstyle.
+         <!-- Requirements for Javadocs for methods -->
+         <module name="JavadocMethod">
+             <!-- All public methods MUST HAVE Javadocs -->
+-            <property name="scope" value="public"/>
++            <property name="accessModifiers" value="public"/>
+             <!-- Allow params, throws and return tags to be optional -->
+             <property name="allowMissingParamTags" value="true"/>
+             <property name="allowMissingReturnTag" value="true"/>
+diff --git a/dspace-api/src/main/java/org/dspace/authenticate/LDAPAuthentication.java b/dspace-api/src/main/java/org/dspace/authenticate/LDAPAuthentication.java
+--- a/dspace-api/src/main/java/org/dspace/authenticate/LDAPAuthentication.java
++++ b/dspace-api/src/main/java/org/dspace/authenticate/LDAPAuthentication.java
+@@ -521,6 +521,7 @@ protected String getDNOfUser(String adminUser, String adminPassword, Context con
+                     } else {
+                         searchName = ldap_provider_url + ldap_search_context;
+                     }
++                    @SuppressWarnings("BanJNDI")
+                     NamingEnumeration<SearchResult> answer = ctx.search(
+                         searchName,
+                         "(&({0}={1}))", new Object[] {ldap_id_field,
+@@ -571,7 +572,7 @@ protected String getDNOfUser(String adminUser, String adminPassword, Context con
+                             att = atts.get(attlist[4]);
+                             if (att != null) {
+                                 // loop through all groups returned by LDAP
+-                                ldapGroup = new ArrayList<String>();
++                                ldapGroup = new ArrayList<>();
+                                 for (NamingEnumeration val = att.getAll(); val.hasMoreElements(); )  {
+                                     ldapGroup.add((String) val.next());
+                                 }
+@@ -651,7 +652,8 @@ protected boolean ldapAuthenticate(String netid, String password,
+                         ctx.addToEnvironment(javax.naming.Context.AUTHORITATIVE, "true");
+                         ctx.addToEnvironment(javax.naming.Context.REFERRAL, "follow");
+                         // dummy operation to check if authentication has succeeded
+-                        ctx.getAttributes("");
++                        @SuppressWarnings("BanJNDI")
++                        Attributes trash = ctx.getAttributes("");
+                     } else if (!useTLS) {
+                         // Authenticate
+                         env.put(javax.naming.Context.SECURITY_AUTHENTICATION, "Simple");
+diff --git a/dspace-api/src/main/java/org/dspace/curate/Curation.java b/dspace-api/src/main/java/org/dspace/curate/Curation.java
+--- a/dspace-api/src/main/java/org/dspace/curate/Curation.java
++++ b/dspace-api/src/main/java/org/dspace/curate/Curation.java
+@@ -165,7 +165,7 @@ private long runQueue(TaskQueue queue, Curator curator) throws SQLException, Aut
+      * End of curation script; logs script time if -v verbose is set
+      *
+      * @param timeRun Time script was started
+-     * @throws SQLException If DSpace contextx can't complete
++     * @throws SQLException If DSpace context can't complete
+      */
+     private void endScript(long timeRun) throws SQLException {
+         context.complete();
+@@ -300,9 +300,17 @@ private void initGeneralLineOptionsAndCheckIfValid() {
+         // scope
+         if (this.commandLine.getOptionValue('s') != null) {
+             this.scope = this.commandLine.getOptionValue('s');
+-            if (this.scope != null && Curator.TxScope.valueOf(this.scope.toUpperCase()) == null) {
+-                this.handler.logError("Bad transaction scope '" + this.scope + "': only 'object', 'curation' or " +
+-                                      "'open' recognized");
++            boolean knownScope;
++            try {
++                Curator.TxScope.valueOf(this.scope.toUpperCase());
++                knownScope = true;
++            } catch (IllegalArgumentException | NullPointerException e) {
++                knownScope = false;
++            }
++            if (!knownScope) {
++                this.handler.logError("Bad transaction scope '"
++                        + this.scope
++                        + "': only 'object', 'curation' or 'open' recognized");
+                 throw new IllegalArgumentException(
+                     "Bad transaction scope '" + this.scope + "': only 'object', 'curation' or " +
+                     "'open' recognized");
+diff --git a/dspace-api/src/main/java/org/dspace/discovery/SolrServiceImpl.java b/dspace-api/src/main/java/org/dspace/discovery/SolrServiceImpl.java
+--- a/dspace-api/src/main/java/org/dspace/discovery/SolrServiceImpl.java
++++ b/dspace-api/src/main/java/org/dspace/discovery/SolrServiceImpl.java
+@@ -1445,8 +1445,6 @@ protected String transformFacetField(DiscoverFacetField facetFieldConfig, String
+             } else {
+                 return field + "_acid";
+             }
+-        } else if (facetFieldConfig.getType().equals(DiscoveryConfigurationParameters.TYPE_STANDARD)) {
+-            return field;
+         } else {
+             return field;
+         }
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/AuthenticationRestController.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/AuthenticationRestController.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/AuthenticationRestController.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/AuthenticationRestController.java
+@@ -220,7 +220,7 @@ private AuthenticationTokenResource shortLivedTokenResponse(HttpServletRequest r
+      * @return ResponseEntity
+      */
+     @RequestMapping(value = "/login", method = { RequestMethod.GET, RequestMethod.PUT, RequestMethod.PATCH,
+-            RequestMethod.DELETE })
++        RequestMethod.DELETE })
+     public ResponseEntity login() {
+         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body("Only POST is allowed for login requests.");
+     }
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/AuthorizationRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/AuthorizationRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/AuthorizationRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/AuthorizationRest.java
+@@ -18,9 +18,9 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(method = "getEperson", name = AuthorizationRest.EPERSON),
+-        @LinkRest(method = "getFeature", name = AuthorizationRest.FEATURE),
+-        @LinkRest(method = "getObject", name = AuthorizationRest.OBJECT)
++    @LinkRest(method = "getEperson", name = AuthorizationRest.EPERSON),
++    @LinkRest(method = "getFeature", name = AuthorizationRest.FEATURE),
++    @LinkRest(method = "getObject", name = AuthorizationRest.OBJECT)
+ })
+ public class AuthorizationRest extends BaseObjectRest<String> {
+     public static final String NAME = "authorization";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BitstreamRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BitstreamRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BitstreamRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BitstreamRest.java
+@@ -16,18 +16,9 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = BitstreamRest.BUNDLE,
+-                method = "getBundle"
+-        ),
+-        @LinkRest(
+-                name = BitstreamRest.FORMAT,
+-                method = "getFormat"
+-        ),
+-        @LinkRest(
+-                name = BitstreamRest.THUMBNAIL,
+-                method = "getThumbnail"
+-        )
++    @LinkRest(name = BitstreamRest.BUNDLE, method = "getBundle"),
++    @LinkRest(name = BitstreamRest.FORMAT, method = "getFormat"),
++    @LinkRest(name = BitstreamRest.THUMBNAIL, method = "getThumbnail")
+ })
+ public class BitstreamRest extends DSpaceObjectRest {
+     public static final String PLURAL_NAME = "bitstreams";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BrowseIndexRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BrowseIndexRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BrowseIndexRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BrowseIndexRest.java
+@@ -20,14 +20,8 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-            name = BrowseIndexRest.LINK_ITEMS,
+-            method = "listBrowseItems"
+-    ),
+-    @LinkRest(
+-            name = BrowseIndexRest.LINK_ENTRIES,
+-            method = "listBrowseEntries"
+-    )
++    @LinkRest(name = BrowseIndexRest.LINK_ITEMS, method = "listBrowseItems"),
++    @LinkRest(name = BrowseIndexRest.LINK_ENTRIES, method = "listBrowseEntries")
+ })
+ public class BrowseIndexRest extends BaseObjectRest<String> {
+     private static final long serialVersionUID = -4870333170249999559L;
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BundleRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BundleRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BundleRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/BundleRest.java
+@@ -16,18 +16,9 @@
+  * @author Jelle Pelgrims (jelle.pelgrims at atmire.com)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = BundleRest.ITEM,
+-                method = "getItem"
+-        ),
+-        @LinkRest(
+-                name = BundleRest.BITSTREAMS,
+-                method = "getBitstreams"
+-        ),
+-        @LinkRest(
+-                name = BundleRest.PRIMARY_BITSTREAM,
+-                method = "getPrimaryBitstream"
+-        )
++    @LinkRest(name = BundleRest.ITEM, method = "getItem"),
++    @LinkRest(name = BundleRest.BITSTREAMS, method = "getBitstreams"),
++    @LinkRest(name = BundleRest.PRIMARY_BITSTREAM, method = "getPrimaryBitstream")
+ })
+ public class BundleRest extends DSpaceObjectRest {
+     public static final String NAME = "bundle";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ClaimedTaskRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ClaimedTaskRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ClaimedTaskRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ClaimedTaskRest.java
+@@ -16,10 +16,7 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = ClaimedTaskRest.STEP,
+-        method = "getStep"
+-    )
++    @LinkRest(name = ClaimedTaskRest.STEP, method = "getStep")
+ })
+ public class ClaimedTaskRest extends BaseObjectRest<Integer> {
+     public static final String NAME = "claimedtask";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CollectionRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CollectionRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CollectionRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CollectionRest.java
+@@ -15,38 +15,14 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = CollectionRest.LICENSE,
+-                method = "getLicense"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.LOGO,
+-                method = "getLogo"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.MAPPED_ITEMS,
+-                method = "getMappedItems"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.PARENT_COMMUNITY,
+-                method = "getParentCommunity"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.ADMIN_GROUP,
+-                method = "getAdminGroup"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.SUBMITTERS_GROUP,
+-                method = "getSubmittersGroup"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.ITEM_READ_GROUP,
+-                method = "getItemReadGroup"
+-        ),
+-        @LinkRest(
+-                name = CollectionRest.BITSTREAM_READ_GROUP,
+-                method = "getBitstreamReadGroup"
+-        ),
++    @LinkRest(name = CollectionRest.LICENSE, method = "getLicense"),
++    @LinkRest(name = CollectionRest.LOGO, method = "getLogo"),
++    @LinkRest(name = CollectionRest.MAPPED_ITEMS, method = "getMappedItems"),
++    @LinkRest(name = CollectionRest.PARENT_COMMUNITY, method = "getParentCommunity"),
++    @LinkRest(name = CollectionRest.ADMIN_GROUP, method = "getAdminGroup"),
++    @LinkRest(name = CollectionRest.SUBMITTERS_GROUP, method = "getSubmittersGroup"),
++    @LinkRest(name = CollectionRest.ITEM_READ_GROUP, method = "getItemReadGroup"),
++    @LinkRest(name = CollectionRest.BITSTREAM_READ_GROUP, method = "getBitstreamReadGroup"),
+ })
+ public class CollectionRest extends DSpaceObjectRest {
+     public static final String NAME = "collection";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CommunityRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CommunityRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CommunityRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/CommunityRest.java
+@@ -15,26 +15,11 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = CommunityRest.COLLECTIONS,
+-                method = "getCollections"
+-        ),
+-        @LinkRest(
+-                name = CommunityRest.LOGO,
+-                method = "getLogo"
+-        ),
+-        @LinkRest(
+-                name = CommunityRest.SUBCOMMUNITIES,
+-                method = "getSubcommunities"
+-        ),
+-        @LinkRest(
+-                name = CommunityRest.PARENT_COMMUNITY,
+-                method = "getParentCommunity"
+-        ),
+-        @LinkRest(
+-                name = CommunityRest.ADMIN_GROUP,
+-                method = "getAdminGroup"
+-        )
++    @LinkRest(name = CommunityRest.COLLECTIONS, method = "getCollections"),
++    @LinkRest(name = CommunityRest.LOGO, method = "getLogo"),
++    @LinkRest(name = CommunityRest.SUBCOMMUNITIES, method = "getSubcommunities"),
++    @LinkRest(name = CommunityRest.PARENT_COMMUNITY, method = "getParentCommunity"),
++    @LinkRest(name = CommunityRest.ADMIN_GROUP, method = "getAdminGroup")
+ })
+ public class CommunityRest extends DSpaceObjectRest {
+     public static final String NAME = "community";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EPersonRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EPersonRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EPersonRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EPersonRest.java
+@@ -20,10 +20,7 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = EPersonRest.GROUPS,
+-                method = "getGroups"
+-        )
++    @LinkRest(name = EPersonRest.GROUPS, method = "getGroups")
+ })
+ public class EPersonRest extends DSpaceObjectRest {
+     public static final String NAME = "eperson";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EntityTypeRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EntityTypeRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EntityTypeRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/EntityTypeRest.java
+@@ -15,10 +15,7 @@
+  * Refer to {@link org.dspace.content.EntityType} for explanation of the properties
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = EntityTypeRest.RELATION_SHIP_TYPES,
+-                method = "getEntityTypeRelationship"
+-        )
++    @LinkRest(name = EntityTypeRest.RELATION_SHIP_TYPES, method = "getEntityTypeRelationship")
+ })
+ public class EntityTypeRest extends BaseObjectRest<Integer> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ExternalSourceRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ExternalSourceRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ExternalSourceRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ExternalSourceRest.java
+@@ -13,10 +13,7 @@
+  * This class serves as a REST representation for an External Source
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = ExternalSourceRest.ENTITY_TYPES,
+-                method = "getSupportedEntityTypes"
+-        )
++    @LinkRest(name = ExternalSourceRest.ENTITY_TYPES, method = "getSupportedEntityTypes")
+ })
+ public class ExternalSourceRest extends BaseObjectRest<String> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/GroupRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/GroupRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/GroupRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/GroupRest.java
+@@ -18,18 +18,9 @@
+  */
+ @JsonIgnoreProperties(ignoreUnknown = true)
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = GroupRest.SUBGROUPS,
+-                method = "getGroups"
+-        ),
+-        @LinkRest(
+-                name = GroupRest.EPERSONS,
+-                method = "getMembers"
+-        ),
+-        @LinkRest(
+-                name = GroupRest.OBJECT,
+-                method = "getParentObject"
+-        )
++    @LinkRest(name = GroupRest.SUBGROUPS, method = "getGroups"),
++    @LinkRest(name = GroupRest.EPERSONS, method = "getMembers"),
++    @LinkRest(name = GroupRest.OBJECT, method = "getParentObject")
+ })
+ public class GroupRest extends DSpaceObjectRest {
+     public static final String NAME = "group";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ItemRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ItemRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ItemRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ItemRest.java
+@@ -17,42 +17,15 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = ItemRest.ACCESS_STATUS,
+-                method = "getAccessStatus"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.BUNDLES,
+-                method = "getBundles"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.IDENTIFIERS,
+-                method = "getIdentifiers"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.MAPPED_COLLECTIONS,
+-                method = "getMappedCollections"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.OWNING_COLLECTION,
+-                method = "getOwningCollection"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.RELATIONSHIPS,
+-                method = "getRelationships"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.VERSION,
+-                method = "getItemVersion"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.TEMPLATE_ITEM_OF,
+-                method = "getTemplateItemOf"
+-        ),
+-        @LinkRest(
+-                name = ItemRest.THUMBNAIL,
+-                method = "getThumbnail"
+-        )
++    @LinkRest(name = ItemRest.ACCESS_STATUS, method = "getAccessStatus"),
++    @LinkRest(name = ItemRest.BUNDLES, method = "getBundles"),
++    @LinkRest(name = ItemRest.IDENTIFIERS, method = "getIdentifiers"),
++    @LinkRest(name = ItemRest.MAPPED_COLLECTIONS, method = "getMappedCollections"),
++    @LinkRest(name = ItemRest.OWNING_COLLECTION, method = "getOwningCollection"),
++    @LinkRest(name = ItemRest.RELATIONSHIPS, method = "getRelationships"),
++    @LinkRest(name = ItemRest.VERSION, method = "getItemVersion"),
++    @LinkRest(name = ItemRest.TEMPLATE_ITEM_OF, method = "getTemplateItemOf"),
++    @LinkRest(name = ItemRest.THUMBNAIL, method = "getThumbnail")
+ })
+ public class ItemRest extends DSpaceObjectRest {
+     public static final String NAME = "item";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/OrcidHistoryRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/OrcidHistoryRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/OrcidHistoryRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/OrcidHistoryRest.java
+@@ -39,7 +39,7 @@ public class OrcidHistoryRest extends BaseObjectRest<Integer> {
+ 
+     private String responseMessage;
+ 
+-    public OrcidHistoryRest(){}
++    public OrcidHistoryRest() {}
+ 
+     @Override
+     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/PoolTaskRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/PoolTaskRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/PoolTaskRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/PoolTaskRest.java
+@@ -17,10 +17,7 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = PoolTaskRest.STEP,
+-        method = "getStep"
+-    )
++    @LinkRest(name = PoolTaskRest.STEP, method = "getStep")
+ })
+ public class PoolTaskRest extends BaseObjectRest<Integer> {
+     public static final String NAME = "pooltask";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ProcessRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ProcessRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ProcessRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ProcessRest.java
+@@ -21,18 +21,9 @@
+  * This class serves as a REST representation for the {@link Process} class
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = ProcessRest.FILES,
+-        method = "getFilesFromProcess"
+-    ),
+-    @LinkRest(
+-        name = ProcessRest.FILE_TYPES,
+-        method = "getFileTypesFromProcess"
+-    ),
+-    @LinkRest(
+-        name = ProcessRest.OUTPUT,
+-        method = "getOutputFromProcess"
+-    )
++    @LinkRest(name = ProcessRest.FILES, method = "getFilesFromProcess"),
++    @LinkRest(name = ProcessRest.FILE_TYPES, method = "getFileTypesFromProcess"),
++    @LinkRest(name = ProcessRest.OUTPUT, method = "getOutputFromProcess")
+ })
+ public class ProcessRest extends BaseObjectRest<Integer> {
+     public static final String NAME = "process";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/RelationshipRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/RelationshipRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/RelationshipRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/RelationshipRest.java
+@@ -19,10 +19,7 @@
+  * Refer to {@link org.dspace.content.Relationship} for explanation about the properties
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = RelationshipRest.RELATIONSHIP_TYPE,
+-        method = "getRelationshipType"
+-    )
++    @LinkRest(name = RelationshipRest.RELATIONSHIP_TYPE, method = "getRelationshipType")
+ })
+ public class RelationshipRest extends BaseObjectRest<Integer> {
+     public static final String NAME = "relationship";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ResearcherProfileRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ResearcherProfileRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ResearcherProfileRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/ResearcherProfileRest.java
+@@ -20,8 +20,8 @@
+  *
+  */
+ @LinksRest(links = {
+-        @LinkRest(name = ResearcherProfileRest.ITEM, method = "getItem"),
+-        @LinkRest(name = ResearcherProfileRest.EPERSON, method = "getEPerson")
++    @LinkRest(name = ResearcherProfileRest.ITEM, method = "getItem"),
++    @LinkRest(name = ResearcherProfileRest.EPERSON, method = "getEPerson")
+ })
+ public class ResearcherProfileRest extends BaseObjectRest<UUID> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionRest.java
+@@ -21,7 +21,9 @@
+  *
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+-@LinksRest(links = { @LinkRest(name = SuggestionRest.TARGET, method = "getTarget") })
++@LinksRest(links = {
++    @LinkRest(name = SuggestionRest.TARGET, method = "getTarget")
++})
+ public class SuggestionRest extends BaseObjectRest<String> {
+     private static final long serialVersionUID = 1L;
+     public static final String NAME = "suggestion";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionTargetRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionTargetRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionTargetRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/SuggestionTargetRest.java
+@@ -19,7 +19,7 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(name = SuggestionTargetRest.TARGET, method = "getTarget")
++    @LinkRest(name = SuggestionTargetRest.TARGET, method = "getTarget")
+ })
+ public class SuggestionTargetRest extends BaseObjectRest<String> {
+     private static final long serialVersionUID = 1L;
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionHistoryRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionHistoryRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionHistoryRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionHistoryRest.java
+@@ -13,14 +13,8 @@
+  * The REST object for the {@link org.dspace.versioning.VersionHistory} object
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = VersionHistoryRest.VERSIONS,
+-        method = "getVersions"
+-        ),
+-        @LinkRest(
+-                name = VersionHistoryRest.DRAFT_VERSION,
+-                method = "getDraftVersion"
+-        )
++    @LinkRest(name = VersionHistoryRest.VERSIONS, method = "getVersions"),
++    @LinkRest(name = VersionHistoryRest.DRAFT_VERSION, method = "getDraftVersion")
+ })
+ public class VersionHistoryRest extends BaseObjectRest<Integer> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VersionRest.java
+@@ -16,14 +16,8 @@
+  * The REST object for the {@link org.dspace.versioning.Version} objects
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = VersionRest.VERSION_HISTORY,
+-        method = "getVersionHistory"
+-    ),
+-    @LinkRest(
+-        name = VersionRest.ITEM,
+-        method = "getVersionItem"
+-    )
++    @LinkRest(name = VersionRest.VERSION_HISTORY, method = "getVersionHistory"),
++    @LinkRest(name = VersionRest.ITEM, method = "getVersionItem")
+ })
+ public class VersionRest extends BaseObjectRest<Integer> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyEntryDetailsRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyEntryDetailsRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyEntryDetailsRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyEntryDetailsRest.java
+@@ -18,9 +18,9 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(name = VocabularyEntryDetailsRest.PARENT, method = "getParent"),
+-        @LinkRest(name = VocabularyEntryDetailsRest.CHILDREN, method = "getChildren")
+-        })
++    @LinkRest(name = VocabularyEntryDetailsRest.PARENT, method = "getParent"),
++    @LinkRest(name = VocabularyEntryDetailsRest.CHILDREN, method = "getChildren")
++})
+ public class VocabularyEntryDetailsRest extends BaseObjectRest<String> {
+     public static final String PLURAL_NAME = "vocabularyEntryDetails";
+     public static final String NAME = "vocabularyEntryDetail";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/VocabularyRest.java
+@@ -15,9 +15,7 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-    @LinkRest(name = VocabularyRest.ENTRIES,
+-            method = "filter"
+-    ),
++    @LinkRest(name = VocabularyRest.ENTRIES, method = "filter"),
+ })
+ public class VocabularyRest extends BaseObjectRest<String> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowDefinitionRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowDefinitionRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowDefinitionRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowDefinitionRest.java
+@@ -18,14 +18,8 @@
+  * @author Maria Verdonck (Atmire) on 11/12/2019
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = WorkflowDefinitionRest.COLLECTIONS_MAPPED_TO,
+-        method = "getCollections"
+-    ),
+-    @LinkRest(
+-        name = WorkflowDefinitionRest.STEPS,
+-        method = "getSteps"
+-    )
++    @LinkRest(name = WorkflowDefinitionRest.COLLECTIONS_MAPPED_TO, method = "getCollections"),
++    @LinkRest(name = WorkflowDefinitionRest.STEPS, method = "getSteps")
+ })
+ public class WorkflowDefinitionRest extends BaseObjectRest<String> {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowItemRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowItemRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowItemRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowItemRest.java
+@@ -15,22 +15,10 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-        @LinkRest(
+-                name = WorkflowItemRest.STEP,
+-                method = "getStep"
+-        ),
+-        @LinkRest(
+-                name = WorkflowItemRest.SUBMITTER,
+-                method = "getWorkflowItemSubmitter"
+-        ),
+-        @LinkRest(
+-                name = WorkflowItemRest.ITEM,
+-                method = "getWorkflowItemItem"
+-        ),
+-        @LinkRest(
+-                name = WorkflowItemRest.COLLECTION,
+-                method = "getWorkflowItemCollection"
+-        )
++    @LinkRest(name = WorkflowItemRest.STEP, method = "getStep"),
++    @LinkRest(name = WorkflowItemRest.SUBMITTER, method = "getWorkflowItemSubmitter"),
++    @LinkRest(name = WorkflowItemRest.ITEM, method = "getWorkflowItemItem"),
++    @LinkRest(name = WorkflowItemRest.COLLECTION, method = "getWorkflowItemCollection")
+ })
+ public class WorkflowItemRest extends AInprogressSubmissionRest {
+     public static final String NAME = "workflowitem";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowStepRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowStepRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowStepRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkflowStepRest.java
+@@ -18,10 +18,7 @@
+  * @author Maria Verdonck (Atmire) on 10/01/2020
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = WorkflowStepRest.ACTIONS,
+-        method = "getActions"
+-    ),
++    @LinkRest(name = WorkflowStepRest.ACTIONS, method = "getActions"),
+ })
+ public class WorkflowStepRest extends BaseObjectRest {
+ 
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkspaceItemRest.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkspaceItemRest.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkspaceItemRest.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/model/WorkspaceItemRest.java
+@@ -15,22 +15,10 @@
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  */
+ @LinksRest(links = {
+-    @LinkRest(
+-        name = WorkspaceItemRest.SUPERVISION_ORDERS,
+-        method = "getSupervisionOrders"
+-    ),
+-    @LinkRest(
+-        name = WorkspaceItemRest.SUBMITTER,
+-        method = "getWorkspaceItemSubmitter"
+-    ),
+-    @LinkRest(
+-        name = WorkspaceItemRest.ITEM,
+-        method = "getWorkspaceItemItem"
+-    ),
+-    @LinkRest(
+-        name = WorkspaceItemRest.COLLECTION,
+-        method = "getWorkspaceItemCollection"
+-    )
++    @LinkRest(name = WorkspaceItemRest.SUPERVISION_ORDERS, method = "getSupervisionOrders"),
++    @LinkRest(name = WorkspaceItemRest.SUBMITTER, method = "getWorkspaceItemSubmitter"),
++    @LinkRest(name = WorkspaceItemRest.ITEM, method = "getWorkspaceItemItem"),
++    @LinkRest(name = WorkspaceItemRest.COLLECTION, method = "getWorkspaceItemCollection")
+ })
+ public class WorkspaceItemRest extends AInprogressSubmissionRest {
+     public static final String NAME = "workspaceitem";
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/repository/DSpaceRestRepository.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/repository/DSpaceRestRepository.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/repository/DSpaceRestRepository.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/repository/DSpaceRestRepository.java
+@@ -17,7 +17,6 @@
+ 
+ import com.fasterxml.jackson.databind.JsonNode;
+ import jakarta.servlet.http.HttpServletRequest;
+-import org.apache.logging.log4j.Logger;
+ import org.dspace.app.rest.exception.DSpaceBadRequestException;
+ import org.dspace.app.rest.exception.RESTAuthorizationException;
+ import org.dspace.app.rest.exception.RepositoryMethodNotImplementedException;
+@@ -26,7 +25,6 @@
+ import org.dspace.app.rest.model.RestAddressableModel;
+ import org.dspace.app.rest.model.patch.Patch;
+ import org.dspace.authorize.AuthorizeException;
+-import org.dspace.content.service.MetadataFieldService;
+ import org.dspace.core.Context;
+ import org.springframework.beans.factory.BeanNameAware;
+ import org.springframework.beans.factory.annotation.Autowired;
+@@ -50,17 +48,12 @@ public abstract class DSpaceRestRepository<T extends RestAddressableModel, ID ex
+     extends AbstractDSpaceRestRepository
+     implements CrudRepository<T, ID>, PagingAndSortingRepository<T, ID>, BeanNameAware {
+ 
+-    private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(DSpaceRestRepository.class);
+-
+     private String thisRepositoryBeanName;
+     private DSpaceRestRepository<T, ID> thisRepository;
+ 
+     @Autowired
+     private ApplicationContext applicationContext;
+ 
+-    @Autowired
+-    private MetadataFieldService metadataFieldService;
+-
+     /**
+      * From BeanNameAware. Allows us to capture the name of the bean, so we can load it into thisRepository.
+      * See getThisRepository() method.
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/DSpaceKernelInitializer.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/DSpaceKernelInitializer.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/DSpaceKernelInitializer.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/DSpaceKernelInitializer.java
+@@ -81,6 +81,7 @@ public void initialize(final ConfigurableApplicationContext applicationContext)
+      * Initially look for JNDI Resource called "java:/comp/env/dspace.dir".
+      * If not found, use value provided in "dspace.dir" in Spring Environment
+      */
++    @SuppressWarnings("BanJNDI")
+     private String getDSpaceHome(ConfigurableEnvironment environment) {
+         // Load the "dspace.dir" property from Spring Boot's Configuration (application.properties)
+         // This gives us the location of our DSpace configurations, necessary to start the kernel
+diff --git a/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/RegexUtils.java b/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/RegexUtils.java
+--- a/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/RegexUtils.java
++++ b/dspace-server-webapp/src/main/java/org/dspace/app/rest/utils/RegexUtils.java
+@@ -13,7 +13,7 @@
+  */
+ public class RegexUtils {
+ 
+-    private RegexUtils(){}
++    private RegexUtils() {}
+ 
+     /**
+      * Regular expression in the request mapping to accept UUID as identifier
+diff --git a/dspace-services/src/main/java/org/dspace/services/email/EmailServiceImpl.java b/dspace-services/src/main/java/org/dspace/services/email/EmailServiceImpl.java
+--- a/dspace-services/src/main/java/org/dspace/services/email/EmailServiceImpl.java
++++ b/dspace-services/src/main/java/org/dspace/services/email/EmailServiceImpl.java
+@@ -62,6 +62,7 @@ public Session getSession() {
+     }
+ 
+     @PostConstruct
++    @SuppressWarnings("BanJNDI")
+     public void init() {
+         // See if there is already a Session in our environment
+         String sessionName = cfg.getProperty("mail.session.name");
+diff --git a/dspace/modules/server/src/main/java/org/dspace/app/ServerApplication.java b/dspace/modules/server/src/main/java/org/dspace/app/ServerApplication.java
+--- a/dspace/modules/server/src/main/java/org/dspace/app/ServerApplication.java
++++ b/dspace/modules/server/src/main/java/org/dspace/app/ServerApplication.java
+@@ -23,7 +23,7 @@
+  * NOTE: This extends SpringBootServletInitializer in order to allow us to build
+  * a deployable WAR file with Spring Boot. See:
+  * http://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#howto-create-a-deployable-war-file
+- * 
++ *
+  * @author Luca Giamminonni (luca.giamminonni at 4science.it)
+  *
+  */
+@@ -39,8 +39,8 @@ public class ServerApplication extends SpringBootServletInitializer {
+      * <p>
+      * See: http://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#howto-create-a-deployable-war-file
+      *
+-     * @param application
+-     * @return
++     * @param application some builder.
++     * @return the builder, configured with DSpace sources and initializers.
+      */
+     @Override
+     protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {

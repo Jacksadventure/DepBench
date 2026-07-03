@@ -1,0 +1,91 @@
+diff --git a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/DiscoverySelectorResolver.java b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/DiscoverySelectorResolver.java
+--- a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/DiscoverySelectorResolver.java
++++ b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/DiscoverySelectorResolver.java
+@@ -1,5 +1,6 @@
+ package io.cucumber.junit.platform.engine;
+ 
++import org.junit.platform.commons.io.ResourceFilter;
+ import org.junit.platform.engine.EngineDiscoveryRequest;
+ import org.junit.platform.engine.support.discovery.DiscoveryIssueReporter;
+ import org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver;
+@@ -9,12 +10,11 @@
+ 
+ class DiscoverySelectorResolver {
+ 
+-    @SuppressWarnings("deprecation") // TODO: Updagrade
+     private static final EngineDiscoveryRequestResolver<CucumberEngineDescriptor> resolver = EngineDiscoveryRequestResolver
+             .<CucumberEngineDescriptor> builder()
+             .addSelectorResolver(context -> new FileContainerSelectorResolver( //
+                 path -> isFeature(path) || isTxtFile(path)))
+-            .addResourceContainerSelectorResolver(resource -> isFeature(resource.getName()))
++            .addResourceContainerSelectorResolver(ResourceFilter.of(resource -> isFeature(resource.getName())))
+             .addSelectorResolver(context -> new FeatureWithLinesFileResolver())
+             .addSelectorResolver(context -> new FeatureFileResolver(
+                 context.getEngineDescriptor().getConfiguration(), //
+diff --git a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureFileResolver.java b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureFileResolver.java
+--- a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureFileResolver.java
++++ b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureFileResolver.java
+@@ -9,7 +9,7 @@
+ import io.cucumber.junit.platform.engine.CucumberDiscoverySelectors.FeatureElementSelector;
+ import io.cucumber.junit.platform.engine.CucumberDiscoverySelectors.FeatureWithLinesSelector;
+ import io.cucumber.plugin.event.Node;
+-import org.junit.platform.commons.support.Resource;
++import org.junit.platform.commons.io.Resource;
+ import org.junit.platform.engine.DiscoveryIssue;
+ import org.junit.platform.engine.DiscoverySelector;
+ import org.junit.platform.engine.TestDescriptor;
+@@ -132,10 +132,9 @@ public Resolution resolve(FileSelector selector, Context context) {
+         return toResolution(selectors);
+     }
+ 
+-    @SuppressWarnings("deprecation") // TODO: Updagrade
+     @Override
+     public Resolution resolve(ClasspathResourceSelector selector, Context context) {
+-        Set<Resource> resources = selector.getClasspathResources();
++        var resources = selector.getResources();
+         if (!resources.stream().allMatch(resource -> isFeature(resource.getName()))) {
+             return resolveClasspathResourceSelectorAsPackageSelector(selector);
+         }
+diff --git a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithCaching.java b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithCaching.java
+--- a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithCaching.java
++++ b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithCaching.java
+@@ -30,16 +30,14 @@ Optional<FeatureWithSource> parseResource(Path resource) {
+         return parseResource(new PathAdapter(resource));
+     }
+ 
+-    @SuppressWarnings("deprecation") // TODO: Updagrade
+-    Optional<FeatureWithSource> parseResource(org.junit.platform.commons.support.Resource resource) {
++    Optional<FeatureWithSource> parseResource(org.junit.platform.commons.io.Resource resource) {
+         return parseResource(new ResourceAdapter(resource));
+     }
+ 
+-    @SuppressWarnings("deprecation") // TODO: Updagrade
+     private static class ResourceAdapter implements Resource {
+-        private final org.junit.platform.commons.support.Resource resource;
++        private final org.junit.platform.commons.io.Resource resource;
+ 
+-        ResourceAdapter(org.junit.platform.commons.support.Resource resource) {
++        ResourceAdapter(org.junit.platform.commons.io.Resource resource) {
+             this.resource = resource;
+         }
+ 
+diff --git a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithIssueReporting.java b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithIssueReporting.java
+--- a/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithIssueReporting.java
++++ b/cucumber-junit-platform-engine/src/main/java/io/cucumber/junit/platform/engine/FeatureParserWithIssueReporting.java
+@@ -5,6 +5,7 @@
+ import org.junit.platform.engine.DiscoveryIssue;
+ import org.junit.platform.engine.support.discovery.DiscoveryIssueReporter;
+ 
++import java.util.Objects;
+ import java.util.Optional;
+ 
+ import static org.junit.platform.engine.DiscoveryIssue.Severity.ERROR;
+@@ -27,7 +28,7 @@ Optional<FeatureWithSource> parseResource(Resource resource) {
+             issueReporter.reportIssue(DiscoveryIssue
+                     // TODO: Improve parse exception to separate out source uri
+                     // and individual errors.
+-                    .builder(ERROR, e.getMessage())
++                    .builder(ERROR, Objects.requireNonNull(e.getMessage()))
+                     .cause(e.getCause())
+                     .source(featureSource.source()));
+             return Optional.empty();
