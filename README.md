@@ -51,25 +51,6 @@ The release also includes trajectories and verifier logs, so you can analyze the
 
 For runnable helper scripts, see `repro/README.md`. For Harbor-based execution, see `repro/HARBOR.md`.
 
-## Agent results
-
-All rows below are over 219 tasks. `Pass rate (total)` uses 219 as the denominator. `Pass rate (reward-bearing)` excludes `no_reward` rows.
-
-| Harness | Model | Pass | Fail | No reward | Pass rate (total) | Pass rate (reward-bearing) | Trajectories |
-|---|---|---:|---:|---:|---:|---:|---:|
-| Claude Code | Claude Opus 4.8 | 71 | 146 | 2 | 32.4% | 32.7% | 219/219 |
-| Copilot CLI | Claude Opus 4.8 | 76 | 141 | 2 | 34.7% | 35.0% | 219/219 |
-| OpenCode | Claude Opus 4.8 | 74 | 145 | 0 | 33.8% | 33.8% | 171/219 |
-| Claude Code | Gemini 3.5 Flash | 41 | 175 | 3 | 18.7% | 19.0% | 219/219 |
-| Copilot CLI | Gemini 3.5 Flash | 45 | 174 | 0 | 20.5% | 20.5% | 219/219 |
-| OpenCode | Gemini 3.5 Flash | 49 | 169 | 1 | 22.4% | 22.5% | 79/219 |
-| Claude Code | GPT-5.5 | 61 | 158 | 0 | 27.9% | 27.9% | 219/219 |
-| Codex | GPT-5.5 | 84 | 135 | 0 | 38.4% | 38.4% | 219/219 |
-| Copilot CLI | GPT-5.5 | 88 | 128 | 3 | 40.2% | 40.7% | 216/219 |
-| OpenCode | GPT-5.5 | 68 | 150 | 1 | 31.1% | 31.2% | 218/219 |
-
-The best total pass rate in this snapshot is Copilot CLI + GPT-5.5 with 88/219 tasks solved. No configuration solves a majority of the benchmark, and all configurations show substantial failures on hidden dependency-upgrade tests.
-
 ## Trajectories
 
 `trajectories/*.jsonl.gz` files are gzip-compressed JSONL. Each row is one reported trial and includes:
