@@ -38,6 +38,32 @@ Overlap among the 122 flagged tasks:
 | `JAVA_HOME` + adversarial | 1 |
 | Oracle + NOP + `JAVA_HOME` | 1 |
 
+## Remediation status — 2026-07-13
+
+The 57 `JAVA_HOME`-flagged Maven tasks now restore the Java environment in
+their verifier before launching Maven:
+
+- `JAVA_HOME=/opt/java/openjdk`;
+- `PATH` begins with the JDK, Maven, and standard system binary directories;
+- commands use `bash -c` rather than a login shell that can discard the
+  container environment;
+- the verifier fails explicitly if `/opt/java/openjdk/bin/java` is absent.
+
+The corresponding 57 DockerHub task-image tags were also repaired in place by
+publishing new image configs with `JAVA_HOME`, `PATH`, `MAVEN_HOME`, and
+`MAVEN_CONFIG`. Existing filesystem layers were reused; no source/dependency
+layers were rebuilt. The old and new manifest digests are recorded in
+`harbor_benchmark/reports/java_home_image_repair_2026-07-13.csv`.
+
+Runtime smoke checks covered ArcadeDB (JDK 21), DSpace (JDK 17),
+WrongSecrets (JDK 17), and JavaSecurity (JDK 21). A verifier-helper smoke also
+passed after deliberately stripping `JAVA_HOME` and Java from the inherited
+`PATH`.
+
+The environment defect is repaired for future runs. The 166 historical guarded
+cells remain invalid historical observations and still require replay before
+the aggregate result matrix is updated.
+
 ## P0: all 44 questioned zero-pass tasks
 
 These are the zero-pass tasks that cannot currently support a “consensus-hard” claim.

@@ -420,6 +420,24 @@ TOTAL :           45    109  154   29.2%
 
 ## 8. Variant log (append on each new setting)
 
+### v4 Maven verifier environment repair — 57 tasks (2026-07-13)
+
+- A July 13 audit found **166 invalid guarded verifier cells across 57 Maven
+  tasks**. The git-history-pruned DockerHub image configs had lost Docker
+  `ENV`, including `JAVA_HOME` and Java on `PATH`.
+- All 57 affected `tests/test_state.py` files now set
+  `JAVA_HOME=/opt/java/openjdk`, prepend the JDK/Maven/system binary
+  directories to `PATH`, use non-login `bash -c`, and preflight the Java
+  executable before invoking Maven.
+- The corresponding 57 mutable DockerHub task-image tags were repaired in
+  place by publishing config-only updates. Existing filesystem layers were
+  reused; no project source or dependency layer was rebuilt.
+- Digest mapping:
+  `harbor_benchmark/reports/java_home_image_repair_2026-07-13.csv`.
+- Representative runtime smoke checks passed on JDK 17 and JDK 21 images.
+  The 166 historical guarded cells remain invalid and must be replayed before
+  result summaries are recomputed.
+
 ### v4 clean witnessed frozen-run policy — 205 tasks (2026-06-22)
 
 - **Benchmark baseline remains**: the 2026-06-19 clean witnessed `tasks_v4` snapshot with **205** tasks.
