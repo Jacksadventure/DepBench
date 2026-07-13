@@ -6,6 +6,23 @@ This branch is a clean release snapshot of the DepBench dependency-upgrade bench
 
 The release is updated live as final artifacts are refreshed. For reproducible experiments, pin the exact commit SHA of this branch.
 
+## Maintenance update: Maven verifier environments
+
+On 2026-07-13, 57 Maven task verifiers were hardened after an audit found
+guarded task images whose config had lost `JAVA_HOME` and Java on `PATH`.
+The verifiers now restore the JDK/Maven environment explicitly and avoid login
+shell environment resets.
+
+The corresponding DockerHub task-image tags received config-only updates that
+restore `JAVA_HOME`, `PATH`, `MAVEN_HOME`, and `MAVEN_CONFIG`; existing
+filesystem layers were reused. Old/new image digests are recorded in
+`repro/java_home_image_repair_2026-07-13.csv`.
+
+Reported historical trajectories and rewards are preserved unchanged. Any
+historical verifier cell that failed because of missing `JAVA_HOME` remains an
+invalid historical observation and must be replayed before recomputing result
+summaries.
+
 ## Contents
 
 | Path | Description |

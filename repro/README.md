@@ -43,6 +43,9 @@ Pull selected tasks:
 bash repro/pull_task_images.sh 29ki__29k__3418 ArcadeData__arcadedb__2808
 ```
 
+The 57 Maven image tags repaired on 2026-07-13 are listed with their old and
+new manifest digests in `repro/java_home_image_repair_2026-07-13.csv`.
+
 ## Verify the oracle solution for one task
 
 ```bash
