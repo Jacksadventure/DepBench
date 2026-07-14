@@ -104,7 +104,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'npx vitest run src/steps/writing/creation/writePackageJson.test.ts',
+        'npx vitest run src/steps/writing/creation/writePackageJson.test.ts -t "uses the upgraded repository packageManager"',
         shell=True,
         cwd="/app",
         capture_output=True,
