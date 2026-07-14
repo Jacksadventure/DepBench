@@ -23,6 +23,24 @@ historical verifier cell that failed because of missing `JAVA_HOME` remains an
 invalid historical observation and must be replayed before recomputing result
 summaries.
 
+## Maintenance update: test contracts
+
+On 2026-07-14, 37 semantic or mixed test-contract findings were reviewed
+individually. Eight contracts were repaired, 13 were repackaged around a clean
+dependency witness, and 16 were retained with explicit
+`invalid-test-contract` metadata because no dependency-caused source-repair
+witness existed.
+
+The full decision table is available in
+`analysis/test_contract_repair_decisions_2026-07-14.{md,csv}`. Invalid tasks
+remain in the dataset so the published 219-task identity and historical result
+alignment are preserved. Consumers constructing a clean evaluation subset
+should exclude tasks whose `task.toml` contains
+`test_contract_status = "invalid"`.
+
+Historical trajectories, verifier logs, and rewards were not rewritten or
+recomputed after these contract repairs.
+
 ## Contents
 
 | Path | Description |
@@ -33,6 +51,7 @@ summaries.
 | `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |
 | `results/` | Configuration-level summary and per-trial reward metadata. |
 | `analysis/` | Aggregate result, coverage, and trajectory-scan tables. |
+| `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Per-task decisions for the 37 reviewed semantic/mixed contracts. |
 | `repro/` | Helper scripts and schema notes for pulling task images, verifying oracle solutions, verifying candidate patches, validating this release, and scanning trajectories. |
 | `custom_agents/` | Harbor agent adapters referenced by the provided Harbor config templates. |
 | `pyproject.toml` | Python package metadata declaring the Harbor dependency for local execution. |
@@ -51,7 +70,7 @@ Each task lives under `dataset/tasks/<owner>__<repo>__<pr>/`:
 | `solution/code.patch` | Oracle source-code repair patch. |
 | `solution/manifest.patch` | Oracle dependency manifest patch. |
 | `solution/solve.sh` | Oracle patch application helper. |
-| `tests/test.patch` | Hidden verifier test patch. Do not expose this to agents during benchmark runs. |
+| `tests/test.patch` | Optional hidden verifier test patch. Build/compile-only witnesses may omit it. Do not expose it to agents during benchmark runs. |
 | `tests/test.sh` | Hidden verifier command. |
 | `tests/test_state.py` | Verifier state helper. |
 
@@ -63,7 +82,7 @@ Docker images are referenced in each `task.toml` as `idk233333/depbench-task-ima
 2. Read `dataset/tasks/<task>/instruction.md` and provide it to the agent.
 3. Run the agent in the task Docker image from `task.toml`, after applying the dependency manifest upgrade from `environment/patches/manifest.patch`.
 4. Keep `solution/` and `tests/` hidden from the agent.
-5. After the agent finishes, apply `tests/test.patch` and run `tests/test.sh`.
+5. After the agent finishes, apply `tests/test.patch` when present and run `tests/test.sh`.
 6. Score reward as `1.0` if the verifier passes and `0.0` if it fails. Rows with no valid reward are reported as `no_reward`.
 
 The release also includes trajectories and verifier logs, so you can analyze the reported experiments directly.

@@ -24,6 +24,35 @@ def main() -> int:
     task_dirs = [p for p in (ROOT / "dataset/tasks").iterdir() if p.is_dir()]
     if len(task_summary) != 219 or len(task_dirs) != 219:
         raise SystemExit(f"expected 219 tasks, got summary={len(task_summary)} dirs={len(task_dirs)}")
+    if {row["folder"] for row in task_summary} != {path.name for path in task_dirs}:
+        raise SystemExit("task_summary folders do not match dataset/tasks")
+
+    invalid_tasks = [
+        path.parent.name
+        for path in (ROOT / "dataset/tasks").glob("*/task.toml")
+        if 'test_contract_status = "invalid"' in path.read_text()
+    ]
+    if len(invalid_tasks) != 16:
+        raise SystemExit(f"expected 16 invalid test contracts, got {len(invalid_tasks)}")
+
+    decision_rows = list(
+        csv.DictReader(
+            (ROOT / "analysis/test_contract_repair_decisions_2026-07-14.csv").open()
+        )
+    )
+    decision_counts = {
+        decision: sum(row["decision"] == decision for row in decision_rows)
+        for decision in ("repair", "repackage", "mark_invalid")
+    }
+    if len(decision_rows) != 37 or decision_counts != {
+        "repair": 8,
+        "repackage": 13,
+        "mark_invalid": 16,
+    }:
+        raise SystemExit(
+            f"unexpected test contract decisions: rows={len(decision_rows)} "
+            f"counts={decision_counts}"
+        )
 
     summary_rows = list(csv.DictReader((ROOT / "results/summary.csv").open()))
     if len(summary_rows) != 10:
@@ -48,6 +77,8 @@ def main() -> int:
         "pyproject.toml",
         "analysis/ecosystem_results.csv",
         "analysis/coverage.csv",
+        "analysis/test_contract_repair_decisions_2026-07-14.md",
+        "analysis/test_contract_repair_decisions_2026-07-14.csv",
         "repro/TASK_SCHEMA.md",
         "repro/run_oracle_solution.sh",
         "repro/run_patch_verifier.sh",

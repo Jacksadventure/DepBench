@@ -2,11 +2,11 @@
 
 <!-- v3-no-manifest-preapply -->
 
-# Dependency Upgrade Fix: node_modules/ 1.4.3 → 1.4.7
+# Dependency Upgrade Fix: @opencode-ai/sdk 1.4.3 → 1.4.7
 
 ## Context
 
-You are working on the **promptfoo/promptfoo** Node.js (npm/yarn) project. The dependency **`node_modules/`** has been upgraded from version **1.4.3** to **1.4.7** in the project's manifest/lock files. This upgrade introduces breaking changes that cause test failures.
+You are working on the **promptfoo/promptfoo** Node.js (npm/yarn) project. The dependency **`@opencode-ai/sdk`** has been upgraded from version **1.4.3** to **1.4.7** in the project's lockfile. This upgrade changes the v2 session permission contract from an object to a permission ruleset array.
 
 **You must perform the dependency upgrade yourself, end-to-end.** Update the project's manifest and lock files to apply the dependency bump described above, then adapt the source code so the upgraded project's test suite passes against the new dependency version.
 

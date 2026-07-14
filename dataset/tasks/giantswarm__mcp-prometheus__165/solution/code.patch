@@ -1,4 +1,5 @@
 diff --git a/internal/oauth/setup.go b/internal/oauth/setup.go
+index b41a44b..8cdce3e 100644
 --- a/internal/oauth/setup.go
 +++ b/internal/oauth/setup.go
 @@ -157,7 +157,12 @@ func NewHandler(ctx context.Context, cfg Config, logger *slog.Logger) (*handler.
@@ -11,7 +12,7 @@ diff --git a/internal/oauth/setup.go b/internal/oauth/setup.go
 +		return nil, nil, err
 +	}
 +
-+	store, cleanup, err := newStore(ctx, cfg, logger, enc)
++	store, cleanup, err := newStoreWithEncryptor(ctx, cfg, logger, enc)
  	if err != nil {
  		return nil, nil, err
  	}
@@ -71,16 +72,21 @@ diff --git a/internal/oauth/setup.go b/internal/oauth/setup.go
  // combinedStore is the set of store interfaces that a single backing store must
  // implement to be usable by the mcp-oauth server.
  type combinedStore interface {
-@@ -206,17 +213,23 @@ type combinedStore interface {
+@@ -206,17 +213,33 @@ type combinedStore interface {
  }
  
  // newStore creates the token storage backend based on cfg.StorageType.
 -func newStore(_ context.Context, cfg Config, _ *slog.Logger) (combinedStore, func(), error) {
++func newStore(ctx context.Context, cfg Config, logger *slog.Logger) (combinedStore, func(), error) {
++	return newStoreWithEncryptor(ctx, cfg, logger, nil)
++}
++
++// newStoreWithEncryptor creates the token storage backend based on cfg.StorageType.
 +// When enc is non-nil, the backend encrypts tokens at rest.
-+func newStore(_ context.Context, cfg Config, _ *slog.Logger, enc *security.Encryptor) (combinedStore, func(), error) {
++func newStoreWithEncryptor(_ context.Context, cfg Config, _ *slog.Logger, enc *security.Encryptor) (combinedStore, func(), error) {
  	if cfg.StorageType == storageTypeValkey {
 -		return newValkeyStore(cfg)
-+		return newValkeyStore(cfg, enc)
++		return newValkeyStoreWithEncryptor(cfg, enc)
  	}
  	// Default: in-process memory store (dev / single-replica).
 -	s := memory.New()
@@ -93,13 +99,17 @@ diff --git a/internal/oauth/setup.go b/internal/oauth/setup.go
  }
  
  // newValkeyStore creates a production Valkey storage backend.
--func newValkeyStore(cfg Config) (combinedStore, func(), error) {
+ func newValkeyStore(cfg Config) (combinedStore, func(), error) {
++	return newValkeyStoreWithEncryptor(cfg, nil)
++}
++
++// newValkeyStoreWithEncryptor creates a production Valkey storage backend.
 +// When enc is non-nil, tokens are encrypted at rest with AES-256-GCM.
-+func newValkeyStore(cfg Config, enc *security.Encryptor) (combinedStore, func(), error) {
++func newValkeyStoreWithEncryptor(cfg Config, enc *security.Encryptor) (combinedStore, func(), error) {
  	if cfg.ValkeyURL == "" {
  		return nil, nil, fmt.Errorf("oauth: VALKEY_URL must be set when OAUTH_STORAGE=valkey")
  	}
-@@ -232,7 +245,11 @@ func newValkeyStore(cfg Config) (combinedStore, func(), error) {
+@@ -232,7 +255,11 @@ func newValkeyStore(cfg Config) (combinedStore, func(), error) {
  		vcfg.TLS = &tls.Config{MinVersion: tls.VersionTLS12}
  	}
  

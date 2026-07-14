@@ -2,21 +2,42 @@ diff --git a/scripts/gen.spec.js b/scripts/gen.spec.js
 index a052b75..2dc1ccd 100644
 --- a/scripts/gen.spec.js
 +++ b/scripts/gen.spec.js
-@@ -1,15 +1,22 @@
+@@ -1,15 +1,43 @@
  /* eslint-env jest */
  
 -import { eastAsianWidth } from 'safe-code-point'
 -import { paddingBlockStart, blockStarts } from './gen'
-+import gen from './gen'
++import * as genModule from './gen'
++import SafeCodePoint from 'safe-code-point'
++
++jest.mock('safe-code-point', () => {
++  const actual = jest.requireActual('safe-code-point')
++  return jest.fn((...args) => actual(...args))
++})
++
++const loadGenerated = async () => {
++  if (genModule.paddingBlockStart && genModule.blockStarts) {
++    return genModule
++  }
++
++  const candidate = genModule.default || genModule.generate || genModule.generated
++  const generated = typeof candidate === 'function' ? await candidate() : await candidate
++  if (!generated || !generated.paddingBlockStart || !generated.blockStarts) {
++    throw new TypeError('Generator must expose paddingBlockStart and blockStarts')
++  }
++  return generated
++}
  
  describe('gen', () => {
 +  let generated
++  let safeCodePoint
 +
-+  beforeAll(() =>
-+    gen().then(g => {
-+      generated = g
-+    })
-+  )
++  beforeAll(async () => {
++    generated = await loadGenerated()
++    const callIndex = SafeCodePoint.mock.calls.findIndex(([version]) => version === '8.0.0')
++    expect(callIndex).toBeGreaterThanOrEqual(0)
++    safeCodePoint = await SafeCodePoint.mock.results[callIndex].value
++  })
 +
    it('generates the correct padding block', () => {
 -    expect(paddingBlockStart).toBe('ᔀ')
@@ -43,7 +64,7 @@ index a052b75..2dc1ccd 100644
              codePoint < neutralBlockStart + (1 << 8)
            )
 -        expect(eastAsianWidth(codePoint, '8.0')).toBe(isInNeutralBlock ? 'N' : 'W')
-+        expect(generated.safeCodePoint.eastAsianWidth(codePoint)).toBe(isInNeutralBlock ? 'N' : 'W')
++        expect(safeCodePoint.eastAsianWidth(codePoint)).toBe(isInNeutralBlock ? 'N' : 'W')
        }
      })
    })
