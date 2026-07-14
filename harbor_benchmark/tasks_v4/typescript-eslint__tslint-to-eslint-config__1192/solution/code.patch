@@ -1,38 +1,17 @@
-diff --git a/src/adapters/exec.stubs.ts b/src/adapters/exec.stubs.ts
---- a/src/adapters/exec.stubs.ts
-+++ b/src/adapters/exec.stubs.ts
-@@ -7,4 +7,4 @@ export const createStubExec = ({ stderr = "", stdout = "" } = {}) =>
-     jest.fn().mockReturnValue(Promise.resolve({ stderr, stdout }));
- 
- export const createStubThrowingExec = ({ stderr = "" } = {}) =>
--    jest.fn().mockRejectedValue(Promise.resolve(new Error(stderr)));
-+    jest.fn().mockRejectedValue(new Error(stderr));
 diff --git a/src/adapters/fsFileSystem.ts b/src/adapters/fsFileSystem.ts
 --- a/src/adapters/fsFileSystem.ts
 +++ b/src/adapters/fsFileSystem.ts
-@@ -1,31 +1,29 @@
+@@ -1,6 +1,7 @@
  import * as fs from "fs";
--import { promisify } from "util";
+ import { promisify } from "util";
  
 +import { asError } from "../utils";
  import { FileSystem } from "./fileSystem";
  
--const readFile = promisify(fs.readFile);
--const writeFile = promisify(fs.writeFile);
--
- export const fsFileSystem: FileSystem = {
-     fileExists: async (filePath: string) => {
+ const readFile = promisify(fs.readFile);
+@@ -18,14 +19,15 @@ export const fsFileSystem: FileSystem = {
          try {
-             return fs.existsSync(filePath);
--        } catch (error) {
-+        } catch {
-             return false;
-         }
-     },
-     readFile: async (filePath: string) => {
-         try {
--            return (await readFile(filePath)).toString();
-+            return (await fs.promises.readFile(filePath)).toString();
+             return (await readFile(filePath)).toString();
          } catch (error) {
 -            return error;
 +            return asError(error);
@@ -41,7 +20,7 @@ diff --git a/src/adapters/fsFileSystem.ts b/src/adapters/fsFileSystem.ts
      writeFile: async (filePath: string, contents: string) => {
          try {
 -            return writeFile(filePath, contents);
-+            await fs.promises.writeFile(filePath, contents);
++            await writeFile(filePath, contents);
 +            return undefined;
          } catch (error) {
 -            return error;
@@ -60,14 +39,12 @@ diff --git a/src/cli/main.ts b/src/cli/main.ts
  
  export const main = async (argv: string[]) => {
      try {
-@@ -14,7 +15,9 @@ export const main = async (argv: string[]) => {
+@@ -14,7 +15,7 @@ export const main = async (argv: string[]) => {
          }
      } catch (error) {
          processLogger.info.close();
 -        processLogger.stdout.write(`Error in tslint-to-eslint-config: ${error.stack}${EOL}`);
-+        processLogger.stdout.write(
-+            `Error in tslint-to-eslint-config: ${asError(error).stack}${EOL}`,
-+        );
++        processLogger.stdout.write(`Error in tslint-to-eslint-config: ${asError(error).stack}${EOL}`);
          process.exitCode = 1;
      }
  };
