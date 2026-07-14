@@ -10,52 +10,10 @@ diff --git a/src/Billboard/Billboard.ts b/src/Billboard/Billboard.ts
  
  export type BillboardOtherProps = EventProps<{
    collection: BillboardCollection;
-diff --git a/src/Cesium3DTileset/Cesium3DTileset.stories.tsx b/src/Cesium3DTileset/Cesium3DTileset.stories.tsx
---- a/src/Cesium3DTileset/Cesium3DTileset.stories.tsx
-+++ b/src/Cesium3DTileset/Cesium3DTileset.stories.tsx
-@@ -1,7 +1,7 @@
- import { action } from "@storybook/addon-actions";
- import { Meta, StoryObj } from "@storybook/react";
- import { Viewer as CesiumViewer, Cesium3DTileStyle, IonResource } from "cesium";
--import { useRef } from "react";
-+import { useMemo, useRef } from "react";
- 
- import { CesiumComponentRef } from "../core";
- import { events } from "../core/storybook";
-@@ -44,18 +44,11 @@ export const Resource: Story = {
-   render: args => {
-     // eslint-disable-next-line react-hooks/rules-of-hooks
-     const ref = useRef<CesiumComponentRef<CesiumViewer>>(null);
-+    // eslint-disable-next-line react-hooks/rules-of-hooks
-+    const url = useMemo(() => IonResource.fromAssetId(96188), []);
-     return (
-       <Viewer full ref={ref}>
--        <Cesium3DTileset
--          {...args}
--          url={IonResource.fromAssetId(96188)}
--          onAllTilesLoad={action("onAllTilesLoad")}
--          onInitialTilesLoad={action("onInitialTilesLoad")}
--          onTileFailed={action("onTileFailed")}
--          onTileLoad={action("onTileLoad")}
--          onTileUnload={action("onTileUnload")}
--          {...events}
--        />
-+        <Cesium3DTileset {...args} url={url} />
-       </Viewer>
-     );
-   },
 diff --git a/src/Cesium3DTileset/Cesium3DTileset.ts b/src/Cesium3DTileset/Cesium3DTileset.ts
 --- a/src/Cesium3DTileset/Cesium3DTileset.ts
 +++ b/src/Cesium3DTileset/Cesium3DTileset.ts
-@@ -11,6 +11,7 @@ import {
-   PickCesiumProps,
-   ConstructorOptions,
-   Merge,
-+  isPromise,
- } from "../core";
- 
- /*
-@@ -58,7 +59,6 @@ const cesiumProps = [
+@@ -58,7 +58,6 @@ const cesiumProps = [
    "modelMatrix",
    "shadows",
    "maximumScreenSpaceError",
@@ -63,7 +21,7 @@ diff --git a/src/Cesium3DTileset/Cesium3DTileset.ts b/src/Cesium3DTileset/Cesium
    "cullRequestsWhileMoving",
    "cullRequestsWhileMovingMultiplier",
    "preloadWhenHidden",
-@@ -110,6 +110,7 @@ const cesiumProps = [
+@@ -110,6 +109,7 @@ const cesiumProps = [
    "outlineColor",
    "cacheBytes",
    "maximumCacheOverflowBytes",
@@ -71,7 +29,7 @@ diff --git a/src/Cesium3DTileset/Cesium3DTileset.ts b/src/Cesium3DTileset/Cesium
  ] as const;
  
  const cesiumReadonlyProps = [
-@@ -121,6 +122,7 @@ const cesiumReadonlyProps = [
+@@ -121,6 +121,7 @@ const cesiumReadonlyProps = [
    "modelForwardAxis",
    "projectTo2D",
    "enableShowOutline",
@@ -79,85 +37,9 @@ diff --git a/src/Cesium3DTileset/Cesium3DTileset.ts b/src/Cesium3DTileset/Cesium
  ] as const;
  
  export const cesiumEventProps = {
-@@ -143,11 +145,7 @@ const Cesium3DTileset = createCesiumComponent<CesiumCesium3DTileset, Cesium3DTil
-     const maybePromiseURL = props.url;
- 
-     let resultURL: Exclude<Cesium3DTilesetProps["url"], Promise<Resource>>;
--    if (
--      maybePromiseURL &&
--      typeof maybePromiseURL === "object" &&
--      typeof (maybePromiseURL as Promise<unknown>).then === "function"
--    ) {
-+    if (isPromise(maybePromiseURL)) {
-       resultURL = await maybePromiseURL;
-     } else {
-       resultURL = maybePromiseURL as typeof resultURL;
-diff --git a/src/Entity/Entity.ts b/src/Entity/Entity.ts
---- a/src/Entity/Entity.ts
-+++ b/src/Entity/Entity.ts
-@@ -1,7 +1,14 @@
- import { Entity as CesiumEntity } from "cesium";
- import { ReactNode } from "react";
- 
--import { createCesiumComponent, EventProps, PickCesiumProps, Merge, EventTarget } from "../core";
-+import {
-+  createCesiumComponent,
-+  EventProps,
-+  PickCesiumProps,
-+  Merge,
-+  EventTarget,
-+  RootComponentInternalProps,
-+} from "../core";
- 
- export type { EventTarget } from "../core";
- 
-@@ -75,13 +82,14 @@ export type EntityCesiumEvents = {
-   onDefinitionChange?: () => void;
- };
- 
--export type EntityOtherProps = EventProps<EventTarget> & {
--  children?: ReactNode;
--  /** If true, the entity will be selected. It works only inside Viewer not CesiumWidget. */
--  selected?: boolean;
--  /** If true, the entity will be tracked by the camera. It works only inside Viewer not CesiumWidget. */
--  tracked?: boolean;
--};
-+export type EntityOtherProps = RootComponentInternalProps &
-+  EventProps<EventTarget> & {
-+    children?: ReactNode;
-+    /** If true, the entity will be selected. It works only inside Viewer not CesiumWidget. */
-+    selected?: boolean;
-+    /** If true, the entity will be tracked by the camera. It works only inside Viewer not CesiumWidget. */
-+    tracked?: boolean;
-+  };
- 
- export type EntityProps = EntityCesiumProps &
-   EntityCesiumReadonlyProps &
-@@ -164,9 +172,12 @@ const Entity = createCesiumComponent<CesiumEntity, EntityProps>({
-       }
-     }
-   },
--  provide(element) {
-+  provide(element, _ctx, props) {
-     return {
-       entity: element,
-+      __$internal: {
-+        onUpdate: props?.onUpdate,
-+      },
-     };
-   },
-   cesiumProps,
 diff --git a/src/Globe/Globe.ts b/src/Globe/Globe.ts
 --- a/src/Globe/Globe.ts
 +++ b/src/Globe/Globe.ts
-@@ -1,6 +1,6 @@
- import { Globe as CesiumGlobe, TerrainProvider } from "cesium";
- 
--import { createCesiumComponent, PickCesiumProps } from "../core";
-+import { createCesiumComponent, isPromise, PickCesiumProps } from "../core";
- 
- /*
- @summary
 @@ -93,8 +93,6 @@ const cesiumProps = [
    "translucency",
    "undergroundColor",
@@ -167,19 +49,6 @@ diff --git a/src/Globe/Globe.ts b/src/Globe/Globe.ts
    "lambertDiffuseMultiplier",
    "atmosphereLightIntensity",
    "atmosphereRayleighCoefficient",
-@@ -113,11 +111,7 @@ const Globe = createCesiumComponent<CesiumGlobe, GlobeProps>({
-   update: async (elm, props) => {
-     const maybePromiseTerrainProvider = props.terrainProvider;
-     let resultTerrainProvider: TerrainProvider;
--    if (
--      maybePromiseTerrainProvider &&
--      typeof maybePromiseTerrainProvider === "object" &&
--      typeof (maybePromiseTerrainProvider as Promise<unknown>).then === "function"
--    ) {
-+    if (isPromise(maybePromiseTerrainProvider)) {
-       resultTerrainProvider = await maybePromiseTerrainProvider;
-     } else {
-       resultTerrainProvider = maybePromiseTerrainProvider as TerrainProvider;
 diff --git a/src/GroundPrimitiveCollection/GroundPrimitiveCollection.ts b/src/GroundPrimitiveCollection/GroundPrimitiveCollection.ts
 --- a/src/GroundPrimitiveCollection/GroundPrimitiveCollection.ts
 +++ b/src/GroundPrimitiveCollection/GroundPrimitiveCollection.ts
@@ -192,65 +61,6 @@ diff --git a/src/GroundPrimitiveCollection/GroundPrimitiveCollection.ts b/src/Gr
  
  const GroundPrimitiveCollection = createCesiumComponent<
    PrimitiveCollection,
-diff --git a/src/ImageryLayer/ImageryLayer.ts b/src/ImageryLayer/ImageryLayer.ts
---- a/src/ImageryLayer/ImageryLayer.ts
-+++ b/src/ImageryLayer/ImageryLayer.ts
-@@ -1,6 +1,12 @@
- import { ImageryLayer as CesiumImageryLayer, ImageryProvider } from "cesium";
- 
--import { createCesiumComponent, PickCesiumProps, Merge, ConstructorOptions2 } from "../core";
-+import {
-+  createCesiumComponent,
-+  PickCesiumProps,
-+  Merge,
-+  ConstructorOptions2,
-+  isPromise,
-+} from "../core";
- 
- /*
- @summary
-@@ -86,19 +92,30 @@ const ImageryLayer = createCesiumComponent<CesiumImageryLayer, ImageryLayerProps
-   async create(context, props) {
-     if (!context.imageryLayerCollection) return;
- 
--    const maybePromise = props.imageryProvider;
--
--    let result: ImageryProvider;
--    if (
--      maybePromise &&
--      typeof maybePromise === "object" &&
--      typeof (maybePromise as Promise<unknown>).then === "function"
--    ) {
--      result = await maybePromise;
--    } else {
--      result = maybePromise as ImageryProvider;
-+    const imageryProvider = isPromise(props.imageryProvider)
-+      ? props.imageryProvider
-+      : new Promise<ImageryProvider>(r => queueMicrotask(() => r(props.imageryProvider)));
-+
-+    const imageryLayerWaitingList = context.__$internal?.imageryLayerWaitingList?.slice();
-+    context.__$internal?.imageryLayerWaitingList
-+      ? context.__$internal.imageryLayerWaitingList.push(imageryProvider)
-+      : undefined;
-+
-+    // Make sure keeping the order of imagery layer to specify the index correctly.
-+    if (imageryLayerWaitingList) {
-+      await Promise.all(imageryLayerWaitingList.filter(v => isPromise(v)));
-+    }
-+
-+    const result: ImageryProvider = await imageryProvider;
-+
-+    // Remove the awaited result from the waiting list.
-+    if (context.__$internal?.imageryLayerWaitingList) {
-+      context.__$internal.imageryLayerWaitingList =
-+        context.__$internal.imageryLayerWaitingList.filter(i => i !== imageryProvider);
-     }
- 
-+    if (!result) return;
-+
-     const element = new CesiumImageryLayer(result, props);
-     context.imageryLayerCollection.add(element, props.index);
-     return element;
 diff --git a/src/Label/Label.ts b/src/Label/Label.ts
 --- a/src/Label/Label.ts
 +++ b/src/Label/Label.ts
@@ -266,14 +76,6 @@ diff --git a/src/Label/Label.ts b/src/Label/Label.ts
 diff --git a/src/Model/Model.ts b/src/Model/Model.ts
 --- a/src/Model/Model.ts
 +++ b/src/Model/Model.ts
-@@ -1,6 +1,6 @@
- import { Model as CesiumModel, Primitive, ModelNode, ColorBlendMode, Resource } from "cesium";
- 
--import { createCesiumComponent, EventProps, PickCesiumProps, Merge } from "../core";
-+import { createCesiumComponent, EventProps, PickCesiumProps, Merge, isPromise } from "../core";
- 
- export type Target = Merge<CesiumModel, Parameters<(typeof CesiumModel)["fromGltfAsync"]>[0]>;
- 
 @@ -77,6 +77,7 @@ const cesiumReadonlyProps = [
    "readyEvent",
    "texturesReadyEvent",
@@ -282,19 +84,6 @@ diff --git a/src/Model/Model.ts b/src/Model/Model.ts
  ] as const;
  
  export const otherProps = ["onReady", "onError", "url"] as const;
-@@ -88,11 +89,7 @@ const Model = createCesiumComponent<CesiumModel, ModelProps>({
-     const maybePromiseURL = url;
- 
-     let resultURL: Exclude<ModelProps["url"], Promise<Resource>>;
--    if (
--      maybePromiseURL &&
--      typeof maybePromiseURL === "object" &&
--      typeof (maybePromiseURL as Promise<unknown>).then === "function"
--    ) {
-+    if (isPromise(maybePromiseURL)) {
-       resultURL = await maybePromiseURL;
-     } else {
-       resultURL = maybePromiseURL as typeof resultURL;
 diff --git a/src/Scene/Scene.ts b/src/Scene/Scene.ts
 --- a/src/Scene/Scene.ts
 +++ b/src/Scene/Scene.ts
@@ -308,228 +97,4 @@ diff --git a/src/Scene/Scene.ts b/src/Scene/Scene.ts
  ] as const;
  
  export const cesiumEventProps = {
-diff --git a/src/Viewer/Viewer.ts b/src/Viewer/Viewer.ts
---- a/src/Viewer/Viewer.ts
-+++ b/src/Viewer/Viewer.ts
-@@ -9,6 +9,7 @@ import {
-   PickCesiumProps,
-   Merge,
-   RootComponentInternalProps,
-+  isPromise,
- } from "../core";
- 
- /*
-@@ -139,11 +140,7 @@ const Viewer = createCesiumComponent<CesiumViewer, ViewerProps, EventManager>({
-     if (!wrapper) return;
- 
-     let resultTerrainProvider: TerrainProvider;
--    if (
--      terrainProvider &&
--      typeof terrainProvider === "object" &&
--      typeof (terrainProvider as Promise<unknown>).then === "function"
--    ) {
-+    if (isPromise(terrainProvider)) {
-       resultTerrainProvider = await terrainProvider;
-     } else {
-       resultTerrainProvider = terrainProvider as TerrainProvider;
-@@ -196,6 +193,7 @@ const Viewer = createCesiumComponent<CesiumViewer, ViewerProps, EventManager>({
-       globe: element.scene.globe,
-       __$internal: {
-         onUpdate: props?.onUpdate,
-+        imageryLayerWaitingList: [],
-       },
-       [eventManagerContextKey]: state,
-     };
-diff --git a/src/core/component.tsx b/src/core/component.tsx
---- a/src/core/component.tsx
-+++ b/src/core/component.tsx
-@@ -1,3 +1,4 @@
-+import { ImageryProvider } from "cesium";
- import {
-   forwardRef,
-   HTMLAttributes,
-@@ -35,6 +36,10 @@ export type RootComponentInternalProps = {
-   onUpdate?: () => void;
- };
- 
-+export type RootComponentInternalValues = {
-+  imageryLayerWaitingList?: (Promise<ImageryProvider> | ImageryProvider)[];
-+};
-+
- export const createCesiumComponent = <Element, Props extends {}, State = any>({
-   renderContainer,
-   noChildren,
-diff --git a/src/core/context.ts b/src/core/context.ts
---- a/src/core/context.ts
-+++ b/src/core/context.ts
-@@ -19,7 +19,7 @@ import {
- } from "cesium";
- import { createContext, useContext } from "react";
- 
--import { RootComponentInternalProps } from "./component";
-+import { RootComponentInternalProps, RootComponentInternalValues } from "./component";
- import EventManager, { eventManagerContextKey } from "./EventManager";
- 
- export type ResiumContext = {
-@@ -40,7 +40,7 @@ export type ResiumContext = {
-   polylineCollection?: PolylineCollection;
-   pointPrimitiveCollection?: PointPrimitiveCollection;
-   cloudCollection?: CloudCollection;
--  __$internal?: RootComponentInternalProps;
-+  __$internal?: RootComponentInternalProps & RootComponentInternalValues;
-   [eventManagerContextKey]?: EventManager;
- };
- 
-diff --git a/src/core/hooks.ts b/src/core/hooks.ts
---- a/src/core/hooks.ts
-+++ b/src/core/hooks.ts
-@@ -12,7 +12,7 @@ import {
- import { RootComponentInternalProps } from "./component";
- import { ResiumContext, useCesium } from "./context";
- import { EventManager, eventManagerContextKey, eventNames } from "./EventManager";
--import { includes, shallowEquals, isDestroyed } from "./util";
-+import { includes, shallowEquals, isDestroyed, isPromise } from "./util";
- 
- export type EventkeyMap<T, P> = { [K in keyof P]?: keyof T };
- 
-@@ -82,6 +82,7 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
-   const wrapperRef = useRef<HTMLDivElement>(null);
-   const stateRef = useRef<State>();
-   const eventManager = ctx?.[eventManagerContextKey];
-+  const mountReadyRef = useRef<Promise<void>>();
- 
-   // Update properties
-   const updateProperties = useCallback(
-@@ -135,11 +136,7 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
- 
-       if (update && mountedRef.current) {
-         const maybePromise = update(element.current, props, prevProps.current, ctx);
--        if (
--          maybePromise &&
--          typeof maybePromise === "object" &&
--          typeof (maybePromise as Promise<void>).then === "function"
--        ) {
-+        if (isPromise(maybePromise)) {
-           await maybePromise;
-         }
-       }
-@@ -157,8 +154,8 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
-           );
-         }
- 
--        unmount();
--        mount();
-+        await unmount();
-+        mountReadyRef.current = mount();
-       }
-     },
-     [], // eslint-disable-line react-hooks/exhaustive-deps
-@@ -169,11 +166,7 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
-     const maybePromise = create?.(ctx, initialProps.current, wrapperRef.current);
- 
-     let result: CreateReturnType<Element, State>;
--    if (
--      maybePromise &&
--      typeof maybePromise === "object" &&
--      typeof (maybePromise as Promise<unknown>).then === "function"
--    ) {
-+    if (isPromise(maybePromise)) {
-       result = await maybePromise;
-     } else {
-       result = maybePromise as CreateReturnType<Element, State>;
-@@ -224,7 +217,12 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
-     setMounted(true);
-   }, []); // eslint-disable-line react-hooks/exhaustive-deps
- 
--  const unmount = useCallback(() => {
-+  const unmount = useCallback(async () => {
-+    // Wait mount before unmount
-+    if (mountReadyRef.current) {
-+      await mountReadyRef.current;
-+    }
-+
-     // Destroy cesium element
-     if (element.current && destroy) {
-       destroy(element.current, ctx, wrapperRef.current, stateRef.current);
-@@ -257,24 +255,33 @@ export const useCesiumComponent = <Element, Props extends RootComponentInternalP
- 
-   // To prevent re-execution by hot loader, execute only once
-   useLayoutEffect(() => {
--    mount();
--    return () => unmount();
-+    mountReadyRef.current = mount();
-+    return () => {
-+      unmount();
-+    };
-   }, []); // eslint-disable-line react-hooks/exhaustive-deps
- 
-   // Update properties of cesium element
-   useEffect(() => {
--    const propsWC = propsWithChildren(props);
--    if (mounted) {
--      if (!shallowEquals(propsWC, prevProps.current)) {
--        updateProperties(propsWC);
--        ctx.__$internal?.onUpdate?.();
-+    const update = async () => {
-+      if (mountReadyRef.current) {
-+        await mountReadyRef.current;
-       }
--    } else {
--      // first time
--      prevProps.current = propsWC;
--      initialProps.current = propsWC;
--      mountedRef.current = true;
--    }
-+
-+      const propsWC = propsWithChildren(props);
-+      if (mounted) {
-+        if (!shallowEquals(propsWC, prevProps.current)) {
-+          await updateProperties(propsWC);
-+          ctx.__$internal?.onUpdate?.();
-+        }
-+      } else {
-+        // first time
-+        prevProps.current = propsWC;
-+        initialProps.current = propsWC;
-+        mountedRef.current = true;
-+      }
-+    };
-+    update();
-   }, [ctx.__$internal, mounted, props, updateProperties]);
- 
-   // Expose cesium element
-diff --git a/src/core/util.ts b/src/core/util.ts
---- a/src/core/util.ts
-+++ b/src/core/util.ts
-@@ -1,10 +1,13 @@
- export function pick<T extends {}, K extends keyof T>(obj: T, keys?: K[]): Pick<T, K> {
-   if (!keys) return {} as Pick<T, K>;
--  return entries(obj).reduce((a, [k, v]) => {
--    if (!includes(keys, k)) return a;
--    (a as any)[k] = v;
--    return a;
--  }, {} as Pick<T, K>);
-+  return entries(obj).reduce(
-+    (a, [k, v]) => {
-+      if (!includes(keys, k)) return a;
-+      (a as any)[k] = v;
-+      return a;
-+    },
-+    {} as Pick<T, K>,
-+  );
- }
- 
- export function entries<T extends {}>(obj: T): [keyof T, T[keyof T]][] {
-@@ -35,3 +38,12 @@ export function isDestroyable(d: any): d is Destroyable {
- export function isDestroyed(d: any) {
-   return isDestroyable(d) && d.isDestroyed();
- }
-+
-+export function isPromise<T>(maybePromise: T | Promise<T>): maybePromise is Promise<T> {
-+  return (
-+    maybePromise &&
-+    typeof maybePromise === "object" &&
-+    "then" in maybePromise &&
-+    typeof maybePromise.then === "function"
-+  );
-+}
+
