@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 
 
 TEST_PATCH = "/tests/test.patch"
@@ -126,7 +127,21 @@ def _run(label, cmd, timeout):
     )
 
 
+def _assert_dependency_upgrade():
+    root = ET.parse("/app/pom.xml").getroot()
+    namespace = {"m": "http://maven.apache.org/POM/4.0.0"}
+    dependencies = root.findall(".//m:dependency", namespace)
+    shiro = next(
+        dependency
+        for dependency in dependencies
+        if dependency.findtext("m:groupId", namespaces=namespace) == "org.apache.shiro"
+        and dependency.findtext("m:artifactId", namespaces=namespace) == "shiro-core"
+    )
+    assert shiro.findtext("m:version", namespaces=namespace) == "2.0.1"
+
+
 def test_dependency_upgrade_fix():
+    _assert_dependency_upgrade()
     _apply_test_patch()
     _run("install", INSTALL_CMD, INSTALL_TIMEOUT)
     _run("test", TEST_CMD, TEST_TIMEOUT)
