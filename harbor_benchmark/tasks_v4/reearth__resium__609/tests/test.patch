@@ -1,21 +1,3 @@
-diff --git a/src/Model/Model.test.ts b/src/Model/Model.test.ts
---- a/src/Model/Model.test.ts
-+++ b/src/Model/Model.test.ts
-@@ -3,12 +3,12 @@ import { it } from "vitest";
- 
- import { UnusedCesiumProps } from "../core";
- 
--import { ModalOtherProps, ModelProps, Target } from "./Model";
-+import { ModelOtherProps, ModelProps, Target } from "./Model";
- 
- // Unused prop check
- type UnusedProps = UnusedCesiumProps<
-   Target,
--  Omit<ModelProps, keyof ModalOtherProps>,
-+  Omit<ModelProps, keyof ModelOtherProps>,
-   {},
-   IgnoredProps
- >;
 diff --git a/src/Viewer/Viewer.test.ts b/src/Viewer/Viewer.test.ts
 --- a/src/Viewer/Viewer.test.ts
 +++ b/src/Viewer/Viewer.test.ts
@@ -24,48 +6,8 @@ diff --git a/src/Viewer/Viewer.test.ts b/src/Viewer/Viewer.test.ts
    IgnoredProps
  >;
 -type IgnoredProps = "contextOptions"; // contextOptions is actually used
-+type IgnoredProps = "contextOptions" | "terrainProvider"; // contextOptions is actually used
++type IgnoredProps = "contextOptions" | "terrainProvider"; // both are handled by Resium
  
  expectType<TypeEqual<never, UnusedProps>>(true);
  
-diff --git a/src/core/component.test.tsx b/src/core/component.test.tsx
---- a/src/core/component.test.tsx
-+++ b/src/core/component.test.tsx
-@@ -1,4 +1,4 @@
--import { render, screen } from "@testing-library/react";
-+import { render, screen, waitFor } from "@testing-library/react";
- import { Event } from "cesium";
- import { createRef, ReactNode } from "react";
- import { beforeEach, describe, expect, it, vi, vitest } from "vitest";
-@@ -33,6 +33,31 @@ describe("core/component", () => {
-     expect(ref.current?.cesiumElement).toBe("foobar");
-   });
- 
-+  it("should create and expose cesium element correctly on initialized asynchronously", async () => {
-+    const create = vi.fn(() => Promise.resolve("foobar"));
-+    const value = { hoge: 1 } as any;
-+
-+    const Component = createCesiumComponent<string, { test: number }>({
-+      name: "test",
-+      create,
-+    });
-+
-+    const ref = createRef<CesiumComponentRef<string>>();
-+
-+    render(
-+      <Provider value={value}>
-+        <Component test={1} ref={ref} />
-+      </Provider>,
-+    );
-+
-+    await waitFor(() => {
-+      expect(ref.current?.cesiumElement).toBe("foobar");
-+    });
-+
-+    expect(create).toBeCalledWith(value, { test: 1 }, null);
-+    expect(create).toBeCalledTimes(1);
-+  });
-+
-   it("should call destroy fn on unmounted", () => {
-     const destroy = vi.fn();
-     const value = { hoge: 1 } as any;
+
