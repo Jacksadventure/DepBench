@@ -1,6 +1,6 @@
-# DepBench v4-with-test219 release
+# DepBench v4-with-test203 contract-clean release
 
-DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. It is built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. DepBench separates dependency upgrades, developer repairs, and test patches, and uses a four-state executable oracle design to ensure that each task's failure is caused by the dependency upgrade and that the repair is causally validated. On this benchmark, current coding agents remain far from robust in realistic dependency-upgrade scenarios: the strongest configuration solves only 87/219 tasks (39.7%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs. DepBench provides a standard evaluation platform for future work on dependency-upgrade automation and code-agent research.
+DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. The original dataset was built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. This contract-clean release contains the 203 tasks that remain after removing 16 invalid test contracts. DepBench separates dependency upgrades, developer repairs, and test patches, and uses executable oracle checks to ensure that each retained task's failure is caused by the dependency upgrade and that the repair is causally validated. On this filtered benchmark, the strongest historical configuration solves 87/203 tasks (42.9%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs.
 
 This branch is a clean release snapshot of the DepBench dependency-upgrade benchmark. It contains the benchmark dataset, agent trajectories, verifier logs, result summaries, and analysis tables for the reported run.
 
@@ -18,34 +18,32 @@ restore `JAVA_HOME`, `PATH`, `MAVEN_HOME`, and `MAVEN_CONFIG`; existing
 filesystem layers were reused. Old/new image digests are recorded in
 `repro/java_home_image_repair_2026-07-13.csv`.
 
-Reported historical trajectories and rewards are preserved unchanged. Any
-historical verifier cell that failed because of missing `JAVA_HOME` remains an
-invalid historical observation and must be replayed before recomputing result
-summaries.
+The retained historical trajectory and verifier rows preserve their original
+observations. Any retained verifier cell that failed because of missing
+`JAVA_HOME` remains an invalid historical observation and must be replayed
+before interpreting cross-configuration Maven results.
 
 ## Maintenance update: test contracts
 
 On 2026-07-14, 37 semantic or mixed test-contract findings were reviewed
 individually. Eight contracts were repaired, 13 were repackaged around a clean
-dependency witness, and 16 were retained with explicit
-`invalid-test-contract` metadata because no dependency-caused source-repair
-witness existed.
+dependency witness, and 16 were found invalid because no dependency-caused
+source-repair witness existed.
 
 The full decision table is available in
-`analysis/test_contract_repair_decisions_2026-07-14.{md,csv}`. Invalid tasks
-remain in the dataset so the published 219-task identity and historical result
-alignment are preserved. Consumers constructing a clean evaluation subset
-should exclude tasks whose `task.toml` contains
-`test_contract_status = "invalid"`.
+`analysis/test_contract_repair_decisions_2026-07-14.{md,csv}`. The 16 invalid
+tasks have been removed from `dataset/tasks`, task metadata, all 10 trajectory
+and verifier-log files, per-trial results, analysis tables, and Harbor example
+configs.
 
-Historical trajectories, verifier logs, and rewards were not rewritten or
-recomputed after these contract repairs.
+The remaining historical reward values were not changed; aggregate counts and
+rates were recomputed over the 203 retained tasks.
 
 ## Contents
 
 | Path | Description |
 |---|---|
-| `dataset/tasks/` | 219 task directories. Each task contains the agent-facing instruction, task metadata, environment metadata, oracle source patch, and hidden verifier test patch. |
+| `dataset/tasks/` | 203 contract-valid task directories. Each task contains the agent-facing instruction, task metadata, environment metadata, oracle source patch, and verifier files. |
 | `dataset/task_summary.json` | Task-level metadata: ecosystem, dependency/library, old version, and new version. |
 | `trajectories/` | Trajectory exports as gzip JSONL, one file per harness/model configuration. |
 | `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |

@@ -1,4 +1,4 @@
-# Reproducing DepBench v4-with-test219
+# Reproducing DepBench v4-with-test203
 
 This directory contains the minimal helper files for using the release snapshot.
 
@@ -23,7 +23,7 @@ The following files are for scoring and must not be shown to the agent:
 - `dataset/tasks/<task>/tests/*`
 - `dataset/tasks/<task>/environment/patches/manifest.patch`
 
-After the agent finishes, the verifier applies `tests/test.patch` and runs `tests/test.sh`. The score is read from `/logs/verifier/reward.txt`.
+After the agent finishes, the verifier applies `tests/test.patch` when present and runs `tests/test.sh`. The score is read from `/logs/verifier/reward.txt`.
 
 ## Harbor execution
 

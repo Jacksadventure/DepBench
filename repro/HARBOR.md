@@ -26,7 +26,7 @@ python3 repro/make_harbor_config.py \
   --output repro/examples/codex_gpt55_one_task.json
 ```
 
-Create a config for all 219 tasks:
+Create a config for all 203 tasks:
 
 ```bash
 python3 repro/make_harbor_config.py \

@@ -9,4 +9,7 @@ This directory contains aggregate analysis tables derived from the release artif
 - `test_contract_repair_decisions_2026-07-14.{md,csv}`: decisions and rationale
   for the 37 reviewed semantic/mixed test contracts.
 
-All tables are generated from the `trajectories/`, `verify_logs/`, and `results/` files in this branch.
+All aggregate tables are generated from the 203-task filtered
+`trajectories/`, `verify_logs/`, and `results/` files in this branch. The
+37-row contract decision report is retained as audit provenance for both kept
+and removed tasks.
