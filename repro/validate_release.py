@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import gzip
 import json
+from collections import Counter
 from pathlib import Path
 
 
@@ -66,6 +67,119 @@ def main() -> int:
     if any(int(row["tasks"]) != 203 for row in summary_rows):
         raise SystemExit("results summary does not use the 203-task denominator")
 
+    final_outcomes = list(
+        csv.DictReader((ROOT / "results/final_per_task_outcomes.csv").open())
+    )
+    if len(final_outcomes) != 2030:
+        raise SystemExit(f"expected 2030 final outcomes, got {len(final_outcomes)}")
+    if {row["task"] for row in final_outcomes} != active_tasks:
+        raise SystemExit("final outcome tasks do not match the release")
+    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 111:
+        raise SystemExit("expected 111 targeted rerun outcomes")
+    rerun_rows = list(
+        csv.DictReader(
+            (ROOT / "results/targeted_runtime_exception_reruns_203.csv").open()
+        )
+    )
+    if len(rerun_rows) != 111 or len(
+        {(row["configuration"], row["task"]) for row in rerun_rows}
+    ) != 111:
+        raise SystemExit("expected 111 unique targeted rerun cells")
+
+    for summary in summary_rows:
+        configuration = f"{summary['llm']}__{summary['harness']}"
+        subset = [
+            row for row in final_outcomes if row["configuration"] == configuration
+        ]
+        counts = Counter(
+            "pass"
+            if row["final_reward"] == "1.0"
+            else "no_reward"
+            if row["final_reward"] == ""
+            else "fail"
+            for row in subset
+        )
+        observed = (
+            len(subset),
+            counts["pass"],
+            counts["fail"],
+            counts["no_reward"],
+        )
+        expected = tuple(
+            int(summary[field]) for field in ("tasks", "pass", "fail", "no_reward")
+        )
+        if observed != expected:
+            raise SystemExit(
+                f"{configuration}: final outcomes {observed} != summary {expected}"
+            )
+
+    task_ecosystems = {row["folder"]: row["ecosystem"] for row in task_summary}
+    llm_names = {
+        "claude-opus-4-8": "claude48",
+        "gemini-3.5-flash": "gemini35flash",
+        "gpt-5.5": "gpt55",
+    }
+    ecosystem_rows = list(
+        csv.DictReader((ROOT / "analysis/ecosystem_results.csv").open())
+    )
+    for ecosystem in ecosystem_rows:
+        configuration = (
+            f"{llm_names[ecosystem['model']]}__{ecosystem['harness']}"
+        )
+        subset = [
+            row
+            for row in final_outcomes
+            if row["configuration"] == configuration
+            and task_ecosystems[row["task"]] == ecosystem["ecosystem"]
+        ]
+        counts = Counter(
+            "pass"
+            if row["final_reward"] == "1.0"
+            else "no_reward"
+            if row["final_reward"] == ""
+            else "fail"
+            for row in subset
+        )
+        observed = (
+            len(subset),
+            counts["pass"],
+            counts["fail"],
+            counts["no_reward"],
+        )
+        expected = tuple(
+            int(ecosystem[field])
+            for field in ("tasks", "pass", "fail", "no_reward")
+        )
+        if observed != expected:
+            raise SystemExit(
+                f"{configuration}/{ecosystem['ecosystem']}: "
+                f"final outcomes {observed} != ecosystem summary {expected}"
+            )
+
+    repository_rows = list(
+        csv.DictReader((ROOT / "analysis/repository_metadata.csv").open())
+    )
+    task_repository_rows = list(
+        csv.DictReader((ROOT / "analysis/task_repository_metadata.csv").open())
+    )
+    if len(repository_rows) != 159 or len(task_repository_rows) != 203:
+        raise SystemExit(
+            "expected 159 repository rows and 203 task-repository rows, got "
+            f"{len(repository_rows)} and {len(task_repository_rows)}"
+        )
+    if {row["task"] for row in task_repository_rows} != active_tasks:
+        raise SystemExit("task repository metadata does not match the release")
+    if sum(int(row["task_count"]) for row in repository_rows) != 203:
+        raise SystemExit("repository metadata task counts do not sum to 203")
+    if any(
+        not row["repository_url"]
+        or not row["license_spdx_id"]
+        or not row["license_category"]
+        or not row["primary_language"]
+        for row in repository_rows
+    ):
+        raise SystemExit("repository metadata contains an incomplete required field")
+
     for directory in ("trajectories", "verify_logs"):
         files = sorted((ROOT / directory).glob("*.jsonl.gz"))
         if len(files) != 10:
@@ -85,8 +199,16 @@ def main() -> int:
         "pyproject.toml",
         "analysis/ecosystem_results.csv",
         "analysis/coverage.csv",
+        "analysis/repository_metadata.csv",
+        "analysis/repository_metadata.json",
+        "analysis/task_repository_metadata.csv",
+        "analysis/runtime_exception_rerun_summary_203.json",
         "analysis/test_contract_repair_decisions_2026-07-14.md",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
+        "results/final_per_task_outcomes.csv",
+        "results/targeted_runtime_exception_reruns_203.csv",
+        "repro/collect_repository_metadata.py",
+        "repro/sync_targeted_rerun_results.py",
         "repro/TASK_SCHEMA.md",
         "repro/run_oracle_solution.sh",
         "repro/run_patch_verifier.sh",

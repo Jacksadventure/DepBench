@@ -1,6 +1,6 @@
 # DepBench v4-with-test203 contract-clean release
 
-DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. The original dataset was built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. This contract-clean release contains the 203 tasks that remain after removing 16 invalid test contracts. DepBench separates dependency upgrades, developer repairs, and test patches, and uses executable oracle checks to ensure that each retained task's failure is caused by the dependency upgrade and that the repair is causally validated. On this filtered benchmark, the strongest historical configuration solves 87/203 tasks (42.9%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs.
+DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. The original dataset was built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. This contract-clean release contains the 203 tasks that remain after removing 16 invalid test contracts. DepBench separates dependency upgrades, developer repairs, and test patches, and uses executable oracle checks to ensure that each retained task's failure is caused by the dependency upgrade and that the repair is causally validated. On this filtered benchmark, the strongest historical configuration solves 95/203 tasks (46.8%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs.
 
 This branch is a clean release snapshot of the DepBench dependency-upgrade benchmark. It contains the benchmark dataset, agent trajectories, verifier logs, result summaries, and analysis tables for the reported run.
 
@@ -49,6 +49,8 @@ rates were recomputed over the 203 retained tasks.
 | `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |
 | `results/` | Configuration-level summary and per-trial reward metadata. |
 | `analysis/` | Aggregate result, coverage, and trajectory-scan tables. |
+| `analysis/repository_metadata.{csv,json}` | Unique repository URLs, licenses, primary languages, archive status, and task mappings. |
+| `analysis/task_repository_metadata.csv` | Task-level mapping to repository URL, license, and primary language. |
 | `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Per-task decisions for the 37 reviewed semantic/mixed contracts. |
 | `repro/` | Helper scripts and schema notes for pulling task images, verifying oracle solutions, verifying candidate patches, validating this release, and scanning trajectories. |
 | `custom_agents/` | Harbor agent adapters referenced by the provided Harbor config templates. |
@@ -125,6 +127,8 @@ Use `verify_logs/index.csv` or `verify_logs/index.json` to check coverage.
 ## Results and analysis
 
 - `results/summary.csv` and `results/summary.json` contain the configuration-level result table.
+- `results/final_per_task_outcomes.csv` applies the 111 targeted rerun outcomes to the original full-run result cells.
+- `results/targeted_runtime_exception_reruns_203.csv` contains the targeted rerun result records.
 - `results/per_trial_results.jsonl.gz` contains one compact metadata row per trial, without embedding the full trajectory or verifier stdout.
 - `analysis/ecosystem_results.csv` contains result counts by configuration and ecosystem.
 - `analysis/coverage.csv` contains trajectory and verifier-log coverage by configuration.
