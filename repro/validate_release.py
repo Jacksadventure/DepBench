@@ -77,6 +77,16 @@ def main() -> int:
     if any(int(row["tasks"]) != 203 for row in summary_rows):
         raise SystemExit("results summary does not use the 203-task denominator")
 
+    manifest = json.loads((ROOT / "MANIFEST.json").read_text())
+    if (
+        manifest.get("dataset") != "DepBench contract-clean 203"
+        or manifest.get("tasks") != 203
+        or manifest.get("total_trials") != 2030
+        or manifest.get("targeted_rerun_cells") != 111
+        or manifest.get("trajectory_recovery_rerun_cells") != 177
+    ):
+        raise SystemExit("MANIFEST.json does not describe the final release")
+
     final_outcomes = list(
         csv.DictReader((ROOT / "results/final_per_task_outcomes.csv").open())
     )
@@ -95,6 +105,24 @@ def main() -> int:
         {(row["configuration"], row["task"]) for row in rerun_rows}
     ) != 111:
         raise SystemExit("expected 111 unique targeted rerun cells")
+    recovery_path = ROOT / "results/trajectory_recovery_reruns_203.csv"
+    if not recovery_path.exists():
+        raise SystemExit("missing trajectory-recovery rerun records")
+    recovery_rows = list(csv.DictReader(recovery_path.open()))
+    if len(recovery_rows) != 177 or len(
+        {(row["configuration"], row["task"]) for row in recovery_rows}
+    ) != 177:
+        raise SystemExit("expected 177 unique trajectory-recovery rerun cells")
+    if (
+        sum(
+            row["outcome_source"] == "trajectory_recovery_rerun"
+            for row in final_outcomes
+        )
+        != 177
+    ):
+        raise SystemExit(
+            "final outcomes do not contain 177 trajectory-recovery reruns"
+        )
 
     for summary in summary_rows:
         configuration = f"{summary['llm']}__{summary['harness']}"
@@ -190,18 +218,51 @@ def main() -> int:
     ):
         raise SystemExit("repository metadata contains an incomplete required field")
 
+    final_by_cell = {
+        (row["configuration"], row["task"]): row for row in final_outcomes
+    }
     for directory in ("trajectories", "verify_logs"):
         files = sorted((ROOT / directory).glob("*.jsonl.gz"))
         if len(files) != 10:
             raise SystemExit(f"expected 10 {directory} files, got {len(files)}")
         for path in files:
-            rows = count_gzip_jsonl(path)
-            if rows != 203:
-                raise SystemExit(f"{path}: expected 203 rows, got {rows}")
+            stem = path.name.removesuffix(".jsonl.gz")
+            with gzip.open(path, "rt", encoding="utf-8") as handle:
+                rows = [json.loads(line) for line in handle]
+            if len(rows) != 203:
+                raise SystemExit(f"{path}: expected 203 rows, got {len(rows)}")
+            if len({row["task"] for row in rows}) != 203:
+                raise SystemExit(f"{path}: expected 203 unique tasks")
+            if directory == "trajectories" and any(
+                not row.get("trajectory") for row in rows
+            ):
+                raise SystemExit(f"{path}: expected 203 non-empty trajectories")
+            for row in rows:
+                outcome = final_by_cell[(stem, row["task"])]
+                expected_reward = (
+                    None
+                    if outcome["final_reward"] == ""
+                    else float(outcome["final_reward"])
+                )
+                if row.get("trial") != outcome["final_trial"]:
+                    raise SystemExit(
+                        f"{path}/{row['task']}: artifact trial does not match final outcome"
+                    )
+                if row.get("reward") != expected_reward:
+                    raise SystemExit(
+                        f"{path}/{row['task']}: artifact reward does not match final outcome"
+                    )
 
     per_trial_rows = count_gzip_jsonl(ROOT / "results/per_trial_results.jsonl.gz")
     if per_trial_rows != 2030:
         raise SystemExit(f"expected 2030 per-trial rows, got {per_trial_rows}")
+    original_per_trial_rows = count_gzip_jsonl(
+        ROOT / "results/original_per_trial_results.jsonl.gz"
+    )
+    if original_per_trial_rows != 2030:
+        raise SystemExit(
+            f"expected 2030 original per-trial rows, got {original_per_trial_rows}"
+        )
 
     required = [
         "README.md",
@@ -223,6 +284,8 @@ def main() -> int:
         "analysis/repository_metadata.json",
         "analysis/task_repository_metadata.csv",
         "analysis/runtime_exception_rerun_summary_203.json",
+        "analysis/original_full_run_trajectory_scan_summary.csv",
+        "analysis/paper_numbers_203.json",
         "analysis/test_contract_repair_decisions_2026-07-14.md",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
         "analysis/release_redactions_2026-07-23.csv",
@@ -232,11 +295,18 @@ def main() -> int:
         "assets/benchmark-flow-mobile.svg",
         "assets/benchmark-flow-mobile-dark.svg",
         "results/final_per_task_outcomes.csv",
+        "results/original_per_trial_results.jsonl.gz",
         "results/targeted_runtime_exception_reruns_203.csv",
+        "results/trajectory_recovery_reruns_203.csv",
         "repro/download_benchmark.py",
         "repro/audit_release_compliance.py",
         "repro/collect_repository_metadata.py",
         "repro/sync_targeted_rerun_results.py",
+        "repro/rebuild_final_artifacts.py",
+        "repro/recompute_analysis.py",
+        "repro/redact_release_trajectories.py",
+        "repro/refresh_secret_scan_review.py",
+        "repro/trajectory_conversion.py",
         "repro/TASK_SCHEMA.md",
         "repro/run_oracle_solution.sh",
         "repro/run_patch_verifier.sh",

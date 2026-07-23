@@ -119,7 +119,7 @@ Task Docker images are referenced from `task.toml` as
 |---|---|
 | [`trajectories/`](trajectories/) | Gzip JSONL trajectory exports for the 10 harness/model configurations |
 | [`verify_logs/`](verify_logs/) | Verifier stdout and CTRF exports aligned with trajectory rows |
-| [`results/`](results/) | Configuration summaries, final per-task outcomes, and targeted reruns |
+| [`results/`](results/) | Original and final per-task outcomes plus rerun provenance |
 | [`analysis/`](analysis/) | Ecosystem results, coverage, repository metadata, and trajectory scans |
 | [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and analysis helpers |
 | [`custom_agents/`](custom_agents/) | Harbor adapters used by the example configurations |
@@ -134,9 +134,11 @@ Task Docker images are referenced from `task.toml` as
 | File | Purpose |
 |---|---|
 | `results/summary.{csv,json}` | Configuration-level pass, fail, and no-reward counts |
-| `results/final_per_task_outcomes.csv` | Final outcomes after applying 111 targeted reruns |
+| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime and trajectory-recovery reruns |
 | `results/targeted_runtime_exception_reruns_203.csv` | Targeted runtime-exception rerun records |
-| `results/per_trial_results.jsonl.gz` | Compact metadata for all 2,030 reported trials |
+| `results/trajectory_recovery_reruns_203.csv` | Reruns used to recover previously unavailable OpenCode trajectories |
+| `results/original_per_trial_results.jsonl.gz` | Frozen metadata for the original 2,030 trials |
+| `results/per_trial_results.jsonl.gz` | Compact metadata for the 2,030 final selected trials |
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
 | `analysis/coverage.csv` | Trajectory and verifier-log coverage |
 | `analysis/trajectory_scan_*` | Rule-based trajectory scan outputs |
@@ -175,15 +177,16 @@ Harbor configuration templates for every reported configuration are under
 <details>
 <summary><strong>Trajectory rows</strong></summary>
 
-`trajectories/*.jsonl.gz` contains one row per reported trial with:
+`trajectories/*.jsonl.gz` contains one row per final selected trial with:
 
 - `task`, `trial`, `harness`, `llm`, and `model`
 - `reward` and `exception_type`
+- `outcome_source`, `source_job`, and `trajectory_source`
 - `has_trajectory`
 - an ATIF-like `trajectory` object when available
 
-Some rows intentionally use `has_trajectory=false`: their reward and verifier
-log are retained, but no recoverable agent trajectory was available.
+The release keeps the original numeric baseline separately so rerun-backed rows
+can be traced without conflating original and final trials.
 
 </details>
 

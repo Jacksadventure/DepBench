@@ -2,7 +2,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Merge targeted rerun outcomes into the released numeric result tables."""
+"""Merge final rerun outcomes into the released numeric result tables."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RERUN_PATH = ROOT / "results/targeted_runtime_exception_reruns_203.csv"
+RECOVERY_PATH = ROOT / "results/trajectory_recovery_reruns_203.csv"
 FINAL_OUTCOMES_PATH = ROOT / "results/final_per_task_outcomes.csv"
 
 RERUN_CONFIGURATIONS = {
@@ -32,8 +33,14 @@ def rate(numerator: int, denominator: int) -> str:
     return f"{numerator / denominator:.6f}".rstrip("0").rstrip(".")
 
 
+def clean_message(value: object) -> str:
+    return "\n".join(
+        line.rstrip() for line in str(value or "").splitlines()
+    ).strip()
+
+
 def read_baseline() -> list[dict]:
-    path = ROOT / "results/per_trial_results.jsonl.gz"
+    path = ROOT / "results/original_per_trial_results.jsonl.gz"
     with gzip.open(path, "rt", encoding="utf-8") as handle:
         return [json.loads(line) for line in handle]
 
@@ -46,7 +53,20 @@ def read_reruns() -> dict[tuple[str, str], dict]:
         key = (f"{llm}__{harness}", row["task"])
         if key in reruns:
             raise SystemExit(f"duplicate rerun cell: {key}")
-        reruns[key] = row
+        reruns[key] = row | {
+            "outcome_source": "targeted_rerun",
+            "normalized_configuration": key[0],
+        }
+
+    if RECOVERY_PATH.exists():
+        for row in csv.DictReader(RECOVERY_PATH.open(encoding="utf-8")):
+            key = (row["configuration"], row["task"])
+            if key in reruns:
+                raise SystemExit(f"duplicate rerun cell: {key}")
+            reruns[key] = row | {
+                "outcome_source": "trajectory_recovery_rerun",
+                "normalized_configuration": key[0],
+            }
     return reruns
 
 
@@ -61,7 +81,10 @@ def build_final_outcomes(
         rerun = reruns.get(key)
         original_reward = row.get("reward")
         if rerun:
-            if original_reward == 1.0:
+            if (
+                rerun["outcome_source"] == "targeted_rerun"
+                and original_reward == 1.0
+            ):
                 raise SystemExit(f"rerun unexpectedly replaces a pass: {key}")
             final_reward = float(rerun["reward"])
             matched_reruns.add(key)
@@ -77,11 +100,27 @@ def build_final_outcomes(
                 "task": row["task"],
                 "original_reward": "" if original_reward is None else original_reward,
                 "final_reward": "" if final_reward is None else final_reward,
-                "outcome_source": "targeted_rerun" if rerun else "original_full_run",
+                "outcome_source": (
+                    rerun["outcome_source"] if rerun else "original_full_run"
+                ),
                 "original_trial": row["trial"],
+                "final_trial": rerun["trial"] if rerun else row["trial"],
+                "final_job": rerun["job_name"] if rerun else "",
+                "final_exception_type": (
+                    rerun["exception_type"]
+                    if rerun
+                    else row.get("exception_type", "")
+                ),
+                "final_exception_message": (
+                    clean_message(rerun["exception_message"])
+                    if rerun
+                    else clean_message(row.get("exception_message", ""))
+                ),
                 "rerun_trial": rerun["trial"] if rerun else "",
                 "rerun_exception_type": rerun["exception_type"] if rerun else "",
-                "rerun_exception_message": rerun["exception_message"] if rerun else "",
+                "rerun_exception_message": (
+                    clean_message(rerun["exception_message"]) if rerun else ""
+                ),
             }
         )
 
@@ -102,6 +141,10 @@ def write_final_outcomes(outcomes: list[dict]) -> None:
         "final_reward",
         "outcome_source",
         "original_trial",
+        "final_trial",
+        "final_job",
+        "final_exception_type",
+        "final_exception_message",
         "rerun_trial",
         "rerun_exception_type",
         "rerun_exception_message",
@@ -125,7 +168,7 @@ def outcome_counts(rows: list[dict]) -> Counter:
     return counts
 
 
-def update_summary(outcomes: list[dict], rerun_count: int) -> None:
+def update_summary(outcomes: list[dict], rerun_counts: Counter) -> None:
     by_configuration: dict[str, list[dict]] = {}
     for row in outcomes:
         by_configuration.setdefault(row["configuration"], []).append(row)
@@ -167,8 +210,15 @@ def update_summary(outcomes: list[dict], rerun_count: int) -> None:
         for field in ("pass_rate_total", "pass_rate_reward_bearing"):
             row[field] = float(csv_row[field])
     document["generated_at"] = datetime.now(timezone.utc).isoformat()
-    document["targeted_rerun_cells"] = rerun_count
+    document["targeted_rerun_cells"] = rerun_counts["targeted_rerun"]
+    document["trajectory_recovery_rerun_cells"] = rerun_counts[
+        "trajectory_recovery_rerun"
+    ]
     document["targeted_rerun_results"] = str(RERUN_PATH.relative_to(ROOT))
+    if RECOVERY_PATH.exists():
+        document["trajectory_recovery_rerun_results"] = str(
+            RECOVERY_PATH.relative_to(ROOT)
+        )
     json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
         encoding="utf-8",
@@ -224,14 +274,17 @@ def main() -> None:
     baseline = read_baseline()
     reruns = read_reruns()
     outcomes = build_final_outcomes(baseline, reruns)
-    if len(baseline) != 2030 or len(reruns) != 111:
+    if len(baseline) != 2030 or len(reruns) not in (111, 288):
         raise SystemExit(
             f"unexpected input sizes: baseline={len(baseline)} reruns={len(reruns)}"
         )
     write_final_outcomes(outcomes)
-    update_summary(outcomes, len(reruns))
+    update_summary(
+        outcomes,
+        Counter(row["outcome_source"] for row in reruns.values()),
+    )
     update_ecosystem_results(outcomes)
-    print(f"updated 2030 outcomes with {len(reruns)} targeted rerun cells")
+    print(f"updated 2030 outcomes with {len(reruns)} final rerun cells")
 
 
 if __name__ == "__main__":

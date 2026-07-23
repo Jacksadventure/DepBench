@@ -122,3 +122,24 @@ By default, this reads `trajectories/*.jsonl.gz` and writes:
 - `analysis/trajectory_scan_summary.json`
 
 The scanner uses one rule set across all configurations and only scans agent-authored trajectory steps.
+
+## Rebuild final author artifacts
+
+The original 2,030-cell metadata baseline is frozen in
+`results/original_per_trial_results.jsonl.gz`. Authors with access to the raw
+Harbor jobs can rebuild final trajectories, verifier rows, and result tables:
+
+```bash
+python3 repro/rebuild_final_artifacts.py \
+  --experiment-root /path/to/experiment-worktree \
+  --include-recovery
+python3 repro/redact_release_trajectories.py
+python3 repro/scan_trajectories.py
+python3 repro/recompute_analysis.py
+python3 repro/refresh_secret_scan_review.py
+python3 repro/audit_release_compliance.py
+python3 repro/validate_release.py
+```
+
+`sync_targeted_rerun_results.py` regenerates numeric tables from the frozen
+baseline and the checked-in rerun CSV files without requiring raw Harbor jobs.
