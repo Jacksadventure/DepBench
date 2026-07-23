@@ -1,156 +1,247 @@
-# DepBench v4-with-test203 contract-clean release
+<div align="center">
 
-DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. The original dataset was built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. This contract-clean release contains the 203 tasks that remain after removing 16 invalid test contracts. DepBench separates dependency upgrades, developer repairs, and test patches, and uses executable oracle checks to ensure that each retained task's failure is caused by the dependency upgrade and that the repair is causally validated. On this filtered benchmark, the strongest historical configuration solves 95/203 tasks (46.8%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs.
+# DepBench
 
-This branch is a clean release snapshot of the DepBench dependency-upgrade benchmark. It contains the reproduction code, agent trajectories, verifier logs, result summaries, and analysis tables for the reported run. The directory-format benchmark is distributed through [Hugging Face](https://huggingface.co/datasets/ZijiantheJack/DepBench).
+**A repository-level benchmark for dependency-upgrade repair by coding agents**
 
-The release is updated live as final artifacts are refreshed. For reproducible experiments, pin the exact commit SHA of this branch.
+<p>
+  <a href="https://huggingface.co/datasets/ZijiantheJack/DepBench">
+    <img alt="Hugging Face dataset" src="https://img.shields.io/badge/Hugging%20Face-Dataset-FFD21E?style=flat-square">
+  </a>
+  <img alt="203 tasks" src="https://img.shields.io/badge/tasks-203-2E8B57?style=flat-square">
+  <img alt="159 repositories" src="https://img.shields.io/badge/repositories-159-3B82F6?style=flat-square">
+  <img alt="5 ecosystems" src="https://img.shields.io/badge/ecosystems-5-8B5CF6?style=flat-square">
+  <img alt="contract-clean release" src="https://img.shields.io/badge/release-v4--with--test203-343A40?style=flat-square">
+</p>
 
-## Maintenance update: Maven verifier environments
+[Quick Start](#quick-start) &middot;
+[Benchmark Design](#benchmark-design) &middot;
+[Evaluation Protocol](#evaluation-protocol) &middot;
+[Artifacts](#release-artifacts) &middot;
+[Reproduction](#reproduction)
 
-On 2026-07-13, 57 Maven task verifiers were hardened after an audit found
-guarded task images whose config had lost `JAVA_HOME` and Java on `PATH`.
-The verifiers now restore the JDK/Maven environment explicitly and avoid login
-shell environment resets.
+</div>
 
-The corresponding DockerHub task-image tags received config-only updates that
-restore `JAVA_HOME`, `PATH`, `MAVEN_HOME`, and `MAVEN_CONFIG`; existing
-filesystem layers were reused. Old/new image digests are recorded in
-`repro/java_home_image_repair_2026-07-13.csv`.
+---
 
-The retained historical trajectory and verifier rows preserve their original
-observations. Any retained verifier cell that failed because of missing
-`JAVA_HOME` remains an invalid historical observation and must be replayed
-before interpreting cross-configuration Maven results.
+DepBench evaluates whether coding agents can repair repository-level breakages
+caused by dependency upgrades. Its tasks originate from real merged Dependabot
+and Renovate pull requests and span npm/yarn, Maven, Go modules, Cargo, and pip.
 
-## Maintenance update: test contracts
+This contract-clean release retains **203 valid tasks** from the original
+219-task snapshot. Each task separates the dependency upgrade, the developer
+repair, and the hidden verifier so that the causal effect of the upgrade can be
+checked directly.
 
-On 2026-07-14, 37 semantic or mixed test-contract findings were reviewed
-individually. Eight contracts were repaired, 13 were repackaged around a clean
-dependency witness, and 16 were found invalid because no dependency-caused
-source-repair witness existed.
+> [!IMPORTANT]
+> `solution/` and `tests/` are published for reproducibility. Keep both
+> directories hidden from agents during evaluation.
 
-The full decision table is available in
-`analysis/test_contract_repair_decisions_2026-07-14.{md,csv}`. The 16 invalid
-tasks have been removed from `dataset/tasks`, task metadata, all 10 trajectory
-and verifier-log files, per-trial results, analysis tables, and Harbor example
-configs.
+## At a glance
 
-The remaining historical reward values were not changed; aggregate counts and
-rates were recomputed over the 203 retained tasks.
+| Tasks | Source repositories | Ecosystems | Evaluated configurations | Reported trials |
+|---:|---:|---:|---:|---:|
+| **203** | **159** | **5** | **10** | **2,030** |
 
-## Get the benchmark
+The strongest historical configuration in this snapshot solves **95/203 tasks
+(46.8%)**. Complete configuration-level results are available in
+[`results/summary.csv`](results/summary.csv).
 
-Install the release package and download the pinned 203-task Hugging Face snapshot:
+## Quick start
+
+Install the release helpers, download the pinned benchmark snapshot from
+Hugging Face, and validate the complete release:
 
 ```bash
 python3 -m pip install -e .
 python3 repro/download_benchmark.py
+python3 repro/validate_release.py
 ```
 
-The download creates `dataset/tasks/` and `dataset/task_summary.json`. The default
-revision is pinned in `repro/download_benchmark.py` and `MANIFEST.json` so the
-benchmark contracts match the results in this branch.
+The downloader verifies the archive checksum and creates:
 
-## Contents
+```text
+dataset/
+|-- task_summary.json
+`-- tasks/
+    `-- <owner>__<repo>__<pull-request>/
+```
 
-| Path | Description |
+The Hugging Face revision and archive SHA-256 are pinned in
+[`MANIFEST.json`](MANIFEST.json). The downloaded `dataset/` directory is
+excluded from Git.
+
+## Benchmark design
+
+```text
+Repository state
+      |
+      v
+Dependency manifest upgrade
+      |
+      v
+Agent-authored repository repair
+      |
+      v
+Hidden test patch + verifier
+      |
+      v
+Pass / non-pass outcome
+```
+
+Each task under `dataset/tasks/<task>/` contains:
+
+| Path | Role | Agent visibility |
+|---|---|---|
+| `instruction.md` | Task prompt | Visible |
+| `task.toml` | Docker image, resources, and verifier timeout | Harness |
+| `environment/patches/manifest.patch` | Dependency upgrade applied during setup | Hidden |
+| `solution/code.patch` | Oracle source repair | Hidden |
+| `solution/manifest.patch` | Oracle dependency manifest patch | Hidden |
+| `solution/solve.sh` | Oracle application helper | Hidden |
+| `tests/test.patch` | Optional held-out test patch | Hidden |
+| `tests/test.sh` | Verifier command | Hidden |
+| `tests/test_state.py` | Verifier state helper | Hidden |
+
+Some build- or compile-only witnesses do not require `tests/test.patch`.
+Task Docker images are referenced from `task.toml` as
+`idk233333/depbench-task-images:<task-folder>`.
+
+## Evaluation protocol
+
+1. Select a task from `dataset/task_summary.json`.
+2. Start the repository state provided by the task Docker image.
+3. Apply `environment/patches/manifest.patch`.
+4. Give the agent only the working repository and `instruction.md`.
+5. Keep `solution/` and `tests/` unavailable to the agent.
+6. Apply `tests/test.patch` when present, then run `tests/test.sh`.
+7. Record `1.0` for pass and `0.0` for non-pass. Rows without a valid reward
+   remain `no_reward`.
+
+## Release artifacts
+
+| Path | Contents |
 |---|---|
-| `dataset/` | Runtime download from Hugging Face, created by `repro/download_benchmark.py` and excluded from Git. |
-| `trajectories/` | Trajectory exports as gzip JSONL, one file per harness/model configuration. |
-| `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |
-| `results/` | Configuration-level summary and per-trial reward metadata. |
-| `analysis/` | Aggregate result, coverage, and trajectory-scan tables. |
-| `analysis/repository_metadata.{csv,json}` | Unique repository URLs, licenses, primary languages, archive status, and task mappings. |
-| `analysis/task_repository_metadata.csv` | Task-level mapping to repository URL, license, and primary language. |
-| `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Per-task decisions for the 37 reviewed semantic/mixed contracts. |
-| `repro/` | Helper scripts and schema notes for pulling task images, verifying oracle solutions, verifying candidate patches, validating this release, and scanning trajectories. |
-| `custom_agents/` | Harbor agent adapters referenced by the provided Harbor config templates. |
-| `pyproject.toml` | Python package metadata declaring the Harbor dependency for local execution. |
-| `MANIFEST.json` | Machine-readable release manifest and source commit metadata. |
+| [`trajectories/`](trajectories/) | Gzip JSONL trajectory exports for the 10 harness/model configurations |
+| [`verify_logs/`](verify_logs/) | Verifier stdout and CTRF exports aligned with trajectory rows |
+| [`results/`](results/) | Configuration summaries, final per-task outcomes, and targeted reruns |
+| [`analysis/`](analysis/) | Ecosystem results, coverage, repository metadata, and trajectory scans |
+| [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and analysis helpers |
+| [`custom_agents/`](custom_agents/) | Harbor adapters used by the example configurations |
+| [`MANIFEST.json`](MANIFEST.json) | Machine-readable release and dataset provenance |
 
-## Dataset layout
-
-After downloading the benchmark, each task lives under
-`dataset/tasks/<owner>__<repo>__<pr>/`:
+### Result files
 
 | File | Purpose |
 |---|---|
-| `instruction.md` | The instruction shown to the coding agent. |
-| `task.toml` | Task metadata, resource limits, verifier timeout, and Docker image tag. |
-| `environment/docker-compose.yaml` | Container environment definition. |
-| `environment/patches/manifest.patch` | Dependency manifest upgrade patch applied to the base repo. |
-| `solution/code.patch` | Oracle source-code repair patch. |
-| `solution/manifest.patch` | Oracle dependency manifest patch. |
-| `solution/solve.sh` | Oracle patch application helper. |
-| `tests/test.patch` | Optional hidden verifier test patch. Build/compile-only witnesses may omit it. Do not expose it to agents during benchmark runs. |
-| `tests/test.sh` | Hidden verifier command. |
-| `tests/test_state.py` | Verifier state helper. |
+| `results/summary.{csv,json}` | Configuration-level pass, fail, and no-reward counts |
+| `results/final_per_task_outcomes.csv` | Final outcomes after applying 111 targeted reruns |
+| `results/targeted_runtime_exception_reruns_203.csv` | Targeted runtime-exception rerun records |
+| `results/per_trial_results.jsonl.gz` | Compact metadata for all 2,030 reported trials |
+| `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
+| `analysis/coverage.csv` | Trajectory and verifier-log coverage |
+| `analysis/trajectory_scan_*` | Rule-based trajectory scan outputs |
 
-Docker images are referenced in each `task.toml` as `idk233333/depbench-task-images:<task-folder>`.
+### Repository metadata
 
-## Basic usage
+`analysis/repository_metadata.{csv,json}` records repository URLs, licenses,
+primary languages, archive status, and task counts for the 159 source
+repositories. `analysis/task_repository_metadata.csv` provides the corresponding
+task-level mapping.
 
-1. Run `python3 repro/download_benchmark.py`.
-2. Select a task from `dataset/task_summary.json`.
-3. Read `dataset/tasks/<task>/instruction.md` and provide it to the agent.
-4. Run the agent in the task Docker image from `task.toml`, after applying the dependency manifest upgrade from `environment/patches/manifest.patch`.
-5. Keep `solution/` and `tests/` hidden from the agent.
-6. After the agent finishes, apply `tests/test.patch` when present and run `tests/test.sh`.
-7. Score reward as `1.0` if the verifier passes and `0.0` if it fails. Rows with no valid reward are reported as `no_reward`.
+The source repositories use different licenses, including open-source,
+source-available, custom, and undeclared terms. Review the license recorded for
+each source repository before redistribution or other use.
 
-The release also includes trajectories and verifier logs, so you can analyze the reported experiments directly.
+## Reproduction
 
-For runnable helper scripts, see `repro/README.md`. For Harbor-based execution, see `repro/HARBOR.md`.
+Common workflows are available as focused helpers:
 
-## Reproduce
+| Goal | Command or guide |
+|---|---|
+| Download the benchmark | `python3 repro/download_benchmark.py` |
+| Validate the release | `python3 repro/validate_release.py` |
+| Pull all task images | `bash repro/pull_task_images.sh` |
+| Verify one oracle solution | `bash repro/run_oracle_solution.sh <task>` |
+| Verify a candidate patch | `bash repro/run_patch_verifier.sh <task> <patch>` |
+| Scan released trajectories | `python3 repro/scan_trajectories.py` |
+| Run with Harbor | [`repro/HARBOR.md`](repro/HARBOR.md) |
+| Read the full reproduction guide | [`repro/README.md`](repro/README.md) |
 
-All reproduction helpers are in the top-level `repro/` folder:
+Harbor configuration templates for every reported configuration are under
+[`repro/examples/`](repro/examples/).
 
-- `repro/README.md`: reproduction entry point.
-- `repro/download_benchmark.py`: download and validate the pinned Hugging Face dataset.
-- `repro/HARBOR.md`: Harbor-based execution instructions.
-- `repro/examples/`: Harbor config templates for the reported configurations.
-- `repro/pull_task_images.sh`: pull task Docker images.
-- `repro/run_oracle_solution.sh`: verify an oracle solution for one task.
-- `repro/run_patch_verifier.sh`: verify a candidate patch for one task.
-- `repro/scan_trajectories.py`: scan the released trajectory files.
-- `repro/validate_release.py`: validate the release layout and row counts.
+## Artifact formats
 
-## Trajectories
+<details>
+<summary><strong>Trajectory rows</strong></summary>
 
-`trajectories/*.jsonl.gz` files are gzip-compressed JSONL. Each row is one reported trial and includes:
+`trajectories/*.jsonl.gz` contains one row per reported trial with:
 
-- `task`, `trial`, `harness`, `llm`, `model`
-- `reward`, `exception_type`
+- `task`, `trial`, `harness`, `llm`, and `model`
+- `reward` and `exception_type`
 - `has_trajectory`
-- `trajectory`: an ATIF-like trajectory object when available
+- an ATIF-like `trajectory` object when available
 
-Some rows intentionally have `has_trajectory=false`: the reward and verifier log are included, but the agent log did not contain a recoverable trajectory.
+Some rows intentionally use `has_trajectory=false`: their reward and verifier
+log are retained, but no recoverable agent trajectory was available.
 
-## Verifier logs
+</details>
 
-`verify_logs/*.jsonl.gz` files are gzip-compressed JSONL and use the same file naming as `trajectories/`. Each row includes:
+<details>
+<summary><strong>Verifier rows</strong></summary>
 
-- trial metadata and reward
-- verifier reward text
-- verifier stdout as `verifier_test_stdout`
-- CTRF JSON as `verifier_ctrf` when available
+`verify_logs/*.jsonl.gz` follows the same configuration naming and row alignment
+as `trajectories/`. Each row includes trial metadata, reward text, verifier
+stdout as `verifier_test_stdout`, and CTRF JSON as `verifier_ctrf` when
+available.
 
-Use `verify_logs/index.csv` or `verify_logs/index.json` to check coverage.
+Coverage is summarized in `verify_logs/index.{csv,json}`.
 
-## Results and analysis
+</details>
 
-- `results/summary.csv` and `results/summary.json` contain the configuration-level result table.
-- `results/final_per_task_outcomes.csv` applies the 111 targeted rerun outcomes to the original full-run result cells.
-- `results/targeted_runtime_exception_reruns_203.csv` contains the targeted rerun result records.
-- `results/per_trial_results.jsonl.gz` contains one compact metadata row per trial, without embedding the full trajectory or verifier stdout.
-- `analysis/ecosystem_results.csv` contains result counts by configuration and ecosystem.
-- `analysis/coverage.csv` contains trajectory and verifier-log coverage by configuration.
-- `analysis/trajectory_scan_summary.csv` and `analysis/trajectory_scan_detail.csv` contain rule-based trajectory scan outputs.
+## Release integrity
+
+<details>
+<summary><strong>Test-contract audit (July 14, 2026)</strong></summary>
+
+Thirty-seven semantic or mixed test-contract findings were reviewed
+individually:
+
+| Decision | Tasks |
+|---|---:|
+| Repaired | 8 |
+| Repackaged around a clean dependency witness | 13 |
+| Removed as invalid | 16 |
+
+The decision table is available in
+`analysis/test_contract_repair_decisions_2026-07-14.{md,csv}`. The 16 invalid
+tasks were removed from the benchmark, all 10 trajectory and verifier-log
+files, per-trial results, analysis tables, and Harbor example configurations.
+Historical rewards for retained observations were not changed; aggregate
+counts and rates were recomputed over the 203 retained tasks.
+
+</details>
+
+<details>
+<summary><strong>Maven verifier environments (July 13, 2026)</strong></summary>
+
+Fifty-seven Maven task verifiers were hardened after an audit found guarded
+task images whose configuration had lost `JAVA_HOME` and Java on `PATH`. The
+verifiers now restore `JAVA_HOME`, `PATH`, `MAVEN_HOME`, and `MAVEN_CONFIG`
+explicitly without changing existing filesystem layers.
+
+Old and new image digests are recorded in
+`repro/java_home_image_repair_2026-07-13.csv`. Historical rows preserve their
+original observations; cells affected by the missing Java environment must be
+replayed before interpreting cross-configuration Maven results.
+
+</details>
 
 ## Release policy
 
-This branch is for consumption and archival use. It contains the reported
-artifacts and reproduction helpers; benchmark task contracts are versioned on
-Hugging Face and downloaded on demand.
+The `main` branch contains reported artifacts and reproduction helpers.
+Directory-format benchmark contracts are versioned on
+[Hugging Face](https://huggingface.co/datasets/ZijiantheJack/DepBench) and
+downloaded on demand. Pin both the Git commit and the Hugging Face revision for
+reproducible experiments.
