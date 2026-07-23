@@ -6,6 +6,10 @@
 | `depbench-logo-dark.svg` | Horizontal logo on dark backgrounds |
 | `depbench-mark.svg` | Square icon, avatar, or favicon source |
 | `depbench-mark-512.png` | Raster icon for platforms that do not accept SVG |
+| `benchmark-flow.svg` | Benchmark pipeline diagram on light backgrounds |
+| `benchmark-flow-dark.svg` | Benchmark pipeline diagram on dark backgrounds |
+| `benchmark-flow-mobile.svg` | Vertical benchmark pipeline for narrow light-background viewports |
+| `benchmark-flow-mobile-dark.svg` | Vertical benchmark pipeline for narrow dark-background viewports |
 
 ## Palette
 

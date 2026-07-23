@@ -77,21 +77,12 @@ excluded from Git.
 
 ## Benchmark design
 
-```text
-Repository state
-      |
-      v
-Dependency manifest upgrade
-      |
-      v
-Agent-authored repository repair
-      |
-      v
-Hidden test patch + verifier
-      |
-      v
-Pass / non-pass outcome
-```
+<picture>
+  <source media="(prefers-color-scheme: dark) and (max-width: 640px)" srcset="assets/benchmark-flow-mobile-dark.svg">
+  <source media="(max-width: 640px)" srcset="assets/benchmark-flow-mobile.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/benchmark-flow-dark.svg">
+  <img alt="Repository state flows through dependency manifest upgrade, agent-authored repository repair, hidden test patch and verifier, and a pass or non-pass outcome." src="assets/benchmark-flow.svg" width="1120">
+</picture>
 
 Each task under `dataset/tasks/<task>/` contains:
 
@@ -132,7 +123,7 @@ Task Docker images are referenced from `task.toml` as
 | [`analysis/`](analysis/) | Ecosystem results, coverage, repository metadata, and trajectory scans |
 | [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and analysis helpers |
 | [`custom_agents/`](custom_agents/) | Harbor adapters used by the example configurations |
-| [`assets/`](assets/) | Light, dark, icon, and raster DepBench brand assets |
+| [`assets/`](assets/) | DepBench brand assets and responsive benchmark flow diagrams |
 | [`MANIFEST.json`](MANIFEST.json) | Machine-readable release and dataset provenance |
 | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Third-party data, software, and exceptional-license inventory |
 | [`NOTICE.txt`](NOTICE.txt) | Distribution-level third-party notice and attribution pointers |
