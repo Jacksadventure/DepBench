@@ -1,6 +1,9 @@
 <div align="center">
 
-# DepBench
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/depbench-logo-dark.svg">
+  <img alt="DepBench" src="assets/depbench-logo.svg" width="460">
+</picture>
 
 **A repository-level benchmark for dependency-upgrade repair by coding agents**
 
@@ -128,6 +131,7 @@ Task Docker images are referenced from `task.toml` as
 | [`analysis/`](analysis/) | Ecosystem results, coverage, repository metadata, and trajectory scans |
 | [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and analysis helpers |
 | [`custom_agents/`](custom_agents/) | Harbor adapters used by the example configurations |
+| [`assets/`](assets/) | Light, dark, icon, and raster DepBench brand assets |
 | [`MANIFEST.json`](MANIFEST.json) | Machine-readable release and dataset provenance |
 
 ### Result files
