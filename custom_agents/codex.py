@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Codex agents for OpenAI-compatible DepBench endpoints.
 
 The classes here are loaded by Harbor through ``agent.import_path``. They keep
@@ -101,15 +104,13 @@ class CustomCodex(Artifacts, Hooked, HarborCodex):
             self._base_url_arg
             or self._get_env("OPENAI_BASE_URL")
             or self._get_env("CODEX_BASE_URL")
-            or self._get_env("CODEX_MAESTRO_BASE_URL")
         )
         if not base_url and anthropic_base_url:
             base_url = anthropic_base_url
         if not base_url:
             raise ValueError(
                 "CustomCodex requires base_url, OPENAI_BASE_URL, "
-                "CODEX_BASE_URL, CODEX_MAESTRO_BASE_URL, or an "
-                f"ANTHROPIC_BASE_URL in {self._settings_path}"
+                f"CODEX_BASE_URL, or an ANTHROPIC_BASE_URL in {self._settings_path}"
             )
         return base_url.rstrip("/")
 
@@ -202,22 +203,5 @@ class CustomCodex(Artifacts, Hooked, HarborCodex):
         self._extra_env["CODEX_FORCE_API_KEY"] = "1"
         return await super().run(instruction, environment, context)
 
-
-class CustomMaestro(CustomCodex):
-    """Compatibility alias for the current Maestro OpenAI-compatible proxy."""
-
-    @staticmethod
-    def name() -> str:
-        return "custom-maestro-codex"
-
-    def _base_url(self) -> str:
-        base_url = self._base_url_arg or self._get_env("CODEX_MAESTRO_BASE_URL")
-        if base_url:
-            return base_url.rstrip("/")
-        return super()._base_url()
-
-
 Codex = CustomCodex
-Maestro = CustomMaestro
 CustomOpenAICodex = CustomCodex
-MaestroCodex = CustomMaestro

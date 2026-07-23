@@ -14,3 +14,8 @@ Each `.jsonl.gz` file contains one JSON object per task/trial with reward metada
 | gpt55 | codex | 203 | 203 | 0 | `gpt55__codex.jsonl.gz` |
 | gpt55 | copilot_cli | 203 | 200 | 3 | `gpt55__copilot_cli.jsonl.gz` |
 | gpt55 | opencode | 203 | 202 | 1 | `gpt55__opencode.jsonl.gz` |
+
+Three unrelated internal-session tool-result messages were removed from the
+Copilot CLI/Gemini trajectory export without changing task metadata, rewards,
+or any other trajectory step. The exact artifact rows and JSON paths are
+recorded in `analysis/release_redactions_2026-07-23.csv`.

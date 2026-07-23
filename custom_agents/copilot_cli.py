@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Copilot CLI agent with API-key based authentication for DepBench."""
 
 from __future__ import annotations

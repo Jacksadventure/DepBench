@@ -9,7 +9,7 @@ The directory-format task contracts are hosted at
 From the release root, install the package and download the pinned snapshot:
 
 ```bash
-python3 -m pip install -e .
+python3 -m pip install .
 python3 repro/download_benchmark.py
 ```
 
@@ -89,8 +89,15 @@ DEPBENCH_PRE_VERIFY_CMD="npm install" \
 Validate the release layout:
 
 ```bash
+python3 repro/audit_release_compliance.py
 python3 repro/validate_release.py
 ```
+
+The compliance audit checks repository governance files, source headers,
+license-category accounting, known internal path markers, and high-confidence
+credential patterns. It also scans the downloaded dataset when
+`dataset/tasks/` is present. External Microsoft approval steps are tracked in
+`OPEN_SOURCE_RELEASE_CHECKLIST.md`.
 
 Read one reported trajectory and verifier row:
 

@@ -21,7 +21,8 @@
 [Benchmark Design](#benchmark-design) &middot;
 [Evaluation Protocol](#evaluation-protocol) &middot;
 [Artifacts](#release-artifacts) &middot;
-[Reproduction](#reproduction)
+[Reproduction](#reproduction) &middot;
+[Governance](#project-governance)
 
 </div>
 
@@ -56,7 +57,7 @@ Install the release helpers, download the pinned benchmark snapshot from
 Hugging Face, and validate the complete release:
 
 ```bash
-python3 -m pip install -e .
+python3 -m pip install .
 python3 repro/download_benchmark.py
 python3 repro/validate_release.py
 ```
@@ -133,6 +134,9 @@ Task Docker images are referenced from `task.toml` as
 | [`custom_agents/`](custom_agents/) | Harbor adapters used by the example configurations |
 | [`assets/`](assets/) | Light, dark, icon, and raster DepBench brand assets |
 | [`MANIFEST.json`](MANIFEST.json) | Machine-readable release and dataset provenance |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Third-party data, software, and exceptional-license inventory |
+| [`NOTICE.txt`](NOTICE.txt) | Distribution-level third-party notice and attribution pointers |
+| [`OPEN_SOURCE_RELEASE_CHECKLIST.md`](OPEN_SOURCE_RELEASE_CHECKLIST.md) | Repository checks and outstanding Microsoft approval steps |
 
 ### Result files
 
@@ -203,6 +207,60 @@ available.
 Coverage is summarized in `verify_logs/index.{csv,json}`.
 
 </details>
+
+## Licensing and third-party content
+
+Microsoft-authored source code, documentation, and DepBench brand assets in
+this repository are licensed under the [MIT License](LICENSE.txt). Benchmark
+tasks, source excerpts, patches, trajectories, verifier logs, and other
+material originating from third-party repositories are not relicensed under
+that MIT license. The MIT license does not grant trademark rights.
+
+The complete source-repository and detected-license mapping is available in
+`analysis/repository_metadata.{csv,json}` and
+`analysis/task_repository_metadata.csv`. Of the 203 tasks, 192 are classified
+as originating from open-source repositories and 11 use source-available,
+custom, or undeclared terms. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before redistribution or use.
+
+## Data, privacy, and network notice
+
+DepBench-owned helper code does not implement telemetry collection. Commands
+in this repository can make outbound requests to Hugging Face, GitHub, Docker
+registries, package registries, task-selected dependency sources, and
+configured model providers. Third-party tools may have their own telemetry and
+privacy behavior.
+
+Authentication values must be supplied at runtime through environment
+variables or another approved secret-injection mechanism. Generated example
+configs intentionally contain an empty `env` object and must not be committed
+after credentials are added.
+
+Published trajectories and verifier logs can contain public source excerpts,
+test fixtures, prompts, tool output, and repository identifiers. Treat them as
+research artifacts rather than clean-room source code, and complete the
+applicable privacy and Open Data review before release.
+
+## Project governance
+
+- Contributions: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security reporting: [SECURITY.md](SECURITY.md)
+- Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Support: [SUPPORT.md](SUPPORT.md)
+- Release review: [OPEN_SOURCE_RELEASE_CHECKLIST.md](OPEN_SOURCE_RELEASE_CHECKLIST.md)
+
+The repository includes technical release preparation, but does not itself
+prove completion of Open Source Portal, OSSOM CELA, Open Data, privacy, SDL,
+Responsible AI, trademark, or supply-chain approvals.
+
+## Trademarks
+
+This project may contain trademarks or logos for projects, products, or
+services. Authorized use of Microsoft trademarks or logos is subject to and
+must follow Microsoft’s Trademark & Brand Guidelines. Use of Microsoft
+trademarks or logos in modified versions of this project must not cause
+confusion or imply Microsoft sponsorship. Any use of third-party trademarks or
+logos are subject to those third-party’s policies.
 
 ## Release integrity
 

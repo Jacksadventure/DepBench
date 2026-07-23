@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 
 
@@ -33,29 +35,13 @@ DEFAULT_KWARGS = {
         "disable_web_tools": True,
     },
     "opencode": {
+        "version": "1.17.11",
         "default_provider": "openai",
         "disable_web_tools": True,
     },
     "claude_code": {
         "disable_nonessential_traffic": True,
     },
-}
-
-
-ENV_KEYS = {
-    "codex": ["OPENAI_BASE_URL", "OPENAI_API_KEY", "CODEX_BASE_URL", "CODEX_API_KEY"],
-    "copilot_cli": ["COPILOT_GITHUB_TOKEN", "COPILOT_API_KEY", "GH_TOKEN", "GITHUB_TOKEN"],
-    "opencode": [
-        "OPENAI_BASE_URL",
-        "OPENAI_API_KEY",
-        "CODEX_BASE_URL",
-        "CODEX_API_KEY",
-        "COPILOT_GITHUB_TOKEN",
-        "COPILOT_API_KEY",
-        "GH_TOKEN",
-        "GITHUB_TOKEN",
-    ],
-    "claude_code": ["ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY"],
 }
 
 
@@ -69,13 +55,6 @@ def task_names(args: argparse.Namespace) -> list[str] | None:
         return args.task
     return None
 
-
-def collect_env(agent: str, include_values: bool) -> dict[str, str]:
-    if not include_values:
-        return {}
-    return {key: os.environ[key] for key in ENV_KEYS[agent] if os.environ.get(key)}
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent", choices=sorted(AGENTS), required=True)
@@ -86,7 +65,6 @@ def main() -> int:
     parser.add_argument("--jobs-dir", default="harbor_jobs")
     parser.add_argument("--memory-mb", type=int, default=8192)
     parser.add_argument("--max-retries", type=int, default=0)
-    parser.add_argument("--include-env-values", action="store_true", help="copy local endpoint/auth environment values into the generated config")
     parser.add_argument("--absolute-paths", action="store_true", help="write absolute dataset paths instead of release-root-relative paths")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -142,7 +120,7 @@ def main() -> int:
                 "import_path": AGENTS[args.agent],
                 "model_name": args.model,
                 "kwargs": DEFAULT_KWARGS[args.agent],
-                "env": collect_env(args.agent, args.include_env_values),
+                "env": {},
             }
         ],
     }

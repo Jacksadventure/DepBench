@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Collect GitHub repository metadata for the released benchmark tasks."""
 
 from __future__ import annotations

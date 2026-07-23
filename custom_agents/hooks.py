@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Reusable Harbor agent hooks for collecting DepBench run artifacts."""
 
 from __future__ import annotations

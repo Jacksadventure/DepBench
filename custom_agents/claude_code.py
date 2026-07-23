@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Claude Code agent for Anthropic-compatible DepBench endpoints."""
 
 from __future__ import annotations

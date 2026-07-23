@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 import csv
@@ -202,8 +205,18 @@ def main() -> int:
 
     required = [
         "README.md",
+        "LICENSE.txt",
+        "NOTICE.txt",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "CODE_OF_CONDUCT.md",
+        "SUPPORT.md",
+        "THIRD_PARTY_NOTICES.md",
+        "OPEN_SOURCE_RELEASE_CHECKLIST.md",
         "MANIFEST.json",
         "pyproject.toml",
+        "setup.cfg",
+        "setup.py",
         "analysis/ecosystem_results.csv",
         "analysis/coverage.csv",
         "analysis/repository_metadata.csv",
@@ -212,9 +225,12 @@ def main() -> int:
         "analysis/runtime_exception_rerun_summary_203.json",
         "analysis/test_contract_repair_decisions_2026-07-14.md",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
+        "analysis/release_redactions_2026-07-23.csv",
+        "analysis/secret_scan_review_2026-07-23.csv",
         "results/final_per_task_outcomes.csv",
         "results/targeted_runtime_exception_reruns_203.csv",
         "repro/download_benchmark.py",
+        "repro/audit_release_compliance.py",
         "repro/collect_repository_metadata.py",
         "repro/sync_targeted_rerun_results.py",
         "repro/TASK_SCHEMA.md",
@@ -241,6 +257,10 @@ def main() -> int:
             raise SystemExit(f"{path}: expected dataset/tasks relative path")
         if set(config["datasets"][0]["task_names"]) != active_tasks:
             raise SystemExit(f"{path}: task_names do not match the 203-task dataset")
+        if config["agents"][0]["env"]:
+            raise SystemExit(f"{path}: checked-in agent env must be empty")
+        if "opencode" in path.name and config["agents"][0]["kwargs"].get("version") != "1.17.11":
+            raise SystemExit(f"{path}: expected pinned OpenCode version 1.17.11")
 
     for path in [
         "analysis/trajectory_scan_detail.csv",

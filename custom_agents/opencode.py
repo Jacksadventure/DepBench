@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """OpenCode agent for OpenAI-compatible and Copilot-backed DepBench runs."""
 
 from __future__ import annotations
@@ -36,8 +39,6 @@ OPENAI_COMPATIBLE_NPM = "@ai-sdk/openai-compatible"
 class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
     """OpenCode routed through OpenAI-compatible or GitHub Copilot auth.
 
-    This ports the OpenCode wrapper from ``../msr4agent/custom_agents`` while
-    adding the DepBench artifact hook used by the other custom agents here.
     Bare model names are normalized to ``openai/<model>`` by default because
     OpenCode expects ``provider/model``. Use ``github-copilot/<model>`` or set
     ``default_provider: github-copilot`` to run through a Copilot subscription.
@@ -98,14 +99,13 @@ class CustomOpenCode(Artifacts, Hooked, HarborOpenCode):
             self._base_url_arg
             or self._get_env("OPENAI_BASE_URL")
             or self._get_env("CODEX_BASE_URL")
-            or self._get_env("CODEX_MAESTRO_BASE_URL")
             or settings.get("OPENAI_BASE_URL")
             or settings.get("ANTHROPIC_BASE_URL")
         )
         if not base_url:
             raise ValueError(
                 "CustomOpenCode requires base_url, OPENAI_BASE_URL, "
-                "CODEX_BASE_URL, CODEX_MAESTRO_BASE_URL, or endpoint settings"
+                "CODEX_BASE_URL, or endpoint settings"
             )
         return base_url.rstrip("/")
 

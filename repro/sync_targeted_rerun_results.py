@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Merge targeted rerun outcomes into the released numeric result tables."""
 
 from __future__ import annotations

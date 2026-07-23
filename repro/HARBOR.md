@@ -9,7 +9,7 @@ Harbor's task layout and each `task.toml` points to a prebuilt Docker image.
 From the release root:
 
 ```bash
-python3 -m pip install -e .
+python3 -m pip install .
 python3 repro/download_benchmark.py
 ```
 
@@ -69,7 +69,11 @@ The release includes these Harbor adapters:
 | `opencode` | `custom_agents.opencode:CustomOpenCode` |
 | `claude_code` | `custom_agents.claude_code:CustomClaudeCode` |
 
-The adapters collect agent logs and final repository diffs into Harbor artifacts. Credentials and model-provider endpoints are supplied through the generated config or through the environment on the machine running Harbor.
+The adapters collect agent logs and final repository diffs into Harbor
+artifacts. Supply credentials and model-provider endpoints at runtime through
+environment variables or another approved secret-injection mechanism. The
+generator and checked-in templates intentionally never copy local environment
+values into JSON configs.
 
 ## Included templates
 
