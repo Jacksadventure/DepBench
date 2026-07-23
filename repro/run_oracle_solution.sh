@@ -17,6 +17,7 @@ LOGS_DIR="${2:-$(mktemp -d "${TMPDIR:-/tmp}/depbench-${TASK}.logs.XXXXXX")}"
 
 if [ ! -d "$TASK_DIR" ]; then
   echo "Task not found: $TASK_DIR" >&2
+  echo "Run: python3 repro/download_benchmark.py" >&2
   exit 1
 fi
 

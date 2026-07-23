@@ -2,7 +2,7 @@
 
 DepBench is the first repository-level benchmark for evaluating code agents on dependency-upgrade repair. The original dataset was built from 219 real merged Dependabot and Renovate pull requests across five software ecosystems. This contract-clean release contains the 203 tasks that remain after removing 16 invalid test contracts. DepBench separates dependency upgrades, developer repairs, and test patches, and uses executable oracle checks to ensure that each retained task's failure is caused by the dependency upgrade and that the repair is causally validated. On this filtered benchmark, the strongest historical configuration solves 95/203 tasks (46.8%), highlighting persistent gaps in handling hidden breaking changes and repository-level consistency repairs.
 
-This branch is a clean release snapshot of the DepBench dependency-upgrade benchmark. It contains the benchmark dataset, agent trajectories, verifier logs, result summaries, and analysis tables for the reported run.
+This branch is a clean release snapshot of the DepBench dependency-upgrade benchmark. It contains the reproduction code, agent trajectories, verifier logs, result summaries, and analysis tables for the reported run. The directory-format benchmark is distributed through [Hugging Face](https://huggingface.co/datasets/ZijiantheJack/DepBench).
 
 The release is updated live as final artifacts are refreshed. For reproducible experiments, pin the exact commit SHA of this branch.
 
@@ -39,12 +39,24 @@ configs.
 The remaining historical reward values were not changed; aggregate counts and
 rates were recomputed over the 203 retained tasks.
 
+## Get the benchmark
+
+Install the release package and download the pinned 203-task Hugging Face snapshot:
+
+```bash
+python3 -m pip install -e .
+python3 repro/download_benchmark.py
+```
+
+The download creates `dataset/tasks/` and `dataset/task_summary.json`. The default
+revision is pinned in `repro/download_benchmark.py` and `MANIFEST.json` so the
+benchmark contracts match the results in this branch.
+
 ## Contents
 
 | Path | Description |
 |---|---|
-| `dataset/tasks/` | 203 contract-valid task directories. Each task contains the agent-facing instruction, task metadata, environment metadata, oracle source patch, and verifier files. |
-| `dataset/task_summary.json` | Task-level metadata: ecosystem, dependency/library, old version, and new version. |
+| `dataset/` | Runtime download from Hugging Face, created by `repro/download_benchmark.py` and excluded from Git. |
 | `trajectories/` | Trajectory exports as gzip JSONL, one file per harness/model configuration. |
 | `verify_logs/` | Verifier logs as gzip JSONL, aligned with the trajectory rows. Each row includes verifier stdout and CTRF JSON when available. |
 | `results/` | Configuration-level summary and per-trial reward metadata. |
@@ -59,7 +71,8 @@ rates were recomputed over the 203 retained tasks.
 
 ## Dataset layout
 
-Each task lives under `dataset/tasks/<owner>__<repo>__<pr>/`:
+After downloading the benchmark, each task lives under
+`dataset/tasks/<owner>__<repo>__<pr>/`:
 
 | File | Purpose |
 |---|---|
@@ -78,12 +91,13 @@ Docker images are referenced in each `task.toml` as `idk233333/depbench-task-ima
 
 ## Basic usage
 
-1. Select a task from `dataset/task_summary.json`.
-2. Read `dataset/tasks/<task>/instruction.md` and provide it to the agent.
-3. Run the agent in the task Docker image from `task.toml`, after applying the dependency manifest upgrade from `environment/patches/manifest.patch`.
-4. Keep `solution/` and `tests/` hidden from the agent.
-5. After the agent finishes, apply `tests/test.patch` when present and run `tests/test.sh`.
-6. Score reward as `1.0` if the verifier passes and `0.0` if it fails. Rows with no valid reward are reported as `no_reward`.
+1. Run `python3 repro/download_benchmark.py`.
+2. Select a task from `dataset/task_summary.json`.
+3. Read `dataset/tasks/<task>/instruction.md` and provide it to the agent.
+4. Run the agent in the task Docker image from `task.toml`, after applying the dependency manifest upgrade from `environment/patches/manifest.patch`.
+5. Keep `solution/` and `tests/` hidden from the agent.
+6. After the agent finishes, apply `tests/test.patch` when present and run `tests/test.sh`.
+7. Score reward as `1.0` if the verifier passes and `0.0` if it fails. Rows with no valid reward are reported as `no_reward`.
 
 The release also includes trajectories and verifier logs, so you can analyze the reported experiments directly.
 
@@ -94,6 +108,7 @@ For runnable helper scripts, see `repro/README.md`. For Harbor-based execution, 
 All reproduction helpers are in the top-level `repro/` folder:
 
 - `repro/README.md`: reproduction entry point.
+- `repro/download_benchmark.py`: download and validate the pinned Hugging Face dataset.
 - `repro/HARBOR.md`: Harbor-based execution instructions.
 - `repro/examples/`: Harbor config templates for the reported configurations.
 - `repro/pull_task_images.sh`: pull task Docker images.
@@ -136,4 +151,6 @@ Use `verify_logs/index.csv` or `verify_logs/index.json` to check coverage.
 
 ## Release policy
 
-This branch is for consumption and archival use. It contains only release artifacts for the reported benchmark snapshot.
+This branch is for consumption and archival use. It contains the reported
+artifacts and reproduction helpers; benchmark task contracts are versioned on
+Hugging Face and downloaded on demand.

@@ -6,6 +6,7 @@ TASK_ROOT="$ROOT/dataset/tasks"
 
 if [ ! -d "$TASK_ROOT" ]; then
   echo "Task directory not found: $TASK_ROOT" >&2
+  echo "Run: python3 repro/download_benchmark.py" >&2
   exit 1
 fi
 

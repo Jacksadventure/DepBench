@@ -1,6 +1,8 @@
 # Running the release with Harbor
 
-This release can be consumed directly by Harbor. The task directories under `dataset/tasks/` follow Harbor's task layout and each `task.toml` points to a prebuilt Docker image.
+This release can be consumed directly by Harbor after downloading the task
+directories from Hugging Face. The downloaded `dataset/tasks/` directory follows
+Harbor's task layout and each `task.toml` points to a prebuilt Docker image.
 
 ## Install
 
@@ -8,9 +10,11 @@ From the release root:
 
 ```bash
 python3 -m pip install -e .
+python3 repro/download_benchmark.py
 ```
 
-This installs the release helper package and the Harbor dependency declared in `pyproject.toml`.
+This installs the release helper package and dependencies, then downloads the
+pinned 203-task benchmark snapshot.
 
 ## Generate a Harbor config
 

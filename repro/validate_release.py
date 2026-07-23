@@ -21,8 +21,15 @@ def count_gzip_jsonl(path: Path) -> int:
 
 
 def main() -> int:
-    task_summary = json.loads((ROOT / "dataset/task_summary.json").read_text())
-    task_dirs = [p for p in (ROOT / "dataset/tasks").iterdir() if p.is_dir()]
+    task_summary_path = ROOT / "dataset/task_summary.json"
+    tasks_path = ROOT / "dataset/tasks"
+    if not task_summary_path.is_file() or not tasks_path.is_dir():
+        raise SystemExit(
+            "benchmark dataset not found; run: python3 repro/download_benchmark.py"
+        )
+
+    task_summary = json.loads(task_summary_path.read_text())
+    task_dirs = [p for p in tasks_path.iterdir() if p.is_dir()]
     active_tasks = {row["folder"] for row in task_summary}
     if len(task_summary) != 203 or len(task_dirs) != 203:
         raise SystemExit(f"expected 203 tasks, got summary={len(task_summary)} dirs={len(task_dirs)}")
@@ -207,6 +214,7 @@ def main() -> int:
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
         "results/final_per_task_outcomes.csv",
         "results/targeted_runtime_exception_reruns_203.csv",
+        "repro/download_benchmark.py",
         "repro/collect_repository_metadata.py",
         "repro/sync_targeted_rerun_results.py",
         "repro/TASK_SCHEMA.md",

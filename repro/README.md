@@ -2,8 +2,23 @@
 
 This directory contains the minimal helper files for using the release snapshot.
 
+## Download the benchmark
+
+The directory-format task contracts are hosted at
+[ZijiantheJack/DepBench](https://huggingface.co/datasets/ZijiantheJack/DepBench).
+From the release root, install the package and download the pinned snapshot:
+
+```bash
+python3 -m pip install -e .
+python3 repro/download_benchmark.py
+```
+
+This creates the ignored local paths `dataset/tasks/` and
+`dataset/task_summary.json`.
+
 ## Requirements
 
+- The benchmark downloaded from Hugging Face with the command above
 - Docker with access to the task images listed in `dataset/tasks/*/task.toml`
 - Bash
 - Python 3.10+ for the JSONL helper scripts

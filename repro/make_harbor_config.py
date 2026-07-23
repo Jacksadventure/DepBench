@@ -94,6 +94,11 @@ def main() -> int:
     if args.all_tasks and args.task:
         raise SystemExit("--all-tasks and --task are mutually exclusive")
 
+    if not TASKS_ROOT.is_dir() or not TASK_SUMMARY.is_file():
+        raise SystemExit(
+            "benchmark dataset not found; run: python3 repro/download_benchmark.py"
+        )
+
     dataset_path = str(TASKS_ROOT if args.absolute_paths else Path("dataset/tasks"))
     config = {
         "jobs_dir": args.jobs_dir,
