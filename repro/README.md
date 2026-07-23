@@ -1,4 +1,4 @@
-# Reproducing DepBench v4-with-test203
+# Reproducing DepBench
 
 This directory contains the minimal helper files for using the release snapshot.
 

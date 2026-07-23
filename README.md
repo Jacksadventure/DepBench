@@ -11,7 +11,7 @@
   <img alt="203 tasks" src="https://img.shields.io/badge/tasks-203-2E8B57?style=flat-square">
   <img alt="159 repositories" src="https://img.shields.io/badge/repositories-159-3B82F6?style=flat-square">
   <img alt="5 ecosystems" src="https://img.shields.io/badge/ecosystems-5-8B5CF6?style=flat-square">
-  <img alt="contract-clean release" src="https://img.shields.io/badge/release-v4--with--test203-343A40?style=flat-square">
+  <img alt="contract-clean release" src="https://img.shields.io/badge/release-contract--clean-343A40?style=flat-square">
 </p>
 
 [Quick Start](#quick-start) &middot;
