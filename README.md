@@ -262,44 +262,6 @@ trademarks or logos in modified versions of this project must not cause
 confusion or imply Microsoft sponsorship. Any use of third-party trademarks or
 logos are subject to those third-party’s policies.
 
-## Release integrity
-
-<details>
-<summary><strong>Test-contract audit (July 14, 2026)</strong></summary>
-
-Thirty-seven semantic or mixed test-contract findings were reviewed
-individually:
-
-| Decision | Tasks |
-|---|---:|
-| Repaired | 8 |
-| Repackaged around a clean dependency witness | 13 |
-| Removed as invalid | 16 |
-
-The decision table is available in
-`analysis/test_contract_repair_decisions_2026-07-14.{md,csv}`. The 16 invalid
-tasks were removed from the benchmark, all 10 trajectory and verifier-log
-files, per-trial results, analysis tables, and Harbor example configurations.
-Historical rewards for retained observations were not changed; aggregate
-counts and rates were recomputed over the 203 retained tasks.
-
-</details>
-
-<details>
-<summary><strong>Maven verifier environments (July 13, 2026)</strong></summary>
-
-Fifty-seven Maven task verifiers were hardened after an audit found guarded
-task images whose configuration had lost `JAVA_HOME` and Java on `PATH`. The
-verifiers now restore `JAVA_HOME`, `PATH`, `MAVEN_HOME`, and `MAVEN_CONFIG`
-explicitly without changing existing filesystem layers.
-
-Old and new image digests are recorded in
-`repro/java_home_image_repair_2026-07-13.csv`. Historical rows preserve their
-original observations; cells affected by the missing Java environment must be
-replayed before interpreting cross-configuration Maven results.
-
-</details>
-
 ## Release policy
 
 The `main` branch contains reported artifacts and reproduction helpers.
