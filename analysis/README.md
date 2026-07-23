@@ -10,6 +10,15 @@ This directory contains aggregate analysis tables derived from the release artif
 - `trajectory_scan_detail.csv`: per-trial trajectory-scan features.
 - `original_full_run_trajectory_scan_summary.csv`: frozen original full-run
   behavior counts retained as rerun provenance.
+- `trajectory_behavior_annotations_203.jsonl`: one repository-schema discovery
+  behavior annotation for each of the 2,030 final trajectories.
+- `trajectory_behavior_annotation_protocol.md`: label definitions and final
+  annotation provenance.
+- `trajectory_behavior_summary_203.csv`: final behavior counts by configuration.
+- `trajectory_behavior_by_source_203.csv`: final behavior counts split by
+  original, targeted-rerun, and trajectory-recovery source.
+- `trajectory_behavior_summary_203.json`: behavior summary plus annotation
+  provenance.
 - `trajectory_recovery_failure_classification_203.jsonl`: root-cause labels
   for all 142 non-pass trajectory-recovery reruns.
 - `trajectory_recovery_failure_category_counts_203.csv`: recovery non-pass

@@ -250,6 +250,7 @@ def main() -> int:
     final_by_cell = {
         (row["configuration"], row["task"]): row for row in final_outcomes
     }
+    final_trajectory_rows = {}
     for directory in ("trajectories", "verify_logs"):
         files = sorted((ROOT / directory).glob("*.jsonl.gz"))
         if len(files) != 10:
@@ -281,6 +282,19 @@ def main() -> int:
                     raise SystemExit(
                         f"{path}/{row['task']}: artifact reward does not match final outcome"
                     )
+                if directory == "trajectories":
+                    if row.get("outcome_source", "") != outcome["outcome_source"]:
+                        raise SystemExit(
+                            f"{path}/{row['task']}: artifact outcome source does not "
+                            "match final outcome"
+                        )
+                    key = (stem, row["task"], row["trial"])
+                    if key in final_trajectory_rows:
+                        raise SystemExit(f"{path}: duplicate final trajectory key {key}")
+                    final_trajectory_rows[key] = {
+                        "outcome_source": row.get("outcome_source", ""),
+                        "passed": row.get("reward") == 1.0,
+                    }
 
     per_trial_rows = count_gzip_jsonl(ROOT / "results/per_trial_results.jsonl.gz")
     if per_trial_rows != 2030:
@@ -315,6 +329,11 @@ def main() -> int:
         "analysis/runtime_exception_rerun_summary_203.json",
         "analysis/original_full_run_trajectory_scan_summary.csv",
         "analysis/paper_numbers_203.json",
+        "analysis/trajectory_behavior_annotations_203.jsonl",
+        "analysis/trajectory_behavior_annotation_protocol.md",
+        "analysis/trajectory_behavior_summary_203.csv",
+        "analysis/trajectory_behavior_by_source_203.csv",
+        "analysis/trajectory_behavior_summary_203.json",
         "analysis/trajectory_recovery_failure_classification_203.jsonl",
         "analysis/trajectory_recovery_failure_category_counts_203.csv",
         "analysis/trajectory_recovery_failure_summary_203.json",
@@ -345,6 +364,7 @@ def main() -> int:
         "repro/run_oracle_solution.sh",
         "repro/run_patch_verifier.sh",
         "repro/scan_trajectories.py",
+        "repro/summarize_trajectory_behavior_annotations.py",
         "repro/HARBOR.md",
         "repro/make_harbor_config.py",
         "custom_agents/codex.py",
@@ -378,6 +398,106 @@ def main() -> int:
     ]:
         if not (ROOT / path).exists():
             raise SystemExit(f"missing trajectory scan output: {path}")
+
+    behavior_rows = [
+        json.loads(line)
+        for line in (
+            ROOT / "analysis/trajectory_behavior_annotations_203.jsonl"
+        )
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    behavior_by_key = {
+        (row["configuration"], row["task"], row["trial"]): row
+        for row in behavior_rows
+    }
+    if len(behavior_rows) != 2030 or len(behavior_by_key) != 2030:
+        raise SystemExit(
+            "expected 2,030 unique trajectory behavior annotations"
+        )
+    if set(behavior_by_key) != set(final_trajectory_rows):
+        raise SystemExit(
+            "trajectory behavior annotations do not match the final trajectory keys"
+        )
+
+    behaviors = (
+        "docs_lookup",
+        "api_source_inspection",
+        "ran_tests",
+        "bc_hypothesis",
+    )
+    for key, row in behavior_by_key.items():
+        if any(type(row.get(behavior)) is not bool for behavior in behaviors):
+            raise SystemExit(f"{key}: trajectory behavior labels must be boolean")
+        if any(
+            not isinstance(row.get(field), str) or not row[field]
+            for field in ("annotation_source", "annotator")
+        ):
+            raise SystemExit(f"{key}: missing trajectory annotation provenance")
+
+    configuration_counts = Counter(
+        row["configuration"] for row in behavior_rows
+    )
+    expected_configurations = {
+        row["configuration"] for row in final_outcomes
+    }
+    if (
+        set(configuration_counts) != expected_configurations
+        or any(count != 203 for count in configuration_counts.values())
+    ):
+        raise SystemExit(
+            "trajectory behavior annotations must cover 203 rows for each "
+            "of the 10 final configurations"
+        )
+
+    def expected_behavior_summary(group_fields):
+        grouped = {}
+        for key, row in behavior_by_key.items():
+            final = final_trajectory_rows[key]
+            group_key = tuple(
+                row[field]
+                if field != "outcome_source"
+                else final["outcome_source"]
+                for field in group_fields
+            )
+            record = grouped.setdefault(
+                group_key,
+                {
+                    "rows": 0,
+                    "passes": 0,
+                    "non_passes": 0,
+                    **{behavior: 0 for behavior in behaviors},
+                },
+            )
+            record["rows"] += 1
+            record["passes"] += final["passed"]
+            record["non_passes"] += not final["passed"]
+            for behavior in behaviors:
+                record[behavior] += row[behavior]
+        return grouped
+
+    for path, group_fields in (
+        (
+            ROOT / "analysis/trajectory_behavior_summary_203.csv",
+            ("configuration",),
+        ),
+        (
+            ROOT / "analysis/trajectory_behavior_by_source_203.csv",
+            ("configuration", "outcome_source"),
+        ),
+    ):
+        observed_rows = list(csv.DictReader(path.open()))
+        observed = {
+            tuple(row[field] for field in group_fields): {
+                field: int(row[field])
+                for field in ("rows", "passes", "non_passes", *behaviors)
+            }
+            for row in observed_rows
+        }
+        expected = expected_behavior_summary(group_fields)
+        if len(observed_rows) != len(observed) or observed != expected:
+            raise SystemExit(f"{path}: trajectory behavior summary is stale")
 
     print("DepBench release validation passed: 203 tasks, 10 configurations, 2030 reported trials.")
     return 0

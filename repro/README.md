@@ -122,9 +122,24 @@ By default, this reads `trajectories/*.jsonl.gz` and writes:
 - `analysis/trajectory_scan_by_source.csv`
 - `analysis/trajectory_scan_summary.json`
 
-The scanner uses one rule set across all configurations and only scans
-agent-authored trajectory steps. The by-source table separates original,
-targeted-rerun, and trajectory-recovery rows.
+The scanner is an exploratory keyword diagnostic. It uses one rule set across
+all configurations and only scans agent-authored trajectory steps. The
+by-source table separates original, targeted-rerun, and trajectory-recovery
+rows.
+
+## Summarize trajectory behavior annotations
+
+Validate the one-per-final-trajectory behavior annotations and regenerate the
+configuration and source summaries:
+
+```bash
+python3 repro/summarize_trajectory_behavior_annotations.py
+```
+
+This writes `analysis/trajectory_behavior_summary_203.{csv,json}` and
+`analysis/trajectory_behavior_by_source_203.csv`. These annotation summaries,
+not the exploratory keyword scan, provide the paper's final trajectory behavior
+counts.
 
 ## Summarize recovery failure annotations
 

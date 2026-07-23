@@ -116,28 +116,25 @@ def recovery_summary() -> dict[str, Any]:
     }
 
 
-def trajectory_scan_by_source() -> dict[str, dict[str, dict[str, int]]]:
+def trajectory_behavior_by_source() -> dict[str, dict[str, dict[str, int]]]:
     rows = list(
         csv.DictReader(
-            (ROOT / "analysis/trajectory_scan_by_source.csv").open(
+            (ROOT / "analysis/trajectory_behavior_by_source_203.csv").open(
                 encoding="utf-8"
             )
         )
     )
-    metrics = (
-        "rows",
-        "passes",
-        "non_passes",
-        "with_trajectory",
-        "docs_lookup",
-        "dependency_api_lookup",
-        "test_or_build_feedback",
-        "breaking_change_reasoning",
-    )
     result: dict[str, dict[str, dict[str, int]]] = {}
     for row in rows:
         result.setdefault(row["configuration"], {})[row["outcome_source"]] = {
-            key: int(row[key]) for key in metrics
+            "rows": int(row["rows"]),
+            "passes": int(row["passes"]),
+            "non_passes": int(row["non_passes"]),
+            "with_trajectory": int(row["rows"]),
+            "docs_lookup": int(row["docs_lookup"]),
+            "dependency_api_lookup": int(row["api_source_inspection"]),
+            "test_or_build_feedback": int(row["ran_tests"]),
+            "breaking_change_reasoning": int(row["bc_hypothesis"]),
         }
     return result
 
@@ -167,9 +164,9 @@ def main() -> int:
         }
 
     overlap, overlap_totals = overlap_analysis(maps, ecosystems)
-    trajectory_scan = list(
+    trajectory_behavior = list(
         csv.DictReader(
-            (ROOT / "analysis/trajectory_scan_summary.csv").open(
+            (ROOT / "analysis/trajectory_behavior_summary_203.csv").open(
                 encoding="utf-8"
             )
         )
@@ -185,20 +182,19 @@ def main() -> int:
     document["trajectory_recovery_failure_analysis"] = json.loads(
         RECOVERY_FAILURE_SUMMARY_PATH.read_text(encoding="utf-8")
     )
-    document["final_trajectory_scan_by_source"] = trajectory_scan_by_source()
+    document["final_trajectory_scan_by_source"] = (
+        trajectory_behavior_by_source()
+    )
     document["final_trajectory_scan"] = {
         row["configuration"]: {
-            key: int(row[key])
-            for key in (
-                "rows",
-                "with_trajectory",
-                "docs_lookup",
-                "dependency_api_lookup",
-                "test_or_build_feedback",
-                "breaking_change_reasoning",
-            )
+            "rows": int(row["rows"]),
+            "with_trajectory": int(row["rows"]),
+            "docs_lookup": int(row["docs_lookup"]),
+            "dependency_api_lookup": int(row["api_source_inspection"]),
+            "test_or_build_feedback": int(row["ran_tests"]),
+            "breaking_change_reasoning": int(row["bc_hypothesis"]),
         }
-        for row in trajectory_scan
+        for row in trajectory_behavior
     }
     SUMMARY_PATH.write_text(
         json.dumps(document, indent=2, sort_keys=True) + "\n",
@@ -231,7 +227,7 @@ def main() -> int:
     )
     print(
         "recomputed pass counts, ecosystem counts, overlap regimes, and "
-        "trajectory coverage, provenance, and recovery failure analysis"
+        "trajectory behavior, provenance, and recovery failure analysis"
     )
     return 0
 

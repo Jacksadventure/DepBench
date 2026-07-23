@@ -141,7 +141,8 @@ Task Docker images are referenced from `task.toml` as
 | `results/per_trial_results.jsonl.gz` | Compact metadata for the 2,030 final selected trials |
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
 | `analysis/coverage.csv` | Trajectory and verifier-log coverage |
-| `analysis/trajectory_scan_*` | Rule-based trajectory scan outputs |
+| `analysis/trajectory_behavior_*` | Final per-trajectory behavior annotations and summaries |
+| `analysis/trajectory_scan_*` | Exploratory rule-based keyword scan outputs |
 | `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 142 recovery-rerun non-passes |
 
 ### Repository metadata
