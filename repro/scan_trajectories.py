@@ -96,6 +96,9 @@ def scan_file(path: Path) -> list[dict[str, Any]]:
                     "task": item.get("task"),
                     "trial": item.get("trial"),
                     "reward": item.get("reward"),
+                    "outcome_source": item.get("outcome_source", ""),
+                    "trajectory_source": item.get("trajectory_source", ""),
+                    "exception_type": item.get("exception_type", ""),
                     "has_trajectory": bool(item.get("trajectory")),
                     "docs_lookup": bool(DOC_RE.search(text)),
                     "dependency_api_lookup": bool(API_RE.search(text)),
@@ -136,10 +139,52 @@ def summarize(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return groups
 
 
+def summarize_by_source(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: list[dict[str, Any]] = []
+    keys = sorted(
+        {
+            (row["configuration"], row["outcome_source"])
+            for row in rows
+        }
+    )
+    for configuration, outcome_source in keys:
+        subset = [
+            row
+            for row in rows
+            if row["configuration"] == configuration
+            and row["outcome_source"] == outcome_source
+        ]
+        first = subset[0]
+        groups.append(
+            {
+                "configuration": configuration,
+                "llm": first["llm"],
+                "harness": first["harness"],
+                "outcome_source": outcome_source,
+                "rows": len(subset),
+                "passes": sum(float(row["reward"] or 0) == 1.0 for row in subset),
+                "non_passes": sum(float(row["reward"] or 0) != 1.0 for row in subset),
+                "with_trajectory": sum(row["has_trajectory"] for row in subset),
+                "docs_lookup": sum(row["docs_lookup"] for row in subset),
+                "dependency_api_lookup": sum(
+                    row["dependency_api_lookup"] for row in subset
+                ),
+                "test_or_build_feedback": sum(
+                    row["test_or_build_feedback"] for row in subset
+                ),
+                "breaking_change_reasoning": sum(
+                    row["breaking_change_reasoning"] for row in subset
+                ),
+            }
+        )
+    return groups
+
+
 def write_outputs(rows: list[dict[str, Any]], out_dir: Path, prefix: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     detail_path = out_dir / f"{prefix}_detail.csv"
     summary_path = out_dir / f"{prefix}_summary.csv"
+    by_source_path = out_dir / f"{prefix}_by_source.csv"
     json_path = out_dir / f"{prefix}_summary.json"
 
     detail_cols = [
@@ -149,6 +194,9 @@ def write_outputs(rows: list[dict[str, Any]], out_dir: Path, prefix: str) -> Non
         "task",
         "trial",
         "reward",
+        "outcome_source",
+        "trajectory_source",
+        "exception_type",
         "has_trajectory",
         "docs_lookup",
         "dependency_api_lookup",
@@ -178,10 +226,33 @@ def write_outputs(rows: list[dict[str, Any]], out_dir: Path, prefix: str) -> Non
         writer.writeheader()
         writer.writerows(summary_rows)
 
+    by_source_rows = summarize_by_source(rows)
+    by_source_cols = [
+        "configuration",
+        "llm",
+        "harness",
+        "outcome_source",
+        "rows",
+        "passes",
+        "non_passes",
+        "with_trajectory",
+        "docs_lookup",
+        "dependency_api_lookup",
+        "test_or_build_feedback",
+        "breaking_change_reasoning",
+    ]
+    with by_source_path.open("w", newline="") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=by_source_cols, lineterminator="\n"
+        )
+        writer.writeheader()
+        writer.writerows(by_source_rows)
+
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "method": "Single rule-based scanner over agent-authored trajectory steps; prompt and system text are excluded.",
         "summary": summary_rows,
+        "summary_by_source": by_source_rows,
     }
     json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 

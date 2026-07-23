@@ -84,6 +84,7 @@ def main() -> int:
         or manifest.get("total_trials") != 2030
         or manifest.get("targeted_rerun_cells") != 111
         or manifest.get("trajectory_recovery_rerun_cells") != 177
+        or manifest.get("trajectory_recovery_non_pass_annotations") != 142
     ):
         raise SystemExit("MANIFEST.json does not describe the final release")
 
@@ -122,6 +123,34 @@ def main() -> int:
     ):
         raise SystemExit(
             "final outcomes do not contain 177 trajectory-recovery reruns"
+        )
+
+    recovery_annotations = [
+        json.loads(line)
+        for line in (
+            ROOT
+            / "analysis/trajectory_recovery_failure_classification_203.jsonl"
+        )
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    expected_recovery_non_passes = {
+        (row["configuration"], row["task"], row["trial"])
+        for row in recovery_rows
+        if not (row["reward"] and float(row["reward"]) == 1.0)
+    }
+    observed_recovery_non_passes = {
+        (row["configuration"], row["task"], row["trial"])
+        for row in recovery_annotations
+    }
+    if (
+        len(recovery_annotations) != 142
+        or len(observed_recovery_non_passes) != 142
+        or observed_recovery_non_passes != expected_recovery_non_passes
+    ):
+        raise SystemExit(
+            "trajectory-recovery annotations do not cover all 142 non-passes"
         )
 
     for summary in summary_rows:
@@ -286,6 +315,9 @@ def main() -> int:
         "analysis/runtime_exception_rerun_summary_203.json",
         "analysis/original_full_run_trajectory_scan_summary.csv",
         "analysis/paper_numbers_203.json",
+        "analysis/trajectory_recovery_failure_classification_203.jsonl",
+        "analysis/trajectory_recovery_failure_category_counts_203.csv",
+        "analysis/trajectory_recovery_failure_summary_203.json",
         "analysis/test_contract_repair_decisions_2026-07-14.md",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
         "analysis/release_redactions_2026-07-23.csv",
@@ -304,6 +336,8 @@ def main() -> int:
         "repro/sync_targeted_rerun_results.py",
         "repro/rebuild_final_artifacts.py",
         "repro/recompute_analysis.py",
+        "repro/build_failure_annotation_packets.py",
+        "repro/summarize_recovery_failure_annotations.py",
         "repro/redact_release_trajectories.py",
         "repro/refresh_secret_scan_review.py",
         "repro/trajectory_conversion.py",
@@ -339,6 +373,7 @@ def main() -> int:
     for path in [
         "analysis/trajectory_scan_detail.csv",
         "analysis/trajectory_scan_summary.csv",
+        "analysis/trajectory_scan_by_source.csv",
         "analysis/trajectory_scan_summary.json",
     ]:
         if not (ROOT / path).exists():

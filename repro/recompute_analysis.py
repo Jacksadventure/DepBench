@@ -17,6 +17,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SUMMARY_PATH = ROOT / "analysis/runtime_exception_rerun_summary_203.json"
 PAPER_NUMBERS_PATH = ROOT / "analysis/paper_numbers_203.json"
+RECOVERY_FAILURE_SUMMARY_PATH = (
+    ROOT / "analysis/trajectory_recovery_failure_summary_203.json"
+)
 
 
 def reward_is_pass(value: str) -> bool:
@@ -113,6 +116,32 @@ def recovery_summary() -> dict[str, Any]:
     }
 
 
+def trajectory_scan_by_source() -> dict[str, dict[str, dict[str, int]]]:
+    rows = list(
+        csv.DictReader(
+            (ROOT / "analysis/trajectory_scan_by_source.csv").open(
+                encoding="utf-8"
+            )
+        )
+    )
+    metrics = (
+        "rows",
+        "passes",
+        "non_passes",
+        "with_trajectory",
+        "docs_lookup",
+        "dependency_api_lookup",
+        "test_or_build_feedback",
+        "breaking_change_reasoning",
+    )
+    result: dict[str, dict[str, dict[str, int]]] = {}
+    for row in rows:
+        result.setdefault(row["configuration"], {})[row["outcome_source"]] = {
+            key: int(row[key]) for key in metrics
+        }
+    return result
+
+
 def main() -> int:
     outcomes = load_outcomes()
     maps = pass_maps(outcomes)
@@ -153,6 +182,10 @@ def main() -> int:
     document["gpt55_zero_pass_total"] = overlap_totals["gpt55"]["zero"]
     document["gpt55_all_pass_total"] = overlap_totals["gpt55"]["all"]
     document["trajectory_recovery_rerun"] = recovery_summary()
+    document["trajectory_recovery_failure_analysis"] = json.loads(
+        RECOVERY_FAILURE_SUMMARY_PATH.read_text(encoding="utf-8")
+    )
+    document["final_trajectory_scan_by_source"] = trajectory_scan_by_source()
     document["final_trajectory_scan"] = {
         row["configuration"]: {
             key: int(row[key])
@@ -184,7 +217,13 @@ def main() -> int:
         "pass_overlap": overlap,
         "pass_overlap_totals": overlap_totals,
         "final_trajectory_scan": document["final_trajectory_scan"],
+        "final_trajectory_scan_by_source": document[
+            "final_trajectory_scan_by_source"
+        ],
         "trajectory_recovery_rerun": document["trajectory_recovery_rerun"],
+        "trajectory_recovery_failure_analysis": document[
+            "trajectory_recovery_failure_analysis"
+        ],
     }
     PAPER_NUMBERS_PATH.write_text(
         json.dumps(paper_numbers, indent=2, sort_keys=True) + "\n",
@@ -192,7 +231,7 @@ def main() -> int:
     )
     print(
         "recomputed pass counts, ecosystem counts, overlap regimes, and "
-        "trajectory coverage"
+        "trajectory coverage, provenance, and recovery failure analysis"
     )
     return 0
 

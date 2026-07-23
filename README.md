@@ -142,6 +142,7 @@ Task Docker images are referenced from `task.toml` as
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
 | `analysis/coverage.csv` | Trajectory and verifier-log coverage |
 | `analysis/trajectory_scan_*` | Rule-based trajectory scan outputs |
+| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 142 recovery-rerun non-passes |
 
 ### Repository metadata
 

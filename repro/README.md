@@ -119,9 +119,24 @@ By default, this reads `trajectories/*.jsonl.gz` and writes:
 
 - `analysis/trajectory_scan_detail.csv`
 - `analysis/trajectory_scan_summary.csv`
+- `analysis/trajectory_scan_by_source.csv`
 - `analysis/trajectory_scan_summary.json`
 
-The scanner uses one rule set across all configurations and only scans agent-authored trajectory steps.
+The scanner uses one rule set across all configurations and only scans
+agent-authored trajectory steps. The by-source table separates original,
+targeted-rerun, and trajectory-recovery rows.
+
+## Summarize recovery failure annotations
+
+Validate the 142 non-pass trajectory-recovery annotations and regenerate their
+category summaries:
+
+```bash
+python3 repro/summarize_recovery_failure_annotations.py
+```
+
+The checked-in annotation JSONL records the selected category, confidence,
+visible-then-hidden flag, rationale, and evidence source for each non-pass.
 
 ## Rebuild final author artifacts
 
@@ -135,6 +150,7 @@ python3 repro/rebuild_final_artifacts.py \
   --include-recovery
 python3 repro/redact_release_trajectories.py
 python3 repro/scan_trajectories.py
+python3 repro/summarize_recovery_failure_annotations.py
 python3 repro/recompute_analysis.py
 python3 repro/refresh_secret_scan_review.py
 python3 repro/audit_release_compliance.py

@@ -5,9 +5,17 @@ This directory contains aggregate analysis tables derived from the release artif
 - `ecosystem_results.csv`: pass/fail/no-reward counts and rates by configuration and ecosystem.
 - `coverage.csv`: trajectory and verifier-log coverage by configuration.
 - `trajectory_scan_summary.csv`: aggregate trajectory-scan counts by configuration.
+- `trajectory_scan_by_source.csv`: the same scan split by original and rerun
+  outcome source.
 - `trajectory_scan_detail.csv`: per-trial trajectory-scan features.
 - `original_full_run_trajectory_scan_summary.csv`: frozen original full-run
-  behavior counts used by the paper's qualitative trajectory table.
+  behavior counts retained as rerun provenance.
+- `trajectory_recovery_failure_classification_203.jsonl`: root-cause labels
+  for all 142 non-pass trajectory-recovery reruns.
+- `trajectory_recovery_failure_category_counts_203.csv`: recovery non-pass
+  category counts by configuration.
+- `trajectory_recovery_failure_summary_203.json`: category, confidence, and
+  visible-then-hidden summary for the recovery annotations.
 - `repository_metadata.{csv,json}`: metadata for the 159 unique GitHub
   repositories represented by the release, including canonical URLs, licenses,
   primary languages, archive status, and task mappings.
