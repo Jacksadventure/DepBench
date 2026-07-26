@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `flask` from 3.1.0b0 to 3.1.0b2.
+Bumps `graphql-core` from 3.1.0b0 to 3.1.0b2.
 
 ## Constraints
 
