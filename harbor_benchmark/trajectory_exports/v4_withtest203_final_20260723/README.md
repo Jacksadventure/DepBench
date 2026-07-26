@@ -34,6 +34,13 @@ analysis used for Table 7:
 These files are the final analysis artifacts. The earlier rule-based keyword
 scan is exploratory and is not included here.
 
+## Selected rerun exports
+
+The `reruns/` directory contains standalone full-trajectory exports for all 111
+targeted runtime-exception reruns and all 177 trajectory-recovery reruns
+selected into the final results. It also includes the exact job/trial mapping
+tables and per-file checksums.
+
 | Configuration | Rows | Pass | Fail | No reward | Original | Targeted rerun | Recovery rerun |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Claude Opus 4.8 + Claude Code | 203 | 71 | 130 | 2 | 203 | 0 | 0 |
