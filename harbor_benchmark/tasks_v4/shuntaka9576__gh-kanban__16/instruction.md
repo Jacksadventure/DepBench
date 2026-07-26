@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: bubbletea/lipgloss move to charm.land v2 and kong also upgraded.
+- Dependency evidence: `github.com/charmbracelet/bubbletea` 1.3.10 moves to `charm.land/bubbletea/v2` 2.0.7, lipgloss moves to v2, and kong upgrades from 0.9.0 to 1.15.0.
 - Code adaptation evidence: View methods return tea.View, tests use .Content, imports move to charm.land, and WithAltScreen is replaced by View.AltScreen.
 
 ## Constraints

@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: meta title bumps score-go 1.9.6 to 1.10.0; manifest updates score-go.
+- Dependency evidence: the final manifest patch upgrades score-go 1.9.6 to 1.10.1.
 - Code adaptation evidence: internal/convert/convert.go changes ContainerFiles from []ContainerFilesElem to map[string]ContainerFile and updates error keys accordingly.
 
 ## Constraints

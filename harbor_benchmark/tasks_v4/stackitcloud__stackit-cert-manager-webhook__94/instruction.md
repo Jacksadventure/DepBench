@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: all non-major dependency update includes Stackit DNS client changes in manifest.
+- Dependency evidence: the dependency group update includes `github.com/stackitcloud/stackit-sdk-go/services/dns` 0.13.1 -> 0.17.0.
 - Code adaptation evidence: repository/resolver code wraps string pointers with generated typed attribute constructors such as CreateRecordSetPayloadGetTypeAttributeType and RecordSetGetTypeAttributeType.
 
 ## Constraints

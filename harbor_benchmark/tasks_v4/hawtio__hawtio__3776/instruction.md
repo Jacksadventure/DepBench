@@ -2,11 +2,11 @@
 
 <!-- v3-no-manifest-preapply -->
 
-# Dependency Upgrade Fix: jolokia-version 2.1.2 → 2.2.1
+# Dependency Upgrade Fix: jolokia-version 2.1.2 → 2.2.2
 
 ## Context
 
-You are working on the **hawtio/hawtio** Java/Maven project. The Maven dependency **`jolokia-version`** has been upgraded from **2.1.2** to **2.2.1** in the project's manifest files.
+You are working on the **hawtio/hawtio** Java/Maven project. The Maven dependency **`jolokia-version`** has been upgraded from **2.1.2** to **2.2.2** in the final manifest patch.
 
 **You must perform the dependency upgrade yourself, end-to-end.** Update the project's manifest files to apply the dependency bump described above, regenerate any lock/build metadata as needed, then update the production code so the project builds and the hidden post-upgrade tests pass with the new dependency version.
 

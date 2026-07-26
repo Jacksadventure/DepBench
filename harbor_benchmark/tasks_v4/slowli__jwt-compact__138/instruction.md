@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `version` from 0.8 to 0.9.
+Bumps `rsa` from 0.8 to 0.9.
 
 ## Constraints
 

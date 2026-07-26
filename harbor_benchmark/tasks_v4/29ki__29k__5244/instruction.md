@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `posthog-react-native` from 2.11.6 to 3.1.1.
+Bumps `posthog-react-native` from 2.11.6 to 3.1.2.
 
 ## Constraints
 

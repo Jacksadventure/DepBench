@@ -2,11 +2,11 @@
 
 <!-- v3-no-manifest-preapply -->
 
-# Dependency Upgrade Fix: pony-cause 2.1.2 → 2.1.4
+# Dependency Upgrade Fix: typescript 4.7.4 → 4.8.4
 
 ## Context
 
-You are working on the **sequelize/umzug** Node.js (npm/yarn) project. The dependency **`pony-cause`** has been upgraded from version **2.1.2** to **2.1.4** in the project's manifest/lock files. This upgrade introduces breaking changes that cause test failures.
+You are working on the **sequelize/umzug** Node.js (npm/yarn) project. The dependency **`typescript`** has been upgraded from version **4.7.4** to **4.8.4**, together with the ESLint and TypeScript-ESLint toolchain. This upgrade introduces breaking changes that cause test failures.
 
 **You must perform the dependency upgrade yourself, end-to-end.** Update the project's manifest and lock files to apply the dependency bump described above, then adapt the source code so the upgraded project's test suite passes against the new dependency version.
 

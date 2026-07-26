@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `version` from 1.1.0 to 0.11.4.
+Bumps `mrml` from 1.2 to 2.1.
 
 ## Constraints
 

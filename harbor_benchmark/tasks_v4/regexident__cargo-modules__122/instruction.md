@@ -2,11 +2,11 @@
 
 <!-- v3-no-manifest-preapply -->
 
-# Dependency Upgrade Fix: version 0.83.0 → 0.84.0
+# Dependency Upgrade Fix: rust-analyzer ra_ap_* crates 0.0.122 → 0.0.132
 
 ## Context
 
-You are working on the **regexident/cargo-modules** Rust (cargo) project. The dependency **`version`** has been upgraded from version **0.83.0** to **0.84.0** in the project's manifest/lock files. This upgrade introduces breaking changes that cause test failures.
+You are working on the **regexident/cargo-modules** Rust (cargo) project. The rust-analyzer **`ra_ap_*` crates** have been upgraded from version **0.0.122** to **0.0.132** in the project's manifest/lock files. This upgrade introduces breaking changes that cause test failures.
 
 **You must perform the dependency upgrade yourself, end-to-end.** Update the project's manifest and lock files to apply the dependency bump described above, then adapt the source code so the upgraded project's test suite passes against the new dependency version.
 

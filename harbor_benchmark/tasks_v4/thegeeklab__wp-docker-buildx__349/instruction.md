@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: go.mod upgrades wp-plugin-go/v4 -> v6 and urfave/cli/v2 -> cli/v3.
+- Dependency evidence: go.mod upgrades `github.com/urfave/cli/v2` 2.27.6 -> `github.com/urfave/cli/v3` 3.1.1 and wp-plugin-go 4.1.2 -> 6.0.0.
 - Code adaptation evidence: Imports move to wp-plugin-go/v6 and cli/v3; StringSliceFlag/EnvVars/FlagsFromContext/test APIs updated.
 
 ## Constraints

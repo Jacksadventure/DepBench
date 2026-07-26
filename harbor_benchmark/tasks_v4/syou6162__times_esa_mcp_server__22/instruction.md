@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: meta title updates mark3labs/mcp-go to v0.30.0; manifest updates mcp-go.
+- Dependency evidence: the manifest upgrades `github.com/mark3labs/mcp-go` 0.28.0 -> 0.30.0.
 - Code adaptation evidence: handlers.go replaces request.Params.Arguments["text"].(string) with request.RequireString("text") and adjusts error handling/tests.
 
 ## Constraints

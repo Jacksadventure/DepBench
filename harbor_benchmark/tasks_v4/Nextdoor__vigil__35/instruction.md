@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: Kubernetes api/apimachinery/client-go/component-helpers 0.33.10->0.35.3.
+- Dependency evidence: k8s.io/api, k8s.io/apimachinery, k8s.io/client-go, and k8s.io/component-helpers upgrade from 0.33.10 to 0.35.3.
 - Code adaptation evidence: Taint toleration helper call gains a logr.Logger argument and tests pass logr.Discard().
 
 ## Constraints

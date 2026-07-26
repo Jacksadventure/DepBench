@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `version` from 0.4.28 to 0.4.30.
+Bumps `chrono` from 0.4.28 to 0.4.30.
 
 ## Constraints
 

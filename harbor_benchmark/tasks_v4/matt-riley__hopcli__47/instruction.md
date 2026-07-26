@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: Go migrates charmbracelet bubbles/bubbletea/lipgloss to charm.land v2.
+- Dependency evidence: Go migrates `github.com/charmbracelet/bubbletea` 1.3.10 to `charm.land/bubbletea/v2` 2.0.1, with matching bubbles and lipgloss v2 migrations.
 - Code adaptation evidence: Imports, KeyPressMsg construction, View() tea.View return type, AltScreen handling, and tea.NewProgram options are updated across models/tests.
 
 ## Constraints

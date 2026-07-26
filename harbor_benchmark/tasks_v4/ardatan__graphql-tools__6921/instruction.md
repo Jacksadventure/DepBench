@@ -2,11 +2,11 @@
 
 <!-- v3-no-manifest-preapply -->
 
-# Dependency Upgrade Fix: @babel/core 7.26.7 → 7.26.8
+# Dependency Upgrade Fix: @graphql-tools/executor-graphql-ws 1.3.2 → 2.0.1
 
 ## Context
 
-You are working on the **ardatan/graphql-tools** Node.js (npm/yarn) project. The dependency **`@babel/core`** has been upgraded from version **7.26.7** to **7.26.8** in the project's manifest/lock files. This upgrade introduces breaking changes that cause test failures.
+You are working on the **ardatan/graphql-tools** Node.js (npm/yarn) project. The dependency **`@graphql-tools/executor-graphql-ws`** has been upgraded from version **1.3.2** to **2.0.1**, together with related GraphQL Yoga and `graphql-ws` packages. This upgrade introduces breaking changes that cause test failures.
 
 **You must perform the dependency upgrade yourself, end-to-end.** Update the project's manifest and lock files to apply the dependency bump described above, then adapt the source code so the upgraded project's test suite passes against the new dependency version.
 

@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: go.mod upgrades gitlab-org/api/client-go v0.161.1 -> v1.2.0.
+- Dependency evidence: go.mod upgrades gitlab.com/gitlab-org/api/client-go v0.161.1 -> v1.2.0.
 - Code adaptation evidence: GitLab merge request and pipeline IDs change from int to int64 across client interfaces, functions and tests.
 
 ## Constraints

@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `github.com/catenacyber/perfsprint` from 0.2.0 to 0.2.2.
+Bumps `github.com/catenacyber/perfsprint` from 0.2.0 to 0.3.0.
 
 ## Constraints
 

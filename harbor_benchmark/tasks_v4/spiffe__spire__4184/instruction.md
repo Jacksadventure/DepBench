@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `github.com/hashicorp/go-plugin` from 1.4.6 to 1.4.8.
+Bumps `github.com/hashicorp/go-plugin` from 1.4.6 to 1.4.10.
 
 ## Constraints
 

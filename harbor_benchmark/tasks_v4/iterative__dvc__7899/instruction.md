@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `networkx` from 2.5,<2.8.3 to 2.5,<2.8.5.
+Bumps `networkx` from 2.5,<2.8.3 to >=2.5.
 
 ## Constraints
 

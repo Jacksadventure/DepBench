@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `@octokit/types` from 6.0.0 to 6.0.3.
+Bumps `@actions/github` from 4.0.0 to 5.0.0.
 
 ## Constraints
 

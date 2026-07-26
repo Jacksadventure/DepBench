@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `mime-db` from 1.40.0 to 1.47.0.
+Bumps `probot` from 7.5.3 to 11.3.0.
 
 ## Constraints
 

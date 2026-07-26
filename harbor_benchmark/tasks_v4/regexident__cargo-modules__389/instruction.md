@@ -2,7 +2,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-# Dependency Upgrade Fix: rust-analyzer dependencies previous versions -> v0.0.328
+# Dependency Upgrade Fix: rust-analyzer ra_ap_* crates 0.0.289 → 0.0.328
 
 ## Context
 

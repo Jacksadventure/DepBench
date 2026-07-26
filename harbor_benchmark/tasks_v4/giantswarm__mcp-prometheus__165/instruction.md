@@ -12,7 +12,7 @@ This task contains a dependency upgrade PR where the upstream patch changed depe
 
 ## Evidence from mining
 
-- Dependency evidence: go.mod upgrades giantswarm/mcp-oauth v0.2.150 -> v0.2.173 and otel exporter deps.
+- Dependency evidence: go.mod upgrades github.com/giantswarm/mcp-oauth v0.2.150 -> v0.2.173 and OpenTelemetry exporter dependencies.
 - Code adaptation evidence: OAuth encryptor option moves from NewServer to memory/valkey store options; store signatures/tests updated.
 
 ## Constraints
