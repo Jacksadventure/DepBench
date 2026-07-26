@@ -82,9 +82,10 @@ def main() -> int:
         manifest.get("dataset") != "DepBench contract-clean 203"
         or manifest.get("tasks") != 203
         or manifest.get("total_trials") != 2030
-        or manifest.get("targeted_rerun_cells") != 111
-        or manifest.get("trajectory_recovery_rerun_cells") != 177
-        or manifest.get("trajectory_recovery_non_pass_annotations") != 142
+        or manifest.get("targeted_rerun_cells") != 109
+        or manifest.get("trajectory_recovery_rerun_cells") != 176
+        or manifest.get("task_metadata_correction_rerun_cells") != 10
+        or manifest.get("trajectory_recovery_non_pass_annotations") != 141
     ):
         raise SystemExit("MANIFEST.json does not describe the final release")
 
@@ -95,8 +96,8 @@ def main() -> int:
         raise SystemExit(f"expected 2030 final outcomes, got {len(final_outcomes)}")
     if {row["task"] for row in final_outcomes} != active_tasks:
         raise SystemExit("final outcome tasks do not match the release")
-    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 111:
-        raise SystemExit("expected 111 targeted rerun outcomes")
+    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 109:
+        raise SystemExit("expected 109 final targeted rerun outcomes")
     rerun_rows = list(
         csv.DictReader(
             (ROOT / "results/targeted_runtime_exception_reruns_203.csv").open()
@@ -119,10 +120,31 @@ def main() -> int:
             row["outcome_source"] == "trajectory_recovery_rerun"
             for row in final_outcomes
         )
-        != 177
+        != 176
     ):
         raise SystemExit(
-            "final outcomes do not contain 177 trajectory-recovery reruns"
+            "final outcomes do not contain 176 trajectory-recovery reruns"
+        )
+    correction_rows = list(
+        csv.DictReader(
+            (
+                ROOT / "results/task_metadata_correction_reruns_203.csv"
+            ).open()
+        )
+    )
+    if len(correction_rows) != 10 or len(
+        {(row["configuration"], row["task"]) for row in correction_rows}
+    ) != 10:
+        raise SystemExit("expected 10 unique task-metadata correction reruns")
+    if (
+        sum(
+            row["outcome_source"] == "task_metadata_correction_rerun"
+            for row in final_outcomes
+        )
+        != 10
+    ):
+        raise SystemExit(
+            "final outcomes do not contain 10 task-metadata correction reruns"
         )
 
     recovery_annotations = [
@@ -136,21 +158,22 @@ def main() -> int:
         if line.strip()
     ]
     expected_recovery_non_passes = {
-        (row["configuration"], row["task"], row["trial"])
-        for row in recovery_rows
-        if not (row["reward"] and float(row["reward"]) == 1.0)
+        (row["configuration"], row["task"], row["final_trial"])
+        for row in final_outcomes
+        if row["outcome_source"] == "trajectory_recovery_rerun"
+        and row["final_reward"] != "1.0"
     }
     observed_recovery_non_passes = {
         (row["configuration"], row["task"], row["trial"])
         for row in recovery_annotations
     }
     if (
-        len(recovery_annotations) != 142
-        or len(observed_recovery_non_passes) != 142
+        len(recovery_annotations) != 141
+        or len(observed_recovery_non_passes) != 141
         or observed_recovery_non_passes != expected_recovery_non_passes
     ):
         raise SystemExit(
-            "trajectory-recovery annotations do not cover all 142 non-passes"
+            "trajectory-recovery annotations do not cover all 141 final non-passes"
         )
 
     for summary in summary_rows:
@@ -349,6 +372,7 @@ def main() -> int:
         "results/original_per_trial_results.jsonl.gz",
         "results/targeted_runtime_exception_reruns_203.csv",
         "results/trajectory_recovery_reruns_203.csv",
+        "results/task_metadata_correction_reruns_203.csv",
         "repro/download_benchmark.py",
         "repro/audit_release_compliance.py",
         "repro/collect_repository_metadata.py",

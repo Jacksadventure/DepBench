@@ -134,16 +134,17 @@ Task Docker images are referenced from `task.toml` as
 | File | Purpose |
 |---|---|
 | `results/summary.{csv,json}` | Configuration-level pass, fail, and no-reward counts |
-| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime and trajectory-recovery reruns |
+| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime, trajectory-recovery, and metadata-correction reruns |
 | `results/targeted_runtime_exception_reruns_203.csv` | Targeted runtime-exception rerun records |
 | `results/trajectory_recovery_reruns_203.csv` | Reruns used to recover previously unavailable OpenCode trajectories |
+| `results/task_metadata_correction_reruns_203.csv` | Ten reruns after correcting the Strawberry task dependency from Flask to graphql-core |
 | `results/original_per_trial_results.jsonl.gz` | Frozen metadata for the original 2,030 trials |
 | `results/per_trial_results.jsonl.gz` | Compact metadata for the 2,030 final selected trials |
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
 | `analysis/coverage.csv` | Trajectory and verifier-log coverage |
 | `analysis/trajectory_behavior_*` | Final per-trajectory behavior annotations and summaries |
 | `analysis/trajectory_scan_*` | Exploratory rule-based keyword scan outputs |
-| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 142 recovery-rerun non-passes |
+| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 141 final recovery-rerun non-passes |
 
 ### Repository metadata
 

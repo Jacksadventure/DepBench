@@ -24,6 +24,9 @@ ORIGINAL_RESULTS = ROOT / "results/original_per_trial_results.jsonl.gz"
 FINAL_RESULTS = ROOT / "results/per_trial_results.jsonl.gz"
 TARGETED_RESULTS = ROOT / "results/targeted_runtime_exception_reruns_203.csv"
 RECOVERY_RESULTS = ROOT / "results/trajectory_recovery_reruns_203.csv"
+CORRECTION_RESULTS = (
+    ROOT / "results/task_metadata_correction_reruns_203.csv"
+)
 
 TARGETED_CONFIGURATIONS = {
     "codex_gpt55": ("gpt55__codex", "codex", "gpt55", "gpt-5.5"),
@@ -45,6 +48,43 @@ TARGETED_CONFIGURATIONS = {
         "gpt55",
         "gpt-5.5",
     ),
+}
+
+CONFIGURATIONS = {
+    "claude48__claude_code": (
+        "claude_code",
+        "claude48",
+        "claude-opus-4-8",
+    ),
+    "claude48__copilot_cli": (
+        "copilot_cli",
+        "claude48",
+        "claude-opus-4-8",
+    ),
+    "claude48__opencode": (
+        "opencode",
+        "claude48",
+        "claude-opus-4-8",
+    ),
+    "gemini35flash__claude_code": (
+        "claude_code",
+        "gemini35flash",
+        "gemini-3.5-flash",
+    ),
+    "gemini35flash__copilot_cli": (
+        "copilot_cli",
+        "gemini35flash",
+        "gemini-3.5-flash",
+    ),
+    "gemini35flash__opencode": (
+        "opencode",
+        "gemini35flash",
+        "gemini-3.5-flash",
+    ),
+    "gpt55__claude_code": ("claude_code", "gpt55", "gpt-5.5"),
+    "gpt55__codex": ("codex", "gpt55", "gpt-5.5"),
+    "gpt55__copilot_cli": ("copilot_cli", "gpt55", "gpt-5.5"),
+    "gpt55__opencode": ("opencode", "gpt55", "gpt-5.5"),
 }
 
 
@@ -244,6 +284,44 @@ def load_recovery_replacements(
     if len(replacements) != expected or expected != 177:
         raise SystemExit(
             f"expected 177 recovery replacements, got {len(replacements)}"
+        )
+    return replacements
+
+
+def load_correction_replacements(
+    experiment_root: Path,
+) -> dict[tuple[str, str], dict[str, Any]]:
+    replacements: dict[tuple[str, str], dict[str, Any]] = {}
+    rows = list(csv.DictReader(CORRECTION_RESULTS.open(encoding="utf-8")))
+    for row in rows:
+        stem = row["configuration"]
+        harness, llm, model = CONFIGURATIONS[stem]
+        trial_dir = (
+            experiment_root
+            / "harbor_jobs"
+            / row["job_name"]
+            / row["trial"]
+        )
+        replacement = load_trial_replacement(
+            stem=stem,
+            harness=harness,
+            llm=llm,
+            model=model,
+            task=row["task"],
+            source="task_metadata_correction_rerun",
+            job_name=row["job_name"],
+            trial_name=row["trial"],
+            trial_dir=trial_dir,
+            expected_reward=float(row["reward"]),
+        )
+        key = (stem, row["task"])
+        if key in replacements:
+            raise SystemExit(f"duplicate correction replacement: {key}")
+        replacements[key] = replacement
+    if len(replacements) != 10:
+        raise SystemExit(
+            f"expected 10 metadata-correction replacements, got "
+            f"{len(replacements)}"
         )
     return replacements
 
@@ -528,6 +606,12 @@ def update_numeric_summaries(
     document["trajectory_recovery_rerun_cells"] = replacement_counts[
         "trajectory_recovery_rerun"
     ]
+    document["task_metadata_correction_rerun_cells"] = replacement_counts[
+        "task_metadata_correction_rerun"
+    ]
+    document["task_metadata_correction_rerun_results"] = str(
+        CORRECTION_RESULTS.relative_to(ROOT)
+    )
     summary_json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
         encoding="utf-8",
@@ -721,8 +805,9 @@ def update_indexes(
         [
             "",
             (
-                "Rows replaced by targeted or trajectory-recovery reruns record "
-                "`outcome_source`, `source_job`, and `trajectory_source`."
+                "Rows replaced by targeted, trajectory-recovery, or task-metadata "
+                "correction reruns record `outcome_source`, `source_job`, and "
+                "`trajectory_source`."
             ),
             "",
             (
@@ -790,13 +875,30 @@ def main() -> int:
         "--experiment-root", type=Path, required=True
     )
     parser.add_argument("--include-recovery", action="store_true")
+    parser.add_argument("--include-correction", action="store_true")
     args = parser.parse_args()
 
     experiment_root = args.experiment_root.resolve()
     original_rows = ensure_original_results()
     replacements = load_targeted_replacements(experiment_root)
+    recovery_replacements: dict[tuple[str, str], dict[str, Any]] = {}
     if args.include_recovery:
-        replacements.update(load_recovery_replacements(experiment_root))
+        recovery_replacements = load_recovery_replacements(experiment_root)
+        replacements.update(recovery_replacements)
+    if args.include_correction:
+        correction_replacements = load_correction_replacements(experiment_root)
+        expected_overrides = {
+            ("gemini35flash__opencode", "strawberry-graphql__strawberry__282"),
+            ("gpt55__codex", "strawberry-graphql__strawberry__282"),
+            ("gpt55__copilot_cli", "strawberry-graphql__strawberry__282"),
+        }
+        observed_overrides = set(replacements) & set(correction_replacements)
+        if observed_overrides != expected_overrides:
+            raise SystemExit(
+                "unexpected metadata-correction override cells: "
+                f"{sorted(observed_overrides)}"
+            )
+        replacements.update(correction_replacements)
 
     replacement_counts = Counter(
         replacement["outcome_source"] for replacement in replacements.values()
@@ -805,7 +907,8 @@ def main() -> int:
     outcomes = outcome_rows(original_rows, replacements)
     write_final_outcomes(outcomes)
     write_final_result_export(trajectories)
-    write_recovery_csv(replacements)
+    if recovery_replacements:
+        write_recovery_csv(recovery_replacements)
     update_numeric_summaries(outcomes, trajectories, replacement_counts)
     update_indexes(trajectories)
     print(

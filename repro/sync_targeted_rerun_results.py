@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RERUN_PATH = ROOT / "results/targeted_runtime_exception_reruns_203.csv"
 RECOVERY_PATH = ROOT / "results/trajectory_recovery_reruns_203.csv"
+CORRECTION_PATH = ROOT / "results/task_metadata_correction_reruns_203.csv"
 FINAL_OUTCOMES_PATH = ROOT / "results/final_per_task_outcomes.csv"
 
 RERUN_CONFIGURATIONS = {
@@ -65,6 +66,16 @@ def read_reruns() -> dict[tuple[str, str], dict]:
                 raise SystemExit(f"duplicate rerun cell: {key}")
             reruns[key] = row | {
                 "outcome_source": "trajectory_recovery_rerun",
+                "normalized_configuration": key[0],
+            }
+    if CORRECTION_PATH.exists():
+        corrections = list(
+            csv.DictReader(CORRECTION_PATH.open(encoding="utf-8"))
+        )
+        for row in corrections:
+            key = (row["configuration"], row["task"])
+            reruns[key] = row | {
+                "outcome_source": "task_metadata_correction_rerun",
                 "normalized_configuration": key[0],
             }
     return reruns
@@ -214,10 +225,17 @@ def update_summary(outcomes: list[dict], rerun_counts: Counter) -> None:
     document["trajectory_recovery_rerun_cells"] = rerun_counts[
         "trajectory_recovery_rerun"
     ]
+    document["task_metadata_correction_rerun_cells"] = rerun_counts[
+        "task_metadata_correction_rerun"
+    ]
     document["targeted_rerun_results"] = str(RERUN_PATH.relative_to(ROOT))
     if RECOVERY_PATH.exists():
         document["trajectory_recovery_rerun_results"] = str(
             RECOVERY_PATH.relative_to(ROOT)
+        )
+    if CORRECTION_PATH.exists():
+        document["task_metadata_correction_rerun_results"] = str(
+            CORRECTION_PATH.relative_to(ROOT)
         )
     json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
@@ -274,7 +292,7 @@ def main() -> None:
     baseline = read_baseline()
     reruns = read_reruns()
     outcomes = build_final_outcomes(baseline, reruns)
-    if len(baseline) != 2030 or len(reruns) not in (111, 288):
+    if len(baseline) != 2030 or len(reruns) != 295:
         raise SystemExit(
             f"unexpected input sizes: baseline={len(baseline)} reruns={len(reruns)}"
         )

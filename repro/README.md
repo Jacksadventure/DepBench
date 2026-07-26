@@ -162,7 +162,8 @@ Harbor jobs can rebuild final trajectories, verifier rows, and result tables:
 ```bash
 python3 repro/rebuild_final_artifacts.py \
   --experiment-root /path/to/experiment-worktree \
-  --include-recovery
+  --include-recovery \
+  --include-correction
 python3 repro/redact_release_trajectories.py
 python3 repro/scan_trajectories.py
 python3 repro/summarize_recovery_failure_annotations.py
