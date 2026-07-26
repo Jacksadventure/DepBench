@@ -25,7 +25,7 @@ dependency upgrade. Invalid tasks remain in the dataset and carry
 | ---: | --- | --- | --- | --- | --- |
 | 1 | `JoshuaKGoldberg__create-typescript-app__1489` | semantic | repair | `26632ac93` | Replaced circular snapshots with manifest-target and generated-output consistency checks. |
 | 2 | `OWASP__wrongsecrets__1040` | semantic | repair | `d24536727` | Replaced an unrelated unit gate with a production SpotBugs 4.8 witness. |
-| 3 | `algolia__react-element-to-js-string__305` | semantic | repair | `ccf1308e7` | Removed formatter-export and CJS drive-by requirements. |
+| 3 | `algolia__react-element-to-jsx-string__305` | semantic | repair | `ccf1308e7` | Removed formatter-export and CJS drive-by requirements. |
 | 4 | `alveusgg__alveusgg__871` | semantic | mark_invalid | `c3a5a2465` | Hidden tests introduce new ArrayBuffer inputs; no clean dependency-only witness exists. |
 | 5 | `ardatan__graphql-tools__7001` | semantic | repair | `b7ed4dc3f` | Kept stream terminal semantics and removed unrelated Envelop logging/context assertions. |
 | 6 | `chris48s__v8r__22` | semantic | repackage | `b147e503c` | Corrected the dependency to js-yaml and moved the hidden fixture out of the oracle source patch. |
@@ -60,4 +60,3 @@ dependency upgrade. Invalid tasks remain in the dataset and carry
 | 35 | `solana-labs__solana-program-library__4301` | semantic | repackage | `b03ea113f` | Replaced contradictory behavioral assertions with the SPL Token TypeScript compile boundary. |
 | 36 | `ampproject__amp-wp__6853` | mixed | mark_invalid | `cb02fe98a` | eslint-plugin-jest is lint-only; oracle changes unrelated application hook state. |
 | 37 | `camunda-community-hub__spring-zeebe__642` | mixed | mark_invalid | `e205bff59` | Zeebe patch upgrade passes unchanged; hidden test introduces an independent worker bugfix. |
-
