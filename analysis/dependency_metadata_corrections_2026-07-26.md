@@ -2,6 +2,8 @@
 
 This report records the package-name and version-parsing corrections found by re-scanning the 203-task DepBench release. It compares source commit `1474b6434c65b160e2b65a3c5540e766de669381` with corrected source commit `cdabc1f761a82cb1aa0756c5b644aea60ab8b8a2`.
 
+The follow-up bot-PR verification is recorded in `analysis/bot_pr_dependency_audit_2026-07-26.md` and `.csv`.
+
 ## Scope
 
 - Corrected task-summary rows: **44**

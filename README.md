@@ -143,6 +143,7 @@ Task Docker images are referenced from `task.toml` as
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
 | `analysis/coverage.csv` | Trajectory and verifier-log coverage |
 | `analysis/dependency_metadata_corrections_2026-07-26.{md,csv}` | Human-readable and machine-readable audit of 44 corrected package/version metadata rows |
+| `analysis/bot_pr_dependency_audit_2026-07-26.{md,csv}` | Cross-check of those 44 rows against merged Dependabot/Renovate PR declarations and final diffs |
 | `analysis/trajectory_behavior_*` | Final per-trajectory behavior annotations and summaries |
 | `analysis/trajectory_scan_*` | Exploratory rule-based keyword scan outputs |
 | `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 141 final recovery-rerun non-passes |
