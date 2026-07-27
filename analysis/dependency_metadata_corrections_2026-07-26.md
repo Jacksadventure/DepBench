@@ -33,10 +33,10 @@ The follow-up bot-PR verification is recorded in `analysis/bot_pr_dependency_aud
 
 | Target | Branch or revision | Commit / digest |
 |---|---|---|
-| Source dataset, both GitHub remotes | `v4-with-test` | `cb6bb23277d150f5f0a2faab6753fa352f519394` |
-| Hugging Face dataset | revision | `50d83f18938fb3208a84b97509b024f644a909dc` |
-| Hugging Face archive | SHA-256 | `c640ec120ef135d4ae15fd3ace4131be51149d6951ae07d74f363c30c785834a` |
-| MSBench benchmark source | `depbench/harbor-v4-with-test203` | `4eb2262151311c0b8810b05ec1ecffafe560dcdc` |
+| Source dataset, both GitHub remotes | `v4-with-test` | `450745e938b317cdd0249e405ece84042b808bf7` |
+| Hugging Face dataset | revision | `1969a9261c515515dac7cf5142473d3991f9ee4a` |
+| Hugging Face archive | SHA-256 | `8637b0f07c04547932ff97b0557c59b90f197305b1ddfbd703f50944aee80ba2` |
+| MSBench benchmark source | `depbench/harbor-v4-with-test203` | `9d32257647ef4f7bc5a501941cc717d04923b33d` |
 | MSBench registry | `depbench/harbor-v4-with-test203` | `fa81a75dd27f1c1a4609c7014d689ca6ac2592f1` |
 | Release data and result update, both GitHub remotes | `main` | current release commit |
 
@@ -46,6 +46,24 @@ The follow-up bot-PR verification is recorded in `analysis/bot_pr_dependency_aud
 - The 560 canonical-contract reruns contain 207 passes and 353 non-passes.
 - Refreshed final outcomes, trajectory exports, verifier logs, behavior annotations, and final failure classifications.
 - Final release validation: 203 tasks, 10 configurations, and 2,030 selected trials.
+
+## Full Instruction Follow-up
+
+The 2026-07-27 full audit reviewed all 203 active tasks, not only the 44 rows
+listed below. It normalized every instruction to the Bump-only template and
+applied five additional metadata corrections:
+
+| Task | Final attribution |
+|---|---|
+| `elastic__cloud-on-k8s__3417` | `sigs.k8s.io/controller-runtime 0.5.0 -> 0.6.1` |
+| `elastic__cloud-on-k8s__6847` | `sigs.k8s.io/controller-runtime 0.14.6 -> 0.15.0` |
+| `octokit__plugin-paginate-rest.js__226` | `@octokit/types 5.5.0 -> 6.0.1` |
+| `sequelize__umzug__572` | `lint dependency group previous versions -> updated versions` |
+| `spiffe__spire__4184` | `github.com/hashicorp/vault/sdk 0.9.0 -> 0.9.1` |
+
+The final per-task evidence is in
+`analysis/instruction_bump_audit_203.{md,csv,json}`. That audit supersedes the
+intermediate attribution for the affected rows in the historical table below.
 
 ## Detailed Corrections
 

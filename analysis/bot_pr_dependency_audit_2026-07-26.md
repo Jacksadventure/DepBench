@@ -2,6 +2,10 @@
 
 This audit checks the 44 recently corrected dependency metadata rows against their merged GitHub pull requests. It distinguishes the bot-declared update in the PR title/body from the final merged file diff, because later commits can make the bot text stale.
 
+The two unresolved attributions identified by this audit were corrected by the
+2026-07-27 full 203-task review. The final state is recorded in
+`analysis/instruction_bump_audit_203.{md,csv,json}`.
+
 ## Scope
 
 - Pull requests checked: **44**
@@ -23,23 +27,27 @@ This audit checks the 44 recently corrected dependency metadata rows against the
 | `confirmed_property_alias` | 2 | Task summary uses a build-property alias while task text identifies the actual dependency. |
 | `metadata_correction_required` | 2 | Current dependency attribution does not match the bot PR and repair evidence. |
 
-## Corrections Required
+## Corrections Identified And Applied
 
 ### `spiffe__spire__4184`
 
 - Bot PR: `github.com/hashicorp/vault/sdk 0.9.0 -> 0.9.1`.
 - Final merged manifest also changes `github.com/hashicorp/go-plugin 1.4.6 -> 1.4.10` and the HCL revision.
 - Gold repair adapts to the HCL API change introduced through the Vault SDK update.
-- Current task incorrectly presents `go-plugin` as the primary bump.
+- At audit time, the task incorrectly presented `go-plugin` as the primary
+  bump. The final task now uses `github.com/hashicorp/vault/sdk 0.9.0 -> 0.9.1`.
 
 ### `sequelize__umzug__572`
 
 - Bot PR: lint dependency group (`@typescript-eslint/*`, `eslint`, `eslint-config-xo`, and `eslint-config-xo-typescript`).
 - Final merged manifest additionally updates TypeScript and `pony-cause`.
 - Gold repair changes ESLint rules and converts imports to type-only imports.
-- Current task incorrectly presents TypeScript as the sole primary bump.
+- At audit time, the task incorrectly presented TypeScript as the sole primary
+  bump. The final task now uses the lint dependency group attribution.
 
-Changing either task instruction changes the agent-visible contract. Their 20 model-by-harness cells should be rerun before the corrected metadata is used for reported results.
+Changing either task instruction changes the agent-visible contract. The
+release records the final instruction state separately from this historical
+44-row audit.
 
 ## Stale Bot Text Confirmed
 
