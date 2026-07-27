@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `@octokit/types` from 5.5.0 to 6.0.0.
+Bumps `@octokit/types` from 5.5.0 to 6.0.1.
 
 ## Constraints
 

@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `typescript` from 4.7.4 to 4.8.4.
+Bumps `lint dependency group` from previous versions to updated versions.
 
 ## Constraints
 
