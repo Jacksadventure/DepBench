@@ -20,7 +20,7 @@ This directory contains aggregate analysis tables derived from the release artif
 - `trajectory_behavior_summary_203.json`: behavior summary plus annotation
   provenance.
 - `trajectory_recovery_failure_classification_203.jsonl`: root-cause labels
-  for all 142 non-pass trajectory-recovery reruns.
+  for all 97 final non-pass trajectory-recovery reruns.
 - `trajectory_recovery_failure_category_counts_203.csv`: recovery non-pass
   category counts by configuration.
 - `trajectory_recovery_failure_summary_203.json`: category, confidence, and
@@ -32,6 +32,15 @@ This directory contains aggregate analysis tables derived from the release artif
   203 task rows.
 - `runtime_exception_rerun_summary_203.json`: numeric summary after applying
   the final runtime and trajectory-recovery reruns.
+- `affected_contract_rerun_summary_203.json`: outcome and exception summary
+  for the 56-task by 10-configuration canonical-contract rerun.
+- `failure_labels_*.jsonl`: parallel annotations for affected-contract
+  non-passes in the four RQ3 configurations.
+- `final_failure_classification_203.jsonl`: final root-cause labels for all 477
+  non-pass outcomes in the four RQ3 configurations.
+- `final_failure_category_counts_203.csv`: final RQ3 category counts.
+- `final_failure_summary_203.json`: final RQ3 classification provenance and
+  aggregate counts.
 - `paper_numbers_203.json`: result-derived numbers used to synchronize the two
   paper worktrees.
 - `test_contract_repair_decisions_2026-07-14.{md,csv}`: decisions and rationale

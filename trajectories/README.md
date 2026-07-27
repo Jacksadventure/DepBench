@@ -15,6 +15,6 @@ Each `.jsonl.gz` file contains one JSON object per final selected task/trial wit
 | gpt55 | copilot_cli | 203 | 203 | 0 | `gpt55__copilot_cli.jsonl.gz` |
 | gpt55 | opencode | 203 | 203 | 0 | `gpt55__opencode.jsonl.gz` |
 
-Rows replaced by targeted, trajectory-recovery, or task-metadata correction reruns record `outcome_source`, `source_job`, and `trajectory_source`.
+Rows replaced by targeted, trajectory-recovery, task-metadata correction, or affected-contract reruns record `outcome_source`, `source_job`, and `trajectory_source`.
 
 Release redactions are recorded in `analysis/release_redactions_2026-07-23.csv`.

@@ -47,8 +47,8 @@ checked directly.
 |---:|---:|---:|---:|---:|
 | **203** | **159** | **5** | **10** | **2,030** |
 
-The strongest historical configuration in this snapshot solves **95/203 tasks
-(46.8%)**. Complete configuration-level results are available in
+The strongest historical configuration in this snapshot solves **104/203 tasks
+(51.2%)**. Complete configuration-level results are available in
 [`results/summary.csv`](results/summary.csv).
 
 ## Quick start
@@ -134,10 +134,11 @@ Task Docker images are referenced from `task.toml` as
 | File | Purpose |
 |---|---|
 | `results/summary.{csv,json}` | Configuration-level pass, fail, and no-reward counts |
-| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime, trajectory-recovery, and metadata-correction reruns |
+| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime, trajectory-recovery, metadata-correction, and affected-contract reruns |
 | `results/targeted_runtime_exception_reruns_203.csv` | Targeted runtime-exception rerun records |
 | `results/trajectory_recovery_reruns_203.csv` | Reruns used to recover previously unavailable OpenCode trajectories |
 | `results/task_metadata_correction_reruns_203.csv` | Ten reruns after correcting the Strawberry task dependency from Flask to graphql-core |
+| `results/affected_contract_reruns_203.csv` | 560 reruns covering the 56 affected tasks across all 10 configurations |
 | `results/original_per_trial_results.jsonl.gz` | Frozen metadata for the original 2,030 trials |
 | `results/per_trial_results.jsonl.gz` | Compact metadata for the 2,030 final selected trials |
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
@@ -146,7 +147,8 @@ Task Docker images are referenced from `task.toml` as
 | `analysis/bot_pr_dependency_audit_2026-07-26.{md,csv}` | Cross-check of those 44 rows against merged Dependabot/Renovate PR declarations and final diffs |
 | `analysis/trajectory_behavior_*` | Final per-trajectory behavior annotations and summaries |
 | `analysis/trajectory_scan_*` | Exploratory rule-based keyword scan outputs |
-| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 141 final recovery-rerun non-passes |
+| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 97 final recovery-rerun non-passes |
+| `analysis/final_failure_*` | Final root-cause classification for 477 non-pass outcomes in the four RQ3 configurations |
 
 ### Repository metadata
 

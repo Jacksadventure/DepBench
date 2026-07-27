@@ -1,6 +1,6 @@
 # Dependency Metadata Corrections - 2026-07-26
 
-This report records the package-name and version-parsing corrections found by re-scanning the 203-task DepBench release. It compares source commit `1474b6434c65b160e2b65a3c5540e766de669381` with corrected source commit `cdabc1f761a82cb1aa0756c5b644aea60ab8b8a2`.
+This report records the package-name and version-parsing corrections found by re-scanning the 203-task DepBench release. It compares source commit `1474b6434c65b160e2b65a3c5540e766de669381` with corrected source commit `09cd1d57ac9f135e57a5f8ed03b3845943be4ac9`.
 
 The follow-up bot-PR verification is recorded in `analysis/bot_pr_dependency_audit_2026-07-26.md` and `.csv`.
 
@@ -33,19 +33,18 @@ The follow-up bot-PR verification is recorded in `analysis/bot_pr_dependency_aud
 
 | Target | Branch or revision | Commit / digest |
 |---|---|---|
-| Source dataset, both GitHub remotes | `v4-with-test` | `cdabc1f761a82cb1aa0756c5b644aea60ab8b8a2` |
-| Hugging Face dataset | revision | `d53522d293177e45644115731b7c99d8ff07e2a0` |
-| Hugging Face archive | SHA-256 | `dd02134a37a0548cd02a721eb1df18b392d5483b32a1d85e9aa7cbb28d0be66f` |
-| MSBench | `depbench/harbor-v4-with-test203` | `d11aa6f2233fbeb4494134af66ac475a4d0e7406` |
-| Release data and result update, both GitHub remotes | `main` | `17652a825f7a0b094463b848dd3190384f028223` |
+| Source dataset, both GitHub remotes | `v4-with-test` | `09cd1d57ac9f135e57a5f8ed03b3845943be4ac9` |
+| Hugging Face dataset | revision | `99ed55c5707ccec2e229c8567efa4d536c20f815` |
+| Hugging Face archive | SHA-256 | `7c81c8e35b3a82a1c29c33718a2c14e775912c7103641d4e609fef3c81038226` |
+| MSBench benchmark source | `depbench/harbor-v4-with-test203` | `99b889f0e8b1b733b6938f69fe5836d648622a5a` |
+| MSBench registry | `depbench/harbor-v4-with-test203` | `fa81a75dd27f1c1a4609c7014d689ca6ac2592f1` |
+| Release data and result update, both GitHub remotes | `main` | current release commit |
 
 ## Experimental Result Impact
 
-- Re-ran the corrected Strawberry task across all 10 model-by-harness configurations.
-- Final pass-count changes:
-  - `codex + gpt-5.5`: 95 -> 96
-  - `copilot_cli + gemini-3.5-flash`: 47 -> 48
-- Refreshed final outcomes, trajectory exports, verifier logs, behavior annotations, and recovery-failure summaries.
+- Re-ran all 56 affected tasks across all 10 model-by-harness configurations.
+- The 560 canonical-contract reruns contain 207 passes and 353 non-passes.
+- Refreshed final outcomes, trajectory exports, verifier logs, behavior annotations, and final failure classifications.
 - Final release validation: 203 tasks, 10 configurations, and 2,030 selected trials.
 
 ## Detailed Corrections

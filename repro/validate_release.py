@@ -82,10 +82,11 @@ def main() -> int:
         manifest.get("dataset") != "DepBench contract-clean 203"
         or manifest.get("tasks") != 203
         or manifest.get("total_trials") != 2030
-        or manifest.get("targeted_rerun_cells") != 109
-        or manifest.get("trajectory_recovery_rerun_cells") != 176
-        or manifest.get("task_metadata_correction_rerun_cells") != 10
-        or manifest.get("trajectory_recovery_non_pass_annotations") != 141
+        or manifest.get("targeted_rerun_cells") != 90
+        or manifest.get("trajectory_recovery_rerun_cells") != 123
+        or manifest.get("task_metadata_correction_rerun_cells") != 0
+        or manifest.get("affected_contract_rerun_cells") != 560
+        or manifest.get("trajectory_recovery_non_pass_annotations") != 97
     ):
         raise SystemExit("MANIFEST.json does not describe the final release")
 
@@ -96,8 +97,8 @@ def main() -> int:
         raise SystemExit(f"expected 2030 final outcomes, got {len(final_outcomes)}")
     if {row["task"] for row in final_outcomes} != active_tasks:
         raise SystemExit("final outcome tasks do not match the release")
-    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 109:
-        raise SystemExit("expected 109 final targeted rerun outcomes")
+    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 90:
+        raise SystemExit("expected 90 final targeted rerun outcomes")
     rerun_rows = list(
         csv.DictReader(
             (ROOT / "results/targeted_runtime_exception_reruns_203.csv").open()
@@ -120,10 +121,10 @@ def main() -> int:
             row["outcome_source"] == "trajectory_recovery_rerun"
             for row in final_outcomes
         )
-        != 176
+        != 123
     ):
         raise SystemExit(
-            "final outcomes do not contain 176 trajectory-recovery reruns"
+            "final outcomes do not contain 123 trajectory-recovery reruns"
         )
     correction_rows = list(
         csv.DictReader(
@@ -141,10 +142,32 @@ def main() -> int:
             row["outcome_source"] == "task_metadata_correction_rerun"
             for row in final_outcomes
         )
-        != 10
+        != 0
     ):
         raise SystemExit(
-            "final outcomes do not contain 10 task-metadata correction reruns"
+            "final outcomes contain superseded task-metadata correction reruns"
+        )
+
+    affected_rows = list(
+        csv.DictReader(
+            (
+                ROOT / "results/affected_contract_reruns_203.csv"
+            ).open()
+        )
+    )
+    if len(affected_rows) != 560 or len(
+        {(row["configuration"], row["task"]) for row in affected_rows}
+    ) != 560:
+        raise SystemExit("expected 560 unique affected-contract rerun cells")
+    if (
+        sum(
+            row["outcome_source"] == "affected_contract_rerun"
+            for row in final_outcomes
+        )
+        != 560
+    ):
+        raise SystemExit(
+            "final outcomes do not contain 560 affected-contract reruns"
         )
 
     recovery_annotations = [
@@ -168,12 +191,46 @@ def main() -> int:
         for row in recovery_annotations
     }
     if (
-        len(recovery_annotations) != 141
-        or len(observed_recovery_non_passes) != 141
+        len(recovery_annotations) != 97
+        or len(observed_recovery_non_passes) != 97
         or observed_recovery_non_passes != expected_recovery_non_passes
     ):
         raise SystemExit(
-            "trajectory-recovery annotations do not cover all 141 final non-passes"
+            "trajectory-recovery annotations do not cover all 97 final non-passes"
+        )
+
+    rq3_configurations = {
+        "gpt55__codex",
+        "gpt55__copilot_cli",
+        "gpt55__opencode",
+        "gemini35flash__copilot_cli",
+    }
+    final_failure_rows = [
+        json.loads(line)
+        for line in (
+            ROOT / "analysis/final_failure_classification_203.jsonl"
+        )
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    expected_final_failures = {
+        (row["configuration"], row["task"], row["final_trial"])
+        for row in final_outcomes
+        if row["configuration"] in rq3_configurations
+        and row["final_reward"] != "1.0"
+    }
+    observed_final_failures = {
+        (row["configuration"], row["task"], row["trial"])
+        for row in final_failure_rows
+    }
+    if (
+        len(final_failure_rows) != 477
+        or len(observed_final_failures) != 477
+        or observed_final_failures != expected_final_failures
+    ):
+        raise SystemExit(
+            "final failure classification does not cover all 477 RQ3 non-passes"
         )
 
     for summary in summary_rows:
@@ -360,6 +417,9 @@ def main() -> int:
         "analysis/trajectory_recovery_failure_classification_203.jsonl",
         "analysis/trajectory_recovery_failure_category_counts_203.csv",
         "analysis/trajectory_recovery_failure_summary_203.json",
+        "analysis/final_failure_classification_203.jsonl",
+        "analysis/final_failure_category_counts_203.csv",
+        "analysis/final_failure_summary_203.json",
         "analysis/test_contract_repair_decisions_2026-07-14.md",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
         "analysis/release_redactions_2026-07-23.csv",
@@ -373,11 +433,15 @@ def main() -> int:
         "results/targeted_runtime_exception_reruns_203.csv",
         "results/trajectory_recovery_reruns_203.csv",
         "results/task_metadata_correction_reruns_203.csv",
+        "results/affected_contract_reruns_203.csv",
         "repro/download_benchmark.py",
         "repro/audit_release_compliance.py",
         "repro/collect_repository_metadata.py",
         "repro/sync_targeted_rerun_results.py",
         "repro/rebuild_final_artifacts.py",
+        "repro/rebuild_final_failure_classification.py",
+        "repro/sync_affected_contract_reruns.py",
+        "repro/sync_affected_trajectory_behavior_annotations.py",
         "repro/recompute_analysis.py",
         "repro/build_failure_annotation_packets.py",
         "repro/summarize_recovery_failure_annotations.py",

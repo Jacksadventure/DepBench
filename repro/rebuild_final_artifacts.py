@@ -27,6 +27,7 @@ RECOVERY_RESULTS = ROOT / "results/trajectory_recovery_reruns_203.csv"
 CORRECTION_RESULTS = (
     ROOT / "results/task_metadata_correction_reruns_203.csv"
 )
+AFFECTED_RESULTS = ROOT / "results/affected_contract_reruns_203.csv"
 
 TARGETED_CONFIGURATIONS = {
     "codex_gpt55": ("gpt55__codex", "codex", "gpt55", "gpt-5.5"),
@@ -146,6 +147,7 @@ def load_trial_replacement(
     trial_name: str,
     trial_dir: Path,
     expected_reward: float | None = None,
+    allow_timeout_as_zero: bool = False,
 ) -> dict[str, Any]:
     result_path = trial_dir / "result.json"
     if not result_path.exists():
@@ -158,11 +160,18 @@ def load_trial_replacement(
         )
 
     reward = reward_from_result(result)
+    exception_type, exception_message = exception_from_result(result)
+    if (
+        allow_timeout_as_zero
+        and reward is None
+        and expected_reward == 0.0
+        and exception_type == "AgentTimeoutError"
+    ):
+        reward = 0.0
     if expected_reward is not None and reward != expected_reward:
         raise SystemExit(
             f"{stem}/{task}: CSV reward {expected_reward} != trial reward {reward}"
         )
-    exception_type, exception_message = exception_from_result(result)
     trajectory, trajectory_source = trajectory_from_trial(
         trial_dir, harness=harness, model=model
     )
@@ -322,6 +331,48 @@ def load_correction_replacements(
         raise SystemExit(
             f"expected 10 metadata-correction replacements, got "
             f"{len(replacements)}"
+        )
+    return replacements
+
+
+def load_affected_replacements(
+    rerun_root: Path,
+) -> dict[tuple[str, str], dict[str, Any]]:
+    replacements: dict[tuple[str, str], dict[str, Any]] = {}
+    rows = list(csv.DictReader(AFFECTED_RESULTS.open(encoding="utf-8")))
+    for row in rows:
+        stem = row["configuration"]
+        harness, llm, model = CONFIGURATIONS[stem]
+        trial_dir = rerun_root / row["trial_dir"]
+        replacement = load_trial_replacement(
+            stem=stem,
+            harness=harness,
+            llm=llm,
+            model=model,
+            task=row["task"],
+            source="affected_contract_rerun",
+            job_name=row["job_name"],
+            trial_name=row["trial"],
+            trial_dir=trial_dir,
+            expected_reward=float(row["reward"]),
+            allow_timeout_as_zero=True,
+        )
+        key = (stem, row["task"])
+        if key in replacements:
+            raise SystemExit(f"duplicate affected rerun replacement: {key}")
+        replacements[key] = replacement
+
+    tasks = {task for _, task in replacements}
+    configurations = {configuration for configuration, _ in replacements}
+    if (
+        len(replacements) != 560
+        or len(tasks) != 56
+        or configurations != set(CONFIGURATIONS)
+    ):
+        raise SystemExit(
+            "expected a complete 56-task x 10-configuration affected rerun, "
+            f"got cells={len(replacements)} tasks={len(tasks)} "
+            f"configurations={len(configurations)}"
         )
     return replacements
 
@@ -609,8 +660,14 @@ def update_numeric_summaries(
     document["task_metadata_correction_rerun_cells"] = replacement_counts[
         "task_metadata_correction_rerun"
     ]
+    document["affected_contract_rerun_cells"] = replacement_counts[
+        "affected_contract_rerun"
+    ]
     document["task_metadata_correction_rerun_results"] = str(
         CORRECTION_RESULTS.relative_to(ROOT)
+    )
+    document["affected_contract_rerun_results"] = str(
+        AFFECTED_RESULTS.relative_to(ROOT)
     )
     summary_json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
@@ -805,9 +862,9 @@ def update_indexes(
         [
             "",
             (
-                "Rows replaced by targeted, trajectory-recovery, or task-metadata "
-                "correction reruns record `outcome_source`, `source_job`, and "
-                "`trajectory_source`."
+                "Rows replaced by targeted, trajectory-recovery, task-metadata "
+                "correction, or affected-contract reruns record `outcome_source`, "
+                "`source_job`, and `trajectory_source`."
             ),
             "",
             (
@@ -876,6 +933,8 @@ def main() -> int:
     )
     parser.add_argument("--include-recovery", action="store_true")
     parser.add_argument("--include-correction", action="store_true")
+    parser.add_argument("--include-affected", action="store_true")
+    parser.add_argument("--affected-root", type=Path)
     args = parser.parse_args()
 
     experiment_root = args.experiment_root.resolve()
@@ -899,6 +958,19 @@ def main() -> int:
                 f"{sorted(observed_overrides)}"
             )
         replacements.update(correction_replacements)
+    if args.include_affected:
+        if args.affected_root is None:
+            raise SystemExit("--include-affected requires --affected-root")
+        affected_replacements = load_affected_replacements(
+            args.affected_root.resolve()
+        )
+        overlap = set(replacements) & set(affected_replacements)
+        if len(overlap) != 82:
+            raise SystemExit(
+                f"expected 82 prior rerun cells to be superseded, got "
+                f"{len(overlap)}"
+            )
+        replacements.update(affected_replacements)
 
     replacement_counts = Counter(
         replacement["outcome_source"] for replacement in replacements.values()

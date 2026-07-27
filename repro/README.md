@@ -143,7 +143,7 @@ counts.
 
 ## Summarize recovery failure annotations
 
-Validate the 142 non-pass trajectory-recovery annotations and regenerate their
+Validate the 97 final non-pass trajectory-recovery annotations and regenerate their
 category summaries:
 
 ```bash
@@ -163,7 +163,11 @@ Harbor jobs can rebuild final trajectories, verifier rows, and result tables:
 python3 repro/rebuild_final_artifacts.py \
   --experiment-root /path/to/experiment-worktree \
   --include-recovery \
-  --include-correction
+  --include-correction \
+  --include-affected \
+  --affected-root /path/to/affected56x10-rerun
+python3 repro/sync_affected_trajectory_behavior_annotations.py
+python3 repro/rebuild_final_failure_classification.py
 python3 repro/redact_release_trajectories.py
 python3 repro/scan_trajectories.py
 python3 repro/summarize_recovery_failure_annotations.py

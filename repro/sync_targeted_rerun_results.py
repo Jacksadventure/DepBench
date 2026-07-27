@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RERUN_PATH = ROOT / "results/targeted_runtime_exception_reruns_203.csv"
 RECOVERY_PATH = ROOT / "results/trajectory_recovery_reruns_203.csv"
 CORRECTION_PATH = ROOT / "results/task_metadata_correction_reruns_203.csv"
+AFFECTED_PATH = ROOT / "results/affected_contract_reruns_203.csv"
 FINAL_OUTCOMES_PATH = ROOT / "results/final_per_task_outcomes.csv"
 
 RERUN_CONFIGURATIONS = {
@@ -76,6 +77,18 @@ def read_reruns() -> dict[tuple[str, str], dict]:
             key = (row["configuration"], row["task"])
             reruns[key] = row | {
                 "outcome_source": "task_metadata_correction_rerun",
+                "normalized_configuration": key[0],
+            }
+    if AFFECTED_PATH.exists():
+        affected = list(csv.DictReader(AFFECTED_PATH.open(encoding="utf-8")))
+        if len(affected) != 560:
+            raise SystemExit(
+                f"expected 560 affected contract reruns, got {len(affected)}"
+            )
+        for row in affected:
+            key = (row["configuration"], row["task"])
+            reruns[key] = row | {
+                "outcome_source": "affected_contract_rerun",
                 "normalized_configuration": key[0],
             }
     return reruns
@@ -228,6 +241,9 @@ def update_summary(outcomes: list[dict], rerun_counts: Counter) -> None:
     document["task_metadata_correction_rerun_cells"] = rerun_counts[
         "task_metadata_correction_rerun"
     ]
+    document["affected_contract_rerun_cells"] = rerun_counts[
+        "affected_contract_rerun"
+    ]
     document["targeted_rerun_results"] = str(RERUN_PATH.relative_to(ROOT))
     if RECOVERY_PATH.exists():
         document["trajectory_recovery_rerun_results"] = str(
@@ -236,6 +252,10 @@ def update_summary(outcomes: list[dict], rerun_counts: Counter) -> None:
     if CORRECTION_PATH.exists():
         document["task_metadata_correction_rerun_results"] = str(
             CORRECTION_PATH.relative_to(ROOT)
+        )
+    if AFFECTED_PATH.exists():
+        document["affected_contract_rerun_results"] = str(
+            AFFECTED_PATH.relative_to(ROOT)
         )
     json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
@@ -292,7 +312,8 @@ def main() -> None:
     baseline = read_baseline()
     reruns = read_reruns()
     outcomes = build_final_outcomes(baseline, reruns)
-    if len(baseline) != 2030 or len(reruns) != 295:
+    expected_reruns = 773 if AFFECTED_PATH.exists() else 295
+    if len(baseline) != 2030 or len(reruns) != expected_reruns:
         raise SystemExit(
             f"unexpected input sizes: baseline={len(baseline)} reruns={len(reruns)}"
         )

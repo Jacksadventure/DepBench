@@ -67,8 +67,10 @@ def validate_annotations(rows: list[dict[str, Any]]) -> None:
             "trajectory-recovery annotation coverage does not match non-passes: "
             f"missing={len(expected - actual)} extra={len(actual - expected)}"
         )
-    if len(rows) != 141:
-        raise SystemExit(f"expected 141 annotations, got {len(rows)}")
+    if len(rows) != len(expected):
+        raise SystemExit(
+            f"expected {len(expected)} annotations, got {len(rows)}"
+        )
     unknown = sorted({row["category"] for row in rows} - set(CATEGORIES))
     if unknown:
         raise SystemExit(f"unknown trajectory-recovery categories: {unknown}")
