@@ -9,6 +9,15 @@ import subprocess
 TEST_PATCH = "/tests/test.patch"
 BASELINE_REF = os.environ.get("BENCHMARK_BASELINE_REF", "HEAD")
 WORKDIR = '/app'
+TOOLCHAIN_PATH = "/root/.cargo/bin:/usr/local/cargo/bin:/usr/local/bin:/usr/bin:/bin"
+COMMAND_ENV = {
+    **os.environ,
+    "PATH": (
+        f"{TOOLCHAIN_PATH}:{os.environ['PATH']}"
+        if os.environ.get("PATH")
+        else TOOLCHAIN_PATH
+    ),
+}
 TEST_CMD = 'cargo test --all'
 TEST_TIMEOUT = 1200
 
@@ -92,13 +101,19 @@ def _apply_test_patch():
 
 
 def test_dependency_upgrade_fix():
+    cargo = shutil.which("cargo", path=COMMAND_ENV["PATH"])
+    if cargo is None:
+        raise RuntimeError(
+            f"Expected cargo in verifier PATH: {COMMAND_ENV['PATH']}"
+        )
     _apply_test_patch()
     result = subprocess.run(
-        ["bash", "-lc", TEST_CMD],
+        ["bash", "-c", TEST_CMD],
         cwd=WORKDIR,
         capture_output=True,
         text=True,
         timeout=TEST_TIMEOUT,
+        env=COMMAND_ENV,
     )
     assert result.returncode == 0, (
         f"Test command failed with exit code {result.returncode}\n"

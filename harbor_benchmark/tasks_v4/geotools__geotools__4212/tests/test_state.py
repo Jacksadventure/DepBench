@@ -4,7 +4,20 @@
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
+
+JAVA_HOME = "/opt/java/openjdk"
+SYSTEM_PATH = f"{JAVA_HOME}/bin:/usr/share/maven/bin:/usr/local/bin:/usr/bin:/bin"
+COMMAND_ENV = {
+    **os.environ,
+    "JAVA_HOME": JAVA_HOME,
+    "PATH": (
+        f"{SYSTEM_PATH}:{os.environ['PATH']}"
+        if os.environ.get("PATH")
+        else SYSTEM_PATH
+    ),
+}
 
 TEST_PATCH = "/tests/test.patch"
 BASELINE_REF = os.environ.get("BENCHMARK_BASELINE_REF", "HEAD")
@@ -94,12 +107,16 @@ def _apply_test_patch():
 
 
 def _run(label, cmd, timeout):
+    java = Path(JAVA_HOME, "bin", "java")
+    if not java.is_file():
+        raise RuntimeError(f"Expected Java runtime at {java}")
     result = subprocess.run(
-        ["bash", "-lc", cmd],
+        ["bash", "-c", cmd],
         cwd=WORKDIR,
         capture_output=True,
         text=True,
         timeout=timeout,
+        env=COMMAND_ENV,
     )
     assert result.returncode == 0, (
         f"{label} command failed with exit code {result.returncode}\n"

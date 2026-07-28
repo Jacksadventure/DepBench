@@ -22,7 +22,7 @@ else
     echo 'manifest.patch not found at /harbor/environment/patches/manifest.patch, /environment/patches/manifest.patch, or /solution/manifest.patch; skipping' >&2
 fi
 
-( cd /app && bash -lc 'cargo fetch' )
+( cd /app && bash -lc 'env PATH=/root/.cargo/bin:/usr/local/cargo/bin:$PATH cargo fetch' )
 
 cd /app
 if [ -s /solution/code.patch ]; then

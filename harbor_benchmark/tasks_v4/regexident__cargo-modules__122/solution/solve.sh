@@ -64,7 +64,7 @@ _run_setup() {
 _apply_manifest_patch
 
 # Replay setup commands that previously ran after manifest.patch was baked into the image.
-_run_setup /app 'cargo fetch'
+_run_setup /app 'env PATH=/root/.cargo/bin:/usr/local/cargo/bin:$PATH cargo fetch'
 
 cd /app
 if [ -s /solution/code.patch ]; then
