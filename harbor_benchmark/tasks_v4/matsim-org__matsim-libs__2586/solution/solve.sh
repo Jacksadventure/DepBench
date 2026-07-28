@@ -9,7 +9,12 @@ cd /app
 
 _apply_patch() {
     local patch_file="$1"
-    git apply --whitespace=nowarn "$patch_file"         || git apply --whitespace=nowarn --recount "$patch_file"         || git apply --whitespace=nowarn --3way "$patch_file"         || git apply --whitespace=nowarn --3way --recount "$patch_file"
+    git apply --whitespace=nowarn "$patch_file" \
+        || git apply --whitespace=nowarn --recount "$patch_file" \
+        || git apply --ignore-space-change --whitespace=nowarn "$patch_file" \
+        || git apply --ignore-space-change --whitespace=nowarn --recount "$patch_file" \
+        || git apply --whitespace=nowarn --3way "$patch_file" \
+        || git apply --whitespace=nowarn --3way --recount "$patch_file"
 }
 
 if [ -s /harbor/environment/patches/manifest.patch ]; then
