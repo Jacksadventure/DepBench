@@ -60,6 +60,10 @@ bash repro/pull_task_images.sh 29ki__29k__3418 ArcadeData__arcadedb__2808
 
 The 57 Maven image tags repaired on 2026-07-13 are listed with their old and
 new manifest digests in `repro/java_home_image_repair_2026-07-13.csv`.
+Maintainers can use `repro/repair_task_image_toolchain_paths.py` to rebuild
+selected Rust, Java, or Go task images with toolchain entry points that remain
+available under login shells. The command verifies each staging image before
+an optional canonical-tag push and writes old/new image provenance to JSON.
 
 ## Verify the oracle solution for one task
 
@@ -96,7 +100,8 @@ python3 repro/validate_release.py
 The compliance audit checks repository governance files, source headers,
 license-category accounting, known internal path markers, and high-confidence
 credential patterns. It also scans the downloaded dataset when
-`dataset/tasks/` is present. External Microsoft approval steps are tracked in
+`dataset/tasks/` is present and unpacks published Harbor job archives. External
+Microsoft approval steps are tracked in
 `OPEN_SOURCE_RELEASE_CHECKLIST.md`.
 
 Read one reported trajectory and verifier row:
@@ -143,7 +148,7 @@ counts.
 
 ## Summarize recovery failure annotations
 
-Validate the 97 final non-pass trajectory-recovery annotations and regenerate their
+Validate the 80 final non-pass trajectory-recovery annotations and regenerate their
 category summaries:
 
 ```bash
@@ -160,18 +165,30 @@ The original 2,030-cell metadata baseline is frozen in
 Harbor jobs can rebuild final trajectories, verifier rows, and result tables:
 
 ```bash
+python3 repro/sync_environment_repair_reruns.py \
+  --rerun-root /path/to/environment24x10-rerun
 python3 repro/rebuild_final_artifacts.py \
   --experiment-root /path/to/experiment-worktree \
   --include-recovery \
   --include-correction \
   --include-affected \
-  --affected-root /path/to/affected56x10-rerun
-python3 repro/sync_affected_trajectory_behavior_annotations.py
-python3 repro/rebuild_final_failure_classification.py
+  --affected-root /path/to/affected56x10-rerun \
+  --include-environment \
+  --environment-root /path/to/environment24x10-rerun
 python3 repro/redact_release_trajectories.py
 python3 repro/scan_trajectories.py
+python3 repro/sync_environment_trajectory_behavior_annotations.py
+python3 repro/summarize_trajectory_behavior_annotations.py
+python3 repro/rebuild_final_failure_classification.py \
+  --legacy-annotation-root /path/to/original/annotations \
+  --paper-analysis /path/to/paper/analysis \
+  --affected-analysis /path/to/affected56x10-rerun/analysis \
+  --environment-analysis /path/to/environment24x10-rerun/analysis
 python3 repro/summarize_recovery_failure_annotations.py
 python3 repro/recompute_analysis.py
+python3 repro/package_harbor_jobs.py \
+  --run-root /path/to/environment24x10-rerun \
+  --output-dir jobs/environment24x10_20260729T031538Z
 python3 repro/refresh_secret_scan_review.py
 python3 repro/audit_release_compliance.py
 python3 repro/validate_release.py
@@ -179,3 +196,6 @@ python3 repro/validate_release.py
 
 `sync_targeted_rerun_results.py` regenerates numeric tables from the frozen
 baseline and the checked-in rerun CSV files without requiring raw Harbor jobs.
+The published `jobs/` archives exclude authentication, installation, session,
+plugin-cache, and SQLite state while retaining final patches, public agent logs,
+trajectory data, and verifier outputs.

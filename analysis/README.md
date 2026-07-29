@@ -16,11 +16,11 @@ This directory contains aggregate analysis tables derived from the release artif
   annotation provenance.
 - `trajectory_behavior_summary_203.csv`: final behavior counts by configuration.
 - `trajectory_behavior_by_source_203.csv`: final behavior counts split by
-  original, targeted-rerun, and trajectory-recovery source.
+  original and each final rerun source.
 - `trajectory_behavior_summary_203.json`: behavior summary plus annotation
   provenance.
 - `trajectory_recovery_failure_classification_203.jsonl`: root-cause labels
-  for all 97 final non-pass trajectory-recovery reruns.
+  for all 80 final non-pass trajectory-recovery reruns.
 - `trajectory_recovery_failure_category_counts_203.csv`: recovery non-pass
   category counts by configuration.
 - `trajectory_recovery_failure_summary_203.json`: category, confidence, and
@@ -34,15 +34,19 @@ This directory contains aggregate analysis tables derived from the release artif
   the final runtime and trajectory-recovery reruns.
 - `affected_contract_rerun_summary_203.json`: outcome and exception summary
   for the 56-task by 10-configuration canonical-contract rerun.
-- `failure_labels_*.jsonl`: parallel annotations for affected-contract
-  non-passes in the four RQ3 configurations.
-- `final_failure_classification_203.jsonl`: final root-cause labels for all 477
+- `environment_repair_rerun_summary_203.json`: outcome and exception summary
+  for the 24-task by 10-configuration environment-repair rerun.
+- `failure_labels_*.jsonl`: parallel annotations for final rerun non-passes in
+  the four RQ3 configurations.
+- `final_failure_classification_203.jsonl`: final root-cause labels for all 474
   non-pass outcomes in the four RQ3 configurations.
 - `final_failure_category_counts_203.csv`: final RQ3 category counts.
 - `final_failure_summary_203.json`: final RQ3 classification provenance and
   aggregate counts.
 - `paper_numbers_203.json`: result-derived numbers used to synchronize the two
   paper worktrees.
+- `test_patch_behavior_classification_203.csv`: static primary test-behavior
+  labels and hidden-test patch-size metrics used for RQ2/RQ4.
 - `test_contract_repair_decisions_2026-07-14.{md,csv}`: decisions and rationale
   for the 37 reviewed semantic/mixed test contracts.
 

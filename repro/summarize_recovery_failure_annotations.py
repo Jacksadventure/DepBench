@@ -42,6 +42,15 @@ def reward_is_pass(value: str) -> bool:
     return value != "" and float(value) == 1.0
 
 
+def expected_annotation_keys() -> set[tuple[str, str, str]]:
+    return {
+        (row["configuration"], row["task"], row["final_trial"])
+        for row in csv.DictReader(FINAL_OUTCOMES_PATH.open(encoding="utf-8"))
+        if row["outcome_source"] == "trajectory_recovery_rerun"
+        and not reward_is_pass(row["final_reward"])
+    }
+
+
 def load_annotations() -> list[dict[str, Any]]:
     rows = []
     for line in ANNOTATION_PATH.read_text(encoding="utf-8").splitlines():
@@ -51,12 +60,7 @@ def load_annotations() -> list[dict[str, Any]]:
 
 
 def validate_annotations(rows: list[dict[str, Any]]) -> None:
-    expected = {
-        (row["configuration"], row["task"], row["final_trial"])
-        for row in csv.DictReader(FINAL_OUTCOMES_PATH.open(encoding="utf-8"))
-        if row["outcome_source"] == "trajectory_recovery_rerun"
-        and not reward_is_pass(row["final_reward"])
-    }
+    expected = expected_annotation_keys()
     actual = {
         (row["configuration"], row["task"], row["trial"]) for row in rows
     }
@@ -89,7 +93,36 @@ def validate_annotations(rows: list[dict[str, Any]]) -> None:
 
 def main() -> int:
     rows = load_annotations()
+    required_fields = {
+        "configuration",
+        "task",
+        "trial",
+        "category",
+        "confidence",
+        "rationale",
+        "evidence_source",
+        "annotator",
+        "visible_then_hidden_overfit",
+    }
+    for index, row in enumerate(rows, start=1):
+        missing = required_fields - set(row)
+        if missing:
+            raise SystemExit(
+                f"trajectory-recovery annotation {index} is missing "
+                f"{sorted(missing)}"
+            )
+    expected = expected_annotation_keys()
+    rows = [
+        row
+        for row in rows
+        if (row["configuration"], row["task"], row["trial"]) in expected
+    ]
     validate_annotations(rows)
+    with ANNOTATION_PATH.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(
+                json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
+            )
     configurations = sorted({row["configuration"] for row in rows})
     by_configuration = {
         configuration: Counter(

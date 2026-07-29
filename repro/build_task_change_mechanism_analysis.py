@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Build the reviewed direct/indirect change-mechanism analysis for 203 tasks."""
 
 from __future__ import annotations

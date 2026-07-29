@@ -56,7 +56,10 @@ After editing the generated config with your own endpoint/auth settings, run:
 harbor run -c repro/examples/codex_gpt55_one_task.json -y
 ```
 
-The run output is written to the `jobs_dir` configured in the JSON file. Keep those run outputs outside the release branch when publishing a clean snapshot.
+The run output is written to the `jobs_dir` configured in the JSON file. Keep
+raw outputs outside the release branch. The release publishes only sanitized
+job archives that exclude authentication, installation, session, cache, and
+SQLite state.
 
 ## Agent adapters
 

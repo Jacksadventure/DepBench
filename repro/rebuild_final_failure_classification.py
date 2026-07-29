@@ -50,6 +50,7 @@ AFFECTED_FILES = {
         "failure_labels_gemini35flash__copilot_cli.jsonl"
     ),
 }
+ENVIRONMENT_FILES = AFFECTED_FILES
 
 
 def jsonl(path: Path) -> list[dict[str, Any]]:
@@ -119,7 +120,16 @@ def keyed_paper_rows(
 ) -> dict[tuple[str, ...], dict[str, Any]]:
     rows = {}
     for row in jsonl(path):
-        configuration = REVERSE_CONFIGURATIONS.get(row["configuration"])
+        observed = row["configuration"]
+        configuration = (
+            observed
+            if observed in CONFIGURATIONS
+            else REVERSE_CONFIGURATIONS.get(observed)
+        )
+        if configuration is None:
+            configuration = REVERSE_CONFIGURATIONS.get(
+                row.get("paper_configuration")
+            )
         if configuration is None:
             continue
         key: tuple[str, ...] = (configuration, row["task"])
@@ -129,14 +139,20 @@ def keyed_paper_rows(
     return rows
 
 
-def load_affected(path: Path) -> dict[tuple[str, str, str], dict[str, Any]]:
+def load_rerun_labels(
+    path: Path,
+    files: dict[str, str],
+    label_name: str,
+) -> dict[tuple[str, str, str], dict[str, Any]]:
     rows = {}
-    for configuration, filename in AFFECTED_FILES.items():
+    for configuration, filename in files.items():
         for row in jsonl(path / filename):
             task = row["task_name"].split("/")[-1]
             key = (configuration, task, row["trial_name"])
             if key in rows:
-                raise SystemExit(f"duplicate affected failure label: {key}")
+                raise SystemExit(
+                    f"duplicate {label_name} failure label: {key}"
+                )
             evidence = row.get("evidence_source", "")
             if isinstance(evidence, list):
                 row["evidence_source"] = "; ".join(str(item) for item in evidence)
@@ -149,6 +165,7 @@ def main() -> int:
     parser.add_argument("--legacy-annotation-root", type=Path, required=True)
     parser.add_argument("--paper-analysis", type=Path, required=True)
     parser.add_argument("--affected-analysis", type=Path, required=True)
+    parser.add_argument("--environment-analysis", type=Path, required=True)
     args = parser.parse_args()
 
     legacy = load_legacy(args.legacy_annotation_root)
@@ -161,7 +178,16 @@ def main() -> int:
         / "runtime_exception_rerun_failure_classification_203.jsonl",
         include_trial=True,
     )
-    affected = load_affected(args.affected_analysis)
+    affected = load_rerun_labels(
+        args.affected_analysis,
+        AFFECTED_FILES,
+        "affected-contract",
+    )
+    environment = load_rerun_labels(
+        args.environment_analysis,
+        ENVIRONMENT_FILES,
+        "environment-repair",
+    )
 
     outcomes = [
         row
@@ -190,6 +216,19 @@ def main() -> int:
                 ),
             }
             classification_source = "affected_contract_rerun_annotation"
+        elif source == "environment_repair_rerun":
+            label = environment[(configuration, task, trial)]
+            normalized = {
+                "category": label["category"],
+                "confidence": confidence(label["confidence"]),
+                "rationale": label["rationale"],
+                "evidence_source": label["evidence_source"],
+                "annotator": label["annotator"],
+                "visible_then_hidden_overfit": bool(
+                    label["visible_then_hidden_overfit"]
+                ),
+            }
+            classification_source = "environment_repair_rerun_annotation"
         elif source == "targeted_rerun":
             label = runtime[(configuration, task, trial)]
             normalized = {
@@ -276,9 +315,11 @@ def main() -> int:
     keys = {
         (row["configuration"], row["task"], row["trial"]) for row in output
     }
-    if len(output) != 477 or len(keys) != 477:
+    expected = len(outcomes)
+    if len(output) != expected or len(keys) != expected:
         raise SystemExit(
-            f"expected 477 unique final failure labels, got {len(output)}"
+            f"expected {expected} unique final failure labels, "
+            f"got {len(output)}"
         )
 
     with OUTPUT_JSONL.open("w", encoding="utf-8") as handle:
@@ -341,7 +382,7 @@ def main() -> int:
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print("merged 477 final non-pass failure classifications")
+    print(f"merged {len(output)} final non-pass failure classifications")
     return 0
 
 

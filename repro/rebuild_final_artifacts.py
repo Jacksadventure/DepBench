@@ -28,6 +28,7 @@ CORRECTION_RESULTS = (
     ROOT / "results/task_metadata_correction_reruns_203.csv"
 )
 AFFECTED_RESULTS = ROOT / "results/affected_contract_reruns_203.csv"
+ENVIRONMENT_RESULTS = ROOT / "results/environment_repair_reruns_203.csv"
 
 TARGETED_CONFIGURATIONS = {
     "codex_gpt55": ("gpt55__codex", "codex", "gpt55", "gpt-5.5"),
@@ -377,6 +378,50 @@ def load_affected_replacements(
     return replacements
 
 
+def load_environment_replacements(
+    rerun_root: Path,
+) -> dict[tuple[str, str], dict[str, Any]]:
+    replacements: dict[tuple[str, str], dict[str, Any]] = {}
+    rows = list(csv.DictReader(ENVIRONMENT_RESULTS.open(encoding="utf-8")))
+    for row in rows:
+        stem = row["configuration"]
+        harness, llm, model = CONFIGURATIONS[stem]
+        trial_dir = rerun_root / row["trial_dir"]
+        replacement = load_trial_replacement(
+            stem=stem,
+            harness=harness,
+            llm=llm,
+            model=model,
+            task=row["task"],
+            source="environment_repair_rerun",
+            job_name=row["job_name"],
+            trial_name=row["trial"],
+            trial_dir=trial_dir,
+            expected_reward=float(row["reward"]),
+            allow_timeout_as_zero=True,
+        )
+        key = (stem, row["task"])
+        if key in replacements:
+            raise SystemExit(
+                f"duplicate environment rerun replacement: {key}"
+            )
+        replacements[key] = replacement
+
+    tasks = {task for _, task in replacements}
+    configurations = {configuration for configuration, _ in replacements}
+    if (
+        len(replacements) != 240
+        or len(tasks) != 24
+        or configurations != set(CONFIGURATIONS)
+    ):
+        raise SystemExit(
+            "expected a complete 24-task x 10-configuration environment "
+            f"rerun, got cells={len(replacements)} tasks={len(tasks)} "
+            f"configurations={len(configurations)}"
+        )
+    return replacements
+
+
 def verifier_row(replacement: dict[str, Any]) -> dict[str, Any]:
     trial_dir = replacement["trial_dir"]
     stdout_path = trial_dir / "verifier/test-stdout.txt"
@@ -663,11 +708,17 @@ def update_numeric_summaries(
     document["affected_contract_rerun_cells"] = replacement_counts[
         "affected_contract_rerun"
     ]
+    document["environment_repair_rerun_cells"] = replacement_counts[
+        "environment_repair_rerun"
+    ]
     document["task_metadata_correction_rerun_results"] = str(
         CORRECTION_RESULTS.relative_to(ROOT)
     )
     document["affected_contract_rerun_results"] = str(
         AFFECTED_RESULTS.relative_to(ROOT)
+    )
+    document["environment_repair_rerun_results"] = str(
+        ENVIRONMENT_RESULTS.relative_to(ROOT)
     )
     summary_json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
@@ -863,8 +914,9 @@ def update_indexes(
             "",
             (
                 "Rows replaced by targeted, trajectory-recovery, task-metadata "
-                "correction, or affected-contract reruns record `outcome_source`, "
-                "`source_job`, and `trajectory_source`."
+                "correction, affected-contract, or environment-repair reruns "
+                "record `outcome_source`, `source_job`, and "
+                "`trajectory_source`."
             ),
             "",
             (
@@ -935,6 +987,8 @@ def main() -> int:
     parser.add_argument("--include-correction", action="store_true")
     parser.add_argument("--include-affected", action="store_true")
     parser.add_argument("--affected-root", type=Path)
+    parser.add_argument("--include-environment", action="store_true")
+    parser.add_argument("--environment-root", type=Path)
     args = parser.parse_args()
 
     experiment_root = args.experiment_root.resolve()
@@ -971,6 +1025,21 @@ def main() -> int:
                 f"{len(overlap)}"
             )
         replacements.update(affected_replacements)
+    if args.include_environment:
+        if args.environment_root is None:
+            raise SystemExit(
+                "--include-environment requires --environment-root"
+            )
+        environment_replacements = load_environment_replacements(
+            args.environment_root.resolve()
+        )
+        overlap = set(replacements) & set(environment_replacements)
+        if len(overlap) != 91:
+            raise SystemExit(
+                f"expected 91 prior rerun cells to be superseded, got "
+                f"{len(overlap)}"
+            )
+        replacements.update(environment_replacements)
 
     replacement_counts = Counter(
         replacement["outcome_source"] for replacement in replacements.values()

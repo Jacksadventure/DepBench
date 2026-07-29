@@ -20,6 +20,12 @@ PAPER_NUMBERS_PATH = ROOT / "analysis/paper_numbers_203.json"
 RECOVERY_FAILURE_SUMMARY_PATH = (
     ROOT / "analysis/trajectory_recovery_failure_summary_203.json"
 )
+ENVIRONMENT_RERUN_SUMMARY_PATH = (
+    ROOT / "analysis/environment_repair_rerun_summary_203.json"
+)
+TEST_PATCH_BEHAVIOR_PATH = (
+    ROOT / "analysis/test_patch_behavior_classification_203.csv"
+)
 
 
 def reward_is_pass(value: str) -> bool:
@@ -139,6 +145,70 @@ def trajectory_behavior_by_source() -> dict[str, dict[str, dict[str, int]]]:
     return result
 
 
+def test_patch_hardness(
+    maps: dict[str, dict[str, bool]],
+) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, float | int]]]:
+    rows = list(
+        csv.DictReader(TEST_PATCH_BEHAVIOR_PATH.open(encoding="utf-8"))
+    )
+    if len(rows) != 203 or len({row["folder"] for row in rows}) != 203:
+        raise SystemExit("expected 203 unique test-patch behavior rows")
+    gpt_configurations = sorted(
+        configuration
+        for configuration in maps
+        if configuration.startswith("gpt55__")
+    )
+    if len(gpt_configurations) != 4:
+        raise SystemExit("expected four GPT-5.5 configurations")
+
+    zero_pass = {
+        task
+        for task in maps[gpt_configurations[0]]
+        if not any(maps[configuration][task] for configuration in gpt_configurations)
+    }
+    all_pass = {
+        task
+        for task in maps[gpt_configurations[0]]
+        if all(maps[configuration][task] for configuration in gpt_configurations)
+    }
+    quality: dict[str, dict[str, int]] = {}
+    for category in (
+        "ADDS_NEW_TESTS",
+        "CORRECTS_EXISTING_BEHAVIOR",
+        "MIXED",
+        "TEST_INFRA_OR_FIXTURE_ONLY",
+    ):
+        tasks = {
+            row["folder"]
+            for row in rows
+            if row["primary_classification"] == category
+        }
+        quality[category] = {
+            "tasks": len(tasks),
+            "zero_pass": len(tasks & zero_pass),
+        }
+
+    by_task = {row["folder"]: row for row in rows}
+
+    def surface(tasks: set[str]) -> dict[str, float | int]:
+        changed_lines = [
+            int(by_task[task]["added_lines"])
+            + int(by_task[task]["deleted_lines"])
+            for task in tasks
+        ]
+        files = [int(by_task[task]["files_touched"]) for task in tasks]
+        return {
+            "tasks": len(tasks),
+            "mean_changed_lines": sum(changed_lines) / len(changed_lines),
+            "mean_files_touched": sum(files) / len(files),
+        }
+
+    return quality, {
+        "zero_pass": surface(zero_pass),
+        "all_pass": surface(all_pass),
+    }
+
+
 def main() -> int:
     outcomes = load_outcomes()
     maps = pass_maps(outcomes)
@@ -164,6 +234,7 @@ def main() -> int:
         }
 
     overlap, overlap_totals = overlap_analysis(maps, ecosystems)
+    test_quality, hidden_test_patch = test_patch_hardness(maps)
     trajectory_behavior = list(
         csv.DictReader(
             (ROOT / "analysis/trajectory_behavior_summary_203.csv").open(
@@ -178,9 +249,14 @@ def main() -> int:
     document["pass_overlap"] = overlap
     document["gpt55_zero_pass_total"] = overlap_totals["gpt55"]["zero"]
     document["gpt55_all_pass_total"] = overlap_totals["gpt55"]["all"]
+    document["gpt55_test_quality_zero_pass"] = test_quality
+    document["gpt55_hidden_test_patch_stats"] = hidden_test_patch
     document["trajectory_recovery_rerun"] = recovery_summary()
     document["trajectory_recovery_failure_analysis"] = json.loads(
         RECOVERY_FAILURE_SUMMARY_PATH.read_text(encoding="utf-8")
+    )
+    document["environment_repair_rerun"] = json.loads(
+        ENVIRONMENT_RERUN_SUMMARY_PATH.read_text(encoding="utf-8")
     )
     document["final_trajectory_scan_by_source"] = (
         trajectory_behavior_by_source()
@@ -212,6 +288,8 @@ def main() -> int:
         "ecosystem_pass_counts": ecosystem_pass_counts,
         "pass_overlap": overlap,
         "pass_overlap_totals": overlap_totals,
+        "gpt55_test_quality_zero_pass": test_quality,
+        "gpt55_hidden_test_patch_stats": hidden_test_patch,
         "final_trajectory_scan": document["final_trajectory_scan"],
         "final_trajectory_scan_by_source": document[
             "final_trajectory_scan_by_source"
@@ -219,6 +297,9 @@ def main() -> int:
         "trajectory_recovery_rerun": document["trajectory_recovery_rerun"],
         "trajectory_recovery_failure_analysis": document[
             "trajectory_recovery_failure_analysis"
+        ],
+        "environment_repair_rerun": document[
+            "environment_repair_rerun"
         ],
     }
     PAPER_NUMBERS_PATH.write_text(

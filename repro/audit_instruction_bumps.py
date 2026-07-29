@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Audit every task instruction against its manifest patch and upstream PR."""
 
 from __future__ import annotations

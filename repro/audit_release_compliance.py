@@ -9,10 +9,13 @@ from __future__ import annotations
 import base64
 import csv
 import gzip
+import hashlib
+import json
 import re
 import subprocess
-from collections import Counter
-from pathlib import Path
+import tarfile
+from collections import Counter, defaultdict
+from pathlib import Path, PurePosixPath
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,13 +56,16 @@ SECRET_PATTERNS = {
     "GitHub token": re.compile(
         rb"(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{30,})"
     ),
-    "OpenAI-style key": re.compile(rb"\b(?:sk|rk)-[A-Za-z0-9]{20,}\b"),
-    "AWS access key": re.compile(rb"\bAKIA[0-9A-Z]{16}\b"),
+    "OpenAI-style key": re.compile(
+        rb"\b(?:sk-proj|sk|rk)-[A-Za-z0-9_-]{20,}\b"
+    ),
+    "AWS access key": re.compile(rb"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
 }
 PRIVATE_KEY_PATTERN = re.compile(
-    rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+    rb"-----BEGIN (?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY-----"
 )
 KNOWN_EXAMPLE_AWS_KEY = b"AKIAI44QH8DHBEXAMPLE"
+MAX_PUBLICATION_FILE_BYTES = 95 * 1024 * 1024
 
 
 def release_files() -> list[Path]:
@@ -72,18 +78,122 @@ def release_files() -> list[Path]:
     return sorted(set(files))
 
 
-def iter_payloads(path: Path):
+def safe_archive_members(
+    archive: tarfile.TarFile,
+    *,
+    relative: Path,
+    errors: list[str],
+) -> list[tarfile.TarInfo]:
+    members = archive.getmembers()
+    names = [member.name for member in members]
+    if len(names) != len(set(names)):
+        errors.append(f"{relative}: archive contains duplicate member names")
+    safe = []
+    for member in members:
+        name = PurePosixPath(member.name)
+        if name.is_absolute() or ".." in name.parts:
+            errors.append(f"{relative}: unsafe archive member {member.name!r}")
+            continue
+        if not member.isfile():
+            errors.append(
+                f"{relative}: archive member is not a regular file: "
+                f"{member.name!r}"
+            )
+            continue
+        safe.append(member)
+    return safe
+
+
+def iter_payloads(path: Path, errors: list[str]):
     relative = path.relative_to(ROOT)
+    if path.name.endswith(".tar.gz"):
+        try:
+            with tarfile.open(path, "r:gz") as archive:
+                members = safe_archive_members(
+                    archive, relative=relative, errors=errors
+                )
+                task_by_trial = {}
+                for member in members:
+                    if not member.name.endswith("/result.json"):
+                        continue
+                    extracted = archive.extractfile(member)
+                    if extracted is None:
+                        errors.append(
+                            f"{relative}: cannot extract {member.name!r}"
+                        )
+                        continue
+                    try:
+                        result = json.loads(extracted.read())
+                    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                        errors.append(
+                            f"{relative}:{member.name}: invalid result JSON: "
+                            f"{error}"
+                        )
+                        continue
+                    task = str(result.get("task_name") or "").split("/")[-1]
+                    if task:
+                        task_by_trial[
+                            member.name.removesuffix("/result.json")
+                        ] = task
+                for member in members:
+                    extracted = archive.extractfile(member)
+                    if extracted is None:
+                        errors.append(
+                            f"{relative}: cannot extract {member.name!r}"
+                        )
+                        continue
+                    trial_root = next(
+                        (
+                            root
+                            for root in task_by_trial
+                            if member.name == root
+                            or member.name.startswith(f"{root}/")
+                        ),
+                        "",
+                    )
+                    yield (
+                        f"{relative}:{member.name}",
+                        extracted.read(),
+                        str(relative),
+                        task_by_trial.get(trial_root, "job-bundle"),
+                    )
+        except (tarfile.TarError, OSError) as error:
+            errors.append(f"{relative}: cannot unpack tar archive: {error}")
+        return
+
     if path.suffix == ".gz":
         try:
             with gzip.open(path, "rb") as handle:
                 for line_number, line in enumerate(handle, 1):
-                    yield f"{relative}:{line_number}", line
-        except (gzip.BadGzipFile, OSError):
-            yield str(relative), path.read_bytes()
+                    task = "compressed-artifact"
+                    try:
+                        row = json.loads(line)
+                        task = str(row.get("task") or task)
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        pass
+                    yield (
+                        f"{relative}:{line_number}",
+                        line,
+                        str(relative),
+                        task,
+                    )
+        except (gzip.BadGzipFile, OSError, EOFError) as error:
+            errors.append(f"{relative}: cannot unpack gzip stream: {error}")
         return
 
-    yield str(relative), path.read_bytes()
+    task = "repository-file"
+    if relative.parts[:2] == ("dataset", "tasks") and len(relative.parts) >= 3:
+        task = relative.parts[2]
+    yield str(relative), path.read_bytes(), str(relative), task
+
+
+def evidence_fingerprint(rows: list[tuple[str, bytes]]) -> str:
+    digest = hashlib.sha256()
+    for label, payload in sorted(rows):
+        digest.update(label.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(payload).digest())
+    return digest.hexdigest()
 
 
 def check_governance(errors: list[str]) -> None:
@@ -145,12 +255,24 @@ def check_license_inventory(errors: list[str]) -> None:
 
 
 def scan_content(errors: list[str], warnings: list[str]) -> None:
-    private_key_hits = 0
+    private_key_counts: Counter[tuple[str, str]] = Counter()
+    private_key_evidence: dict[
+        tuple[str, str], list[tuple[str, bytes]]
+    ] = defaultdict(list)
     scanned = 0
     for path in release_files():
         if path.resolve() == SELF:
             continue
-        for label, payload in iter_payloads(path):
+        relative = path.relative_to(ROOT)
+        if (
+            relative.parts
+            and relative.parts[0] == "jobs"
+            and path.stat().st_size >= MAX_PUBLICATION_FILE_BYTES
+        ):
+            errors.append(
+                f"{relative}: exceeds the 95 MiB publication limit"
+            )
+        for label, payload, artifact, task in iter_payloads(path, errors):
             scanned += len(payload)
             text = payload.decode("utf-8", errors="ignore")
             for marker in INTERNAL_MARKERS:
@@ -163,27 +285,65 @@ def scan_content(errors: list[str], warnings: list[str]) -> None:
                         continue
                     errors.append(f"{label}: possible {name}")
 
-            private_key_hits += len(PRIVATE_KEY_PATTERN.findall(payload))
+            count = len(PRIVATE_KEY_PATTERN.findall(payload))
+            if count:
+                key = (artifact, task)
+                private_key_counts[key] += count
+                private_key_evidence[key].append((label, payload))
 
-    if private_key_hits:
-        review_rows = list(
-            csv.DictReader(
-                (ROOT / "analysis/secret_scan_review_2026-07-23.csv").open(
-                    encoding="utf-8"
-                )
+    review_rows = list(
+        csv.DictReader(
+            (ROOT / "analysis/secret_scan_review_2026-07-23.csv").open(
+                encoding="utf-8"
             )
         )
-        dataset_present = (ROOT / "dataset/tasks").is_dir()
-        documented_hits = sum(
-            int(row["private_key_headers"])
-            for row in review_rows
-            if dataset_present or not row["artifact"].startswith("dataset/")
-        )
-        if private_key_hits != documented_hits:
+    )
+    dataset_present = (ROOT / "dataset/tasks").is_dir()
+    applicable_rows = [
+        row
+        for row in review_rows
+        if dataset_present or not row["artifact"].startswith("dataset/")
+    ]
+    documented = {}
+    for row in applicable_rows:
+        key = (row["artifact"], row["task"])
+        if key in documented:
+            errors.append(f"duplicate private-key review row: {key}")
+            continue
+        documented[key] = row
+        classification = row["classification"].strip().upper()
+        disposition = row["disposition"].strip().upper()
+        if classification == "UNREVIEWED" or disposition == "BLOCK_RELEASE":
             errors.append(
-                "private-key fixture count differs from the reviewed inventory: "
-                f"observed={private_key_hits} documented={documented_hits}"
+                f"{key}: private-key evidence has not been approved"
             )
+
+    observed = {
+        key: {
+            "count": count,
+            "evidence_sha256": evidence_fingerprint(
+                private_key_evidence[key]
+            ),
+        }
+        for key, count in private_key_counts.items()
+    }
+    documented_values = {
+        key: {
+            "count": int(row["private_key_headers"]),
+            "evidence_sha256": row.get("evidence_sha256", ""),
+        }
+        for key, row in documented.items()
+    }
+    if observed != documented_values:
+        errors.append(
+            "private-key evidence differs from the reviewed inventory: "
+            f"missing={sorted(set(observed) - set(documented_values))} "
+            f"extra={sorted(set(documented_values) - set(observed))} "
+            f"changed={sorted(key for key in set(observed) & set(documented_values) if observed[key] != documented_values[key])}"
+        )
+
+    private_key_hits = sum(private_key_counts.values())
+    if private_key_hits:
         warnings.append(
             f"{private_key_hits} private-key header(s) found in public upstream "
             "test fixtures; obtain an approved scanner suppression or remove "
