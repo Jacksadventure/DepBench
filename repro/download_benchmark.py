@@ -17,9 +17,9 @@ from huggingface_hub import hf_hub_download
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPO_ID = "ZijiantheJack/DepBench"
-DEFAULT_REVISION = "548a94382dd715764f1956b66ea9d7671f011d7e"
+DEFAULT_REVISION = "e674c1053ff15f67b1b7f47be0985a7b0cd29b07"
 ARCHIVE_FILENAME = "depbench-v4-with-test203.tar.gz"
-ARCHIVE_SHA256 = "482e2acb724ac6119267b65aa10983f3363203a65b5ec20da2cd5cd991109174"
+ARCHIVE_SHA256 = "2f5207ce8a73a31d812839b853728d54d117c19829aa3d5a8f631388af52d076"
 EXPECTED_TASKS = 203
 
 

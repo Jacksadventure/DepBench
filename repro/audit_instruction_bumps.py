@@ -27,6 +27,24 @@ FORBIDDEN_INSTRUCTION_TEXT = (
 )
 GROUP_OLD_VALUES = {"multiple versions", "previous versions"}
 GROUP_NEW_VALUES = {"updated versions"}
+BUMPS_SENTENCE_OVERRIDES = {
+    "algolia__react-element-to-jsx-string__305": (
+        "Bumps `babel-jest` from 22.2.2 to 23.6.0, `expect` from 22.3.0 "
+        "to 23.6.0, and `jest` from 22.3.0 to 23.6.0."
+    ),
+    "ardatan__graphql-tools__7001": (
+        "Bumps `@envelop/core` from 5.2.0 to 5.2.1 and "
+        "`@envelop/live-query` from 8.1.0 to 8.1.1."
+    ),
+    "libp2p__js-libp2p-bootstrap__171": (
+        "Bumps `@libp2p/interface-peer-store` from 1.2.2 to 2.0.0 and "
+        "adds `sinon-ts` 1.0.0."
+    ),
+    "nextcloud__spreed__6266": (
+        "Bumps `vue-material-design-icons` from 4.12.1 to 4.13.0 and "
+        "adds `vue-template-compiler` 2.6.14."
+    ),
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,9 +78,13 @@ def parse_args() -> argparse.Namespace:
 
 def expected_instruction(row: dict[str, str]) -> str:
     owner, repository, _ = row["folder"].split("__")
+    bump_sentence = BUMPS_SENTENCE_OVERRIDES.get(
+        row["folder"],
+        f"Bumps `{row['library']}` from {row['old_version']} to {row['new_version']}.",
+    )
     return (
         f"{CANARY}\n\n\n{MODE}\n\n"
-        f"Bumps `{row['library']}` from {row['old_version']} to {row['new_version']}.\n\n"
+        f"{bump_sentence}\n\n"
         "## Constraints\n\n"
         "- **Do not access this task's upstream repository, pull request, commits, "
         "patches, or diffs.** Do not open, fetch, clone, search for, or otherwise "
