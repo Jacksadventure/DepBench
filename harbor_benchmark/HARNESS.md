@@ -443,6 +443,9 @@ TOTAL :           45    109  154   29.2%
   end-to-end and do not advertise `manifest.patch`. The 14 tasks identified
   by the audit are pre-applied only by the downstream MSBench preparation
   pipeline.
+- **Instruction formatting:** removed the internal
+  `v3-no-manifest-preapply` HTML marker from task instructions. The execution
+  contract is unchanged; canonical tasks still require an end-to-end upgrade.
 
 ### v4 Maven verifier environment repair — 57 tasks (2026-07-13)
 
@@ -582,7 +585,6 @@ Cross-task matrix on the same 155 tasks:
 - **Instruction minimization (155/155)**: every `instruction.md` rewritten to the absolute minimum the agent needs:
   ```
   <!-- harbor-canary GUID ... -->
-  <!-- v3-no-manifest-preapply -->
 
   Bumps `<pkg>` from <from> to <to>.
 
