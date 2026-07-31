@@ -34,8 +34,12 @@ def _apply_test_patch():
 
 def _assert_dependency_upgrade():
     lockfile = json.loads(open("/app/package-lock.json", encoding="utf-8").read())
+    installed_path = "/app/node_modules/typescript/package.json"
+    assert os.path.exists(installed_path), (
+        "node_modules must contain TypeScript 4.4.4"
+    )
     installed = json.loads(
-        open("/app/node_modules/typescript/package.json", encoding="utf-8").read()
+        open(installed_path, encoding="utf-8").read()
     )
     assert lockfile.get("dependencies", {}).get("typescript", {}).get("version") == "4.4.4", (
         "package-lock.json must resolve TypeScript 4.4.4"

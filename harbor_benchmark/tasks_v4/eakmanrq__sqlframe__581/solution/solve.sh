@@ -23,7 +23,7 @@ else
 fi
 
 # Replay any install/setup commands that used to run after the manifest patch was baked into the image.
-( cd /app && bash -lc 'pip install -e .[test,dev,tests,testing] || pip install -e .' )
+( cd /app && bash -lc 'python -m pip install --upgrade "sqlglot>=28.7,<28.8"; pip install -e .[test,dev,tests,testing] || pip install -e .' )
 
 cd /app
 if [ -s /solution/code.patch ]; then

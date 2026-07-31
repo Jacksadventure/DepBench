@@ -22,11 +22,12 @@ else
     echo 'manifest.patch not found at /harbor/environment/patches/manifest.patch, /environment/patches/manifest.patch, or /solution/manifest.patch; skipping' >&2
 fi
 
-( cd /app/crates/jsonschema && bash -lc 'git submodule update --init --recursive && env PATH=/root/.cargo/bin:/usr/local/cargo/bin:$PATH cargo fetch' )
+( cd /app && bash -lc 'env PATH=/root/.cargo/bin:/usr/local/cargo/bin:$PATH cargo fetch' )
 
 cd /app
 if [ -s /solution/code.patch ]; then
-    _apply_patch /solution/code.patch
+    # Apply with reduced context against the vendored baseline.
+    git apply --whitespace=nowarn -C1 /solution/code.patch
 else
     echo 'code.patch empty: nothing to apply.'
 fi

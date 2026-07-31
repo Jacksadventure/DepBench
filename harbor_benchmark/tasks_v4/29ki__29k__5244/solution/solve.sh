@@ -11,6 +11,8 @@ apply_patch_once() {
     local patch_file="$1"
     if git apply --whitespace=nowarn --check "$patch_file"; then
         git apply --whitespace=nowarn "$patch_file"
+    elif git apply --whitespace=nowarn -C1 --check "$patch_file"; then
+        git apply --whitespace=nowarn -C1 "$patch_file"
     elif git apply --whitespace=nowarn --reverse --check "$patch_file"; then
         echo "$patch_file already applied; skipping."
     else

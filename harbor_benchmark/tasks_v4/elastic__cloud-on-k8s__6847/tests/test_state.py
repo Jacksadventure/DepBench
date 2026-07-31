@@ -104,7 +104,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'go test ./pkg/utils/test ./test/e2e/test/elasticsearch ./test/e2e/test/logstash',
+        'env GOTOOLCHAIN=auto PATH=/usr/local/go/bin:/go/bin:$PATH go test ./pkg/utils/test ./test/e2e/test/elasticsearch ./test/e2e/test/logstash',
         shell=True,
         cwd="/app",
         capture_output=True,

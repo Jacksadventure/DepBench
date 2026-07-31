@@ -37,7 +37,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'MJML_BUILD=true mix test --seed 0',
+        'PATH=/root/.cargo/bin:$PATH MJML_BUILD=true mix test --seed 0',
         shell=True,
         cwd="/app",
         capture_output=True,

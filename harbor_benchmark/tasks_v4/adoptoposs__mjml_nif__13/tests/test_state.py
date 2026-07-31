@@ -37,7 +37,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        'MIX_ENV=test mix test',
+        'PATH=/root/.cargo/bin:$PATH MIX_ENV=test mix test',
         shell=True,
         cwd="/app",
         capture_output=True,

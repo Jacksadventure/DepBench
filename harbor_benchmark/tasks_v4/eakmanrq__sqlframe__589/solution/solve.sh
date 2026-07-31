@@ -32,4 +32,6 @@ else
     echo 'code.patch empty: nothing to apply.'
 fi
 
+( cd /app && uv sync --all-extras )
+
 echo "Solution applied successfully."

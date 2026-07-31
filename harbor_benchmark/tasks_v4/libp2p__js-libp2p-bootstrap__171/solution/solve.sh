@@ -29,7 +29,7 @@ else
 fi
 
 # 2) Replay the post-manifest install / setup commands originally baked into Dockerfile
-( cd /app && bash -c 'npm install --no-audit --no-fund && npm install --save-dev --no-audit --no-fund sinon-ts sinon' )
+( cd /app && bash -c 'npm install --no-audit --no-fund' )
 
 
 # 3) Apply the source-code fix

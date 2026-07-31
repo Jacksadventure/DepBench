@@ -106,10 +106,7 @@ def _assert_dependency_upgrade():
             encoding="utf-8",
         ).read()
     )
-    assert package_json.get("devDependencies", {}).get("safe-code-point") in {
-        "2.0.0",
-        "^2.0.0",
-    }
+    assert package_json.get("devDependencies", {}).get("safe-code-point") == "2.0.0"
     assert installed.get("version") == "2.0.0"
 
 

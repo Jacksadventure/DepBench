@@ -420,6 +420,30 @@ TOTAL :           45    109  154   29.2%
 
 ## 8. Variant log (append on each new setting)
 
+### v4 zero-pass contract audit — active 203-task release set (2026-07-31)
+
+- **Verifier bootstrap:** hardened all 203 active release tasks so `apt`,
+  `curl`, and `uv` bootstrap failures exit before `reward.txt` is written.
+  A reward is now written only after pytest runs, preventing transient
+  verifier-network failures from being silently recorded as task failures.
+- **Instruction and gate consistency:** disclosed verifier-required sibling
+  dependencies for `ardatan__graphql-tools__7001`,
+  `algolia__react-element-to-jsx-string__305`,
+  `libp2p__js-libp2p-bootstrap__171`, and
+  `nextcloud__spreed__6266`; made `qntm__base65536__37` require one
+  consistent exact version.
+- **Oracle and verifier repairs:** fixed the confirmed setup, patch-application,
+  toolchain-path, missing-runtime, hidden-install, and verifier-exception
+  defects documented in
+  `harbor_benchmark/reports/zero_pass_contract_audit_20260731.md`.
+- **Validation:** targeted oracle job
+  `harbor_jobs/2026-07-31__05-21-04` passed **20/20** changed high-risk
+  contracts with **0 exceptions** at `timeout_multiplier=2.0`.
+- **Distribution invariant:** canonical release instructions remain
+  end-to-end and do not advertise `manifest.patch`. The 14 tasks identified
+  by the audit are pre-applied only by the downstream MSBench preparation
+  pipeline.
+
 ### v4 Maven verifier environment repair — 57 tasks (2026-07-13)
 
 - A July 13 audit found **166 invalid guarded verifier cells across 57 Maven

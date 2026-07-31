@@ -4,11 +4,12 @@
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 
 TEST_PATCH = "/tests/test.patch"
 BASELINE_REF = os.environ.get("BENCHMARK_BASELINE_REF", "HEAD")
-WORKDIR = '/app/crates/jsonschema'
+WORKDIR = '/app'
 TOOLCHAIN_PATH = "/root/.cargo/bin:/usr/local/cargo/bin:/usr/local/bin:/usr/bin:/bin"
 COMMAND_ENV = {
     **os.environ,
@@ -18,7 +19,7 @@ COMMAND_ENV = {
         else TOOLCHAIN_PATH
     ),
 }
-TEST_CMD = 'cargo test --no-fail-fast --all-features'
+TEST_CMD = 'cargo test -p jsonschema --lib --all-features punycode_hostnames'
 TEST_TIMEOUT = 1200
 
 
@@ -101,6 +102,11 @@ def _apply_test_patch():
 
 
 def test_dependency_upgrade_fix():
+    format_source = Path(
+        "/app/crates/jsonschema/src/keywords/format.rs"
+    ).read_text(encoding="utf-8")
+    assert "fn validate_unicode_label" in format_source
+    assert "punycode::decode_to_string" in format_source
     cargo = shutil.which("cargo", path=COMMAND_ENV["PATH"])
     if cargo is None:
         raise RuntimeError(

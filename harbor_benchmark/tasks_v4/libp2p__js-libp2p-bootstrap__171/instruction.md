@@ -3,7 +3,7 @@
 
 <!-- v3-no-manifest-preapply -->
 
-Bumps `@libp2p/interface-peer-store` from 1.2.2 to 2.0.0.
+Bumps `@libp2p/interface-peer-store` from 1.2.2 to 2.0.0 and adds `sinon-ts` 1.0.0.
 
 ## Constraints
 

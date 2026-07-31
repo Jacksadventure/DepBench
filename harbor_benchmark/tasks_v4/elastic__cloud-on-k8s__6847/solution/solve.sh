@@ -64,7 +64,7 @@ _run_setup() {
 _apply_manifest_patch
 
 # Replay setup commands that previously ran after manifest.patch was baked into the image.
-_run_setup /app 'go mod download'
+_run_setup /app 'env GOTOOLCHAIN=auto PATH=/usr/local/go/bin:/go/bin:$PATH go mod download'
 
 cd /app
 if [ -s /solution/code.patch ]; then

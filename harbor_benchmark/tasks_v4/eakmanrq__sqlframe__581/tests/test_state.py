@@ -104,7 +104,7 @@ def test_dependency_upgrade_fix():
     _apply_test_patch()
 
     result = subprocess.run(
-        '/usr/local/bin/python -m pip install pytest-xdist databricks-sql-connector && /usr/local/bin/python -m pytest "tests/integration/engines/test_int_functions.py::test_try_element_at[duckdb]" tests/unit/standalone/test_functions.py::test_array_append tests/unit/standalone/test_functions.py::test_array_prepend -x -q',
+        '/usr/local/bin/python -m pip install pytest-xdist databricks-sql-connector pytz && /usr/local/bin/python -m pytest "tests/integration/engines/test_int_functions.py::test_try_element_at[duckdb]" tests/unit/standalone/test_functions.py::test_array_append tests/unit/standalone/test_functions.py::test_array_prepend -x -q',
         shell=True,
         cwd="/app",
         capture_output=True,

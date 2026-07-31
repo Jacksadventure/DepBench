@@ -27,7 +27,14 @@ echo 'no post-manifest install commands'
 
 cd /app
 if [ -s /solution/code.patch ]; then
-    _apply_patch /solution/code.patch
+    # Apply each path independently; the image already contains one hunk.
+    build_script='.devenv/scripts/build/build.sh'
+    if git apply --reverse --check --include="$build_script" /solution/code.patch >/dev/null 2>&1; then
+        echo "code.patch already applied: $build_script"
+    else
+        git apply --whitespace=nowarn --ignore-whitespace --include="$build_script" /solution/code.patch
+    fi
+    git apply --whitespace=nowarn --ignore-whitespace --include='*/SchemaValidator.java' /solution/code.patch
 else
     echo 'code.patch empty: nothing to apply.'
 fi

@@ -19,7 +19,7 @@ else
 fi
 
 # 2) Replay the post-manifest install / setup commands originally baked into Dockerfile
-( cd /app && bash -c 'npm install --no-audit --no-fund --legacy-peer-deps && npm install --no-save --no-audit --no-fund --legacy-peer-deps vue-template-compiler@2.6.14' )
+( cd /app && bash -c 'npm install --no-audit --no-fund --legacy-peer-deps' )
 
 
 # 3) Apply the source-code fix
