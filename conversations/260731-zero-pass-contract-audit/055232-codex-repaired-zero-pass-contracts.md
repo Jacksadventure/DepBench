@@ -27,6 +27,11 @@ Canonical commit:
 Pushed to both `origin/v4-with-test` and
 `Jacksadventure/DepBench@v4-with-test`.
 
+The later instruction-format cleanup removed the internal
+`v3-no-manifest-preapply` HTML marker from all task instructions at commit
+`9750bc95f5d0830059346fb1b3f6c947e40cb7d9`. This did not change task
+execution semantics.
+
 Oracle validation:
 
 - Config: `_run_configs/oracle_zero_pass_repairs_20260731.yaml`
@@ -38,21 +43,22 @@ Oracle validation:
 Hugging Face:
 
 - Repository: `ZijiantheJack/DepBench`
-- Revision: `e674c1053ff15f67b1b7f47be0985a7b0cd29b07`
+- Revision: `678ef766a0dfbe3953557270b2bcbcbac683900c`
 - Archive SHA256:
-  `2f5207ce8a73a31d812839b853728d54d117c19829aa3d5a8f631388af52d076`
+  `8a652fa388bcb8ebe23e3cf9906073cbf3bb2a693586240fa48df3942c95879d`
 - All 203 instructions passed the bump audit.
 - No public instruction mentions `manifest.patch` or says that the upgrade has
   not been applied.
+- No public instruction contains an internal mode marker.
 
 Release:
 
-- Commit: `3aeb7f450ae195d48d195ff3c395b6df84e4fe57`
+- Commit: `2b194cf42510db710e8bc506da05b143e4543d8e`
 - Pushed to both GitHub `main` remotes.
 
 MSBench:
 
-- Commit: `9425e75462ca27f7ef9b505cfada4bccd6c78e4d`
+- Commit: `5ef3263829518d8bf4adb8fde8fd7d099b962424`
 - Branch: `depbench/affected56-sync-20260727`
 - PR: `764901`
 - The 14 requested tasks have an MSBench pre-agent hook, an empty solution
@@ -61,4 +67,5 @@ MSBench:
 - All 14 hooks were tested in their real images and passed.
 - The generated dataset has 203 rows and all 203 verifiers carry the hardened
   bootstrap behavior.
-
+- The generated instructions contain no internal mode markers. Pre-applied
+  tasks retain only the visible sentence describing their checkout state.
