@@ -29,6 +29,9 @@ CORRECTION_RESULTS = (
 )
 AFFECTED_RESULTS = ROOT / "results/affected_contract_reruns_203.csv"
 ENVIRONMENT_RESULTS = ROOT / "results/environment_repair_reruns_203.csv"
+ZERO_PASS_RESULTS = (
+    ROOT / "results/zero_pass_contract_repair_reruns_203.csv"
+)
 
 TARGETED_CONFIGURATIONS = {
     "codex_gpt55": ("gpt55__codex", "codex", "gpt55", "gpt-5.5"),
@@ -422,6 +425,50 @@ def load_environment_replacements(
     return replacements
 
 
+def load_zero_pass_replacements(
+    rerun_root: Path,
+) -> dict[tuple[str, str], dict[str, Any]]:
+    replacements: dict[tuple[str, str], dict[str, Any]] = {}
+    rows = list(csv.DictReader(ZERO_PASS_RESULTS.open(encoding="utf-8")))
+    for row in rows:
+        stem = row["configuration"]
+        harness, llm, model = CONFIGURATIONS[stem]
+        trial_dir = rerun_root / row["trial_dir"]
+        replacement = load_trial_replacement(
+            stem=stem,
+            harness=harness,
+            llm=llm,
+            model=model,
+            task=row["task"],
+            source="zero_pass_contract_repair_rerun",
+            job_name=row["job_name"],
+            trial_name=row["trial"],
+            trial_dir=trial_dir,
+            expected_reward=float(row["reward"]),
+            allow_timeout_as_zero=True,
+        )
+        key = (stem, row["task"])
+        if key in replacements:
+            raise SystemExit(
+                f"duplicate zero-pass repair rerun replacement: {key}"
+            )
+        replacements[key] = replacement
+
+    tasks = {task for _, task in replacements}
+    configurations = {configuration for configuration, _ in replacements}
+    if (
+        len(replacements) != 200
+        or len(tasks) != 20
+        or configurations != set(CONFIGURATIONS)
+    ):
+        raise SystemExit(
+            "expected a complete 20-task x 10-configuration zero-pass "
+            f"repair rerun, got cells={len(replacements)} tasks={len(tasks)} "
+            f"configurations={len(configurations)}"
+        )
+    return replacements
+
+
 def verifier_row(replacement: dict[str, Any]) -> dict[str, Any]:
     trial_dir = replacement["trial_dir"]
     stdout_path = trial_dir / "verifier/test-stdout.txt"
@@ -711,6 +758,9 @@ def update_numeric_summaries(
     document["environment_repair_rerun_cells"] = replacement_counts[
         "environment_repair_rerun"
     ]
+    document["zero_pass_contract_repair_rerun_cells"] = replacement_counts[
+        "zero_pass_contract_repair_rerun"
+    ]
     document["task_metadata_correction_rerun_results"] = str(
         CORRECTION_RESULTS.relative_to(ROOT)
     )
@@ -719,6 +769,9 @@ def update_numeric_summaries(
     )
     document["environment_repair_rerun_results"] = str(
         ENVIRONMENT_RESULTS.relative_to(ROOT)
+    )
+    document["zero_pass_contract_repair_rerun_results"] = str(
+        ZERO_PASS_RESULTS.relative_to(ROOT)
     )
     summary_json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
@@ -914,7 +967,8 @@ def update_indexes(
             "",
             (
                 "Rows replaced by targeted, trajectory-recovery, task-metadata "
-                "correction, affected-contract, or environment-repair reruns "
+                "correction, affected-contract, environment-repair, or "
+                "zero-pass contract-repair reruns "
                 "record `outcome_source`, `source_job`, and "
                 "`trajectory_source`."
             ),
@@ -989,6 +1043,8 @@ def main() -> int:
     parser.add_argument("--affected-root", type=Path)
     parser.add_argument("--include-environment", action="store_true")
     parser.add_argument("--environment-root", type=Path)
+    parser.add_argument("--include-zero-pass-repair", action="store_true")
+    parser.add_argument("--zero-pass-root", type=Path)
     args = parser.parse_args()
 
     experiment_root = args.experiment_root.resolve()
@@ -1040,6 +1096,21 @@ def main() -> int:
                 f"{len(overlap)}"
             )
         replacements.update(environment_replacements)
+    if args.include_zero_pass_repair:
+        if args.zero_pass_root is None:
+            raise SystemExit(
+                "--include-zero-pass-repair requires --zero-pass-root"
+            )
+        zero_pass_replacements = load_zero_pass_replacements(
+            args.zero_pass_root.resolve()
+        )
+        overlap = set(replacements) & set(zero_pass_replacements)
+        if len(overlap) != 104:
+            raise SystemExit(
+                f"expected 104 prior rerun cells to be superseded, got "
+                f"{len(overlap)}"
+            )
+        replacements.update(zero_pass_replacements)
 
     replacement_counts = Counter(
         replacement["outcome_source"] for replacement in replacements.values()

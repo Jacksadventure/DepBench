@@ -36,9 +36,11 @@ This directory contains aggregate analysis tables derived from the release artif
   for the 56-task by 10-configuration canonical-contract rerun.
 - `environment_repair_rerun_summary_203.json`: outcome and exception summary
   for the 24-task by 10-configuration environment-repair rerun.
+- `zero_pass_contract_repair_rerun_summary_203.json`: outcome and exception
+  summary for the 20-task by 10-configuration contract-repair rerun.
 - `failure_labels_*.jsonl`: parallel annotations for final rerun non-passes in
   the four RQ3 configurations.
-- `final_failure_classification_203.jsonl`: final root-cause labels for all 474
+- `final_failure_classification_203.jsonl`: final root-cause labels for all 475
   non-pass outcomes in the four RQ3 configurations.
 - `final_failure_category_counts_203.csv`: final RQ3 category counts.
 - `final_failure_summary_203.json`: final RQ3 classification provenance and

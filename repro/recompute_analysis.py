@@ -23,6 +23,9 @@ RECOVERY_FAILURE_SUMMARY_PATH = (
 ENVIRONMENT_RERUN_SUMMARY_PATH = (
     ROOT / "analysis/environment_repair_rerun_summary_203.json"
 )
+ZERO_PASS_RERUN_SUMMARY_PATH = (
+    ROOT / "analysis/zero_pass_contract_repair_rerun_summary_203.json"
+)
 TEST_PATCH_BEHAVIOR_PATH = (
     ROOT / "analysis/test_patch_behavior_classification_203.csv"
 )
@@ -258,6 +261,9 @@ def main() -> int:
     document["environment_repair_rerun"] = json.loads(
         ENVIRONMENT_RERUN_SUMMARY_PATH.read_text(encoding="utf-8")
     )
+    document["zero_pass_contract_repair_rerun"] = json.loads(
+        ZERO_PASS_RERUN_SUMMARY_PATH.read_text(encoding="utf-8")
+    )
     document["final_trajectory_scan_by_source"] = (
         trajectory_behavior_by_source()
     )
@@ -300,6 +306,9 @@ def main() -> int:
         ],
         "environment_repair_rerun": document[
             "environment_repair_rerun"
+        ],
+        "zero_pass_contract_repair_rerun": document[
+            "zero_pass_contract_repair_rerun"
         ],
     }
     PAPER_NUMBERS_PATH.write_text(

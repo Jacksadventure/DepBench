@@ -87,7 +87,10 @@ def main() -> int:
                 extracted = archive.extractfile(member)
                 if extracted is None:
                     continue
-                result = json.loads(extracted.read())
+                try:
+                    result = json.loads(extracted.read())
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    continue
                 task = str(result.get("task_name") or "").split("/")[-1]
                 if task:
                     task_by_trial[member.name.removesuffix("/result.json")] = task

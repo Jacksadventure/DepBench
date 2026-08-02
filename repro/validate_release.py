@@ -65,6 +65,28 @@ ENVIRONMENT_REPAIR_TASKS = {
     "talsma-ict__umldoclet__709",
     "ymtdzzz__otel-tui__153",
 }
+ZERO_PASS_REPAIR_TASKS = {
+    "29ki__29k__5244",
+    "Stranger6667__jsonschema__825",
+    "adoptoposs__mjml_nif__117",
+    "adoptoposs__mjml_nif__13",
+    "algolia__react-element-to-jsx-string__305",
+    "ardatan__graphql-tools__7001",
+    "cryostatio__cryostat-legacy__1880",
+    "decaporg__decap-cms__5178",
+    "eakmanrq__sqlframe__581",
+    "eakmanrq__sqlframe__589",
+    "elastic__cloud-on-k8s__6847",
+    "jo-sm__stylelint_d__185",
+    "kanton-bern__hellodata-be__315",
+    "libp2p__js-libp2p-bootstrap__171",
+    "nextcloud__spreed__6266",
+    "octokit__auth-oauth-app.js__137",
+    "open-telemetry__opentelemetry-go__1872",
+    "operaton__operaton__1523",
+    "oxidecomputer__dropshot__630",
+    "qntm__base65536__37",
+}
 
 
 def count_gzip_jsonl(path: Path) -> int:
@@ -152,11 +174,12 @@ def main() -> int:
         manifest.get("dataset") != "DepBench contract-clean 203"
         or manifest.get("tasks") != 203
         or manifest.get("total_trials") != 2030
-        or manifest.get("targeted_rerun_cells") != 46
-        or manifest.get("trajectory_recovery_rerun_cells") != 106
+        or manifest.get("targeted_rerun_cells") != 44
+        or manifest.get("trajectory_recovery_rerun_cells") != 94
         or manifest.get("task_metadata_correction_rerun_cells") != 0
-        or manifest.get("affected_contract_rerun_cells") != 530
-        or manifest.get("environment_repair_rerun_cells") != 240
+        or manifest.get("affected_contract_rerun_cells") != 460
+        or manifest.get("environment_repair_rerun_cells") != 220
+        or manifest.get("zero_pass_contract_repair_rerun_cells") != 200
     ):
         raise SystemExit("MANIFEST.json does not describe the final release")
 
@@ -179,8 +202,8 @@ def main() -> int:
         )
     if {row["task"] for row in final_outcomes} != active_tasks:
         raise SystemExit("final outcome tasks do not match the release")
-    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 46:
-        raise SystemExit("expected 46 final targeted rerun outcomes")
+    if sum(row["outcome_source"] == "targeted_rerun" for row in final_outcomes) != 44:
+        raise SystemExit("expected 44 final targeted rerun outcomes")
     rerun_rows = list(
         csv.DictReader(
             (ROOT / "results/targeted_runtime_exception_reruns_203.csv").open()
@@ -203,10 +226,10 @@ def main() -> int:
             row["outcome_source"] == "trajectory_recovery_rerun"
             for row in final_outcomes
         )
-        != 106
+        != 94
     ):
         raise SystemExit(
-            "final outcomes do not contain 106 trajectory-recovery reruns"
+            "final outcomes do not contain 94 trajectory-recovery reruns"
         )
     correction_rows = list(
         csv.DictReader(
@@ -246,10 +269,10 @@ def main() -> int:
             row["outcome_source"] == "affected_contract_rerun"
             for row in final_outcomes
         )
-        != 530
+        != 460
     ):
         raise SystemExit(
-            "final outcomes do not contain 530 affected-contract reruns"
+            "final outcomes do not contain 460 affected-contract reruns"
         )
 
     environment_rows = list(
@@ -275,19 +298,29 @@ def main() -> int:
             "environment-repair reruns do not cover the expected "
             "24-task x 10-configuration matrix"
         )
+    zero_pass_cells = {
+        (configuration, task)
+        for configuration in CONFIGURATIONS
+        for task in ZERO_PASS_REPAIR_TASKS
+    }
+    expected_final_environment_cells = (
+        expected_environment_cells - zero_pass_cells
+    )
     final_environment_rows = {
         (row["configuration"], row["task"]): row
         for row in final_outcomes
         if row["outcome_source"] == "environment_repair_rerun"
     }
     if (
-        set(final_environment_rows) != expected_environment_cells
+        set(final_environment_rows) != expected_final_environment_cells
     ):
         raise SystemExit(
             "final outcomes do not contain the expected environment-repair cells"
         )
     for row in environment_rows:
         key = (row["configuration"], row["task"])
+        if key not in expected_final_environment_cells:
+            continue
         final = final_environment_rows[key]
         if (
             final["final_trial"] != row["trial"]
@@ -343,6 +376,97 @@ def main() -> int:
         if environment_summary["by_configuration"][configuration] != expected:
             raise SystemExit(
                 f"{configuration}: environment summary is stale"
+            )
+
+    zero_pass_rows = list(
+        csv.DictReader(
+            (
+                ROOT
+                / "results/zero_pass_contract_repair_reruns_203.csv"
+            ).open()
+        )
+    )
+    expected_zero_pass_cells = zero_pass_cells
+    zero_pass_cells = {
+        (row["configuration"], row["task"]) for row in zero_pass_rows
+    }
+    if (
+        len(zero_pass_rows) != 200
+        or zero_pass_cells != expected_zero_pass_cells
+    ):
+        raise SystemExit(
+            "zero-pass contract-repair reruns do not cover the expected "
+            "20-task x 10-configuration matrix"
+        )
+    final_zero_pass_rows = {
+        (row["configuration"], row["task"]): row
+        for row in final_outcomes
+        if row["outcome_source"] == "zero_pass_contract_repair_rerun"
+    }
+    if set(final_zero_pass_rows) != expected_zero_pass_cells:
+        raise SystemExit(
+            "final outcomes do not contain the expected zero-pass "
+            "contract-repair cells"
+        )
+    for row in zero_pass_rows:
+        key = (row["configuration"], row["task"])
+        final = final_zero_pass_rows[key]
+        if (
+            final["final_trial"] != row["trial"]
+            or final["final_job"] != row["job_name"]
+            or final["final_reward"] != row["reward"]
+            or final["rerun_exception_type"] != row["exception_type"]
+            or final["rerun_exception_message"] != row["exception_message"]
+        ):
+            raise SystemExit(
+                f"{key}: zero-pass repair provenance does not match "
+                "the final outcome"
+            )
+
+    zero_pass_summary = json.loads(
+        (
+            ROOT
+            / "analysis/zero_pass_contract_repair_rerun_summary_203.json"
+        ).read_text(encoding="utf-8")
+    )
+    expected_zero_pass_summary = {
+        "affected_tasks": 20,
+        "configurations": 10,
+        "trials": 200,
+        "pass": sum(row["reward"] == "1.0" for row in zero_pass_rows),
+        "non_pass": sum(row["reward"] != "1.0" for row in zero_pass_rows),
+    }
+    for field, expected in expected_zero_pass_summary.items():
+        if zero_pass_summary.get(field) != expected:
+            raise SystemExit(
+                f"zero-pass repair summary {field} is stale: "
+                f"{zero_pass_summary.get(field)} != {expected}"
+            )
+    if set(zero_pass_summary.get("by_configuration", {})) != CONFIGURATIONS:
+        raise SystemExit(
+            "zero-pass repair summary does not cover all 10 configurations"
+        )
+    for configuration in CONFIGURATIONS:
+        subset = [
+            row
+            for row in zero_pass_rows
+            if row["configuration"] == configuration
+        ]
+        expected = {
+            "trials": 20,
+            "pass": sum(row["reward"] == "1.0" for row in subset),
+            "non_pass": sum(row["reward"] != "1.0" for row in subset),
+            "exceptions": dict(
+                sorted(
+                    Counter(
+                        row["exception_type"] or "none" for row in subset
+                    ).items()
+                )
+            ),
+        }
+        if zero_pass_summary["by_configuration"][configuration] != expected:
+            raise SystemExit(
+                f"{configuration}: zero-pass repair summary is stale"
             )
 
     recovery_annotations = [
@@ -880,6 +1004,8 @@ def main() -> int:
             != recovery_summary
             or document.get("environment_repair_rerun")
             != environment_summary
+            or document.get("zero_pass_contract_repair_rerun")
+            != zero_pass_summary
         ):
             raise SystemExit(
                 f"{document_name} derived analysis numbers are stale"
@@ -1302,6 +1428,51 @@ def main() -> int:
             f"missing={sorted(listed_archives - actual_archives)}"
         )
 
+    zero_bundle_manifest_value = manifest.get(
+        "zero_pass_contract_repair_job_bundle"
+    )
+    if not zero_bundle_manifest_value:
+        raise SystemExit(
+            "MANIFEST does not identify the zero-pass repair job bundle"
+        )
+    zero_bundle_manifest_path = ROOT / zero_bundle_manifest_value
+    if not zero_bundle_manifest_path.is_file():
+        raise SystemExit("zero-pass repair job-bundle manifest is missing")
+    zero_bundle = json.loads(
+        zero_bundle_manifest_path.read_text(encoding="utf-8")
+    )
+    if (
+        zero_bundle.get("tasks") != 20
+        or zero_bundle.get("configurations") != 10
+        or zero_bundle.get("trials") != 200
+        or int(zero_bundle.get("raw_trials", 0)) < 200
+        or zero_bundle.get("replacement_trials")
+        != int(zero_bundle.get("raw_trials", 0)) - 200
+        or len(zero_bundle.get("archives", [])) != 11
+    ):
+        raise SystemExit("zero-pass repair job-bundle manifest is stale")
+    zero_bundle_root = zero_bundle_manifest_path.parent
+    zero_archive_configurations = {
+        row["configuration"] for row in zero_bundle["archives"]
+    }
+    if zero_archive_configurations != {
+        *JOB_CONFIGURATIONS,
+        "run_metadata",
+    }:
+        raise SystemExit(
+            "zero-pass repair job bundle does not cover all configurations"
+        )
+    for row in zero_bundle["archives"]:
+        path = zero_bundle_root / row["file"]
+        if (
+            not path.is_file()
+            or path.stat().st_size != int(row["bytes"])
+            or sha256(path) != row["sha256"]
+        ):
+            raise SystemExit(
+                f"zero-pass repair job-bundle archive is invalid: {path}"
+            )
+
     required = [
         "README.md",
         "LICENSE.txt",
@@ -1336,6 +1507,7 @@ def main() -> int:
         "analysis/final_failure_category_counts_203.csv",
         "analysis/final_failure_summary_203.json",
         "analysis/environment_repair_rerun_summary_203.json",
+        "analysis/zero_pass_contract_repair_rerun_summary_203.json",
         "analysis/test_contract_repair_decisions_2026-07-14.md",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
         "analysis/test_patch_behavior_classification_203.csv",
@@ -1352,6 +1524,7 @@ def main() -> int:
         "results/task_metadata_correction_reruns_203.csv",
         "results/affected_contract_reruns_203.csv",
         "results/environment_repair_reruns_203.csv",
+        "results/zero_pass_contract_repair_reruns_203.csv",
         "repro/download_benchmark.py",
         "repro/audit_release_compliance.py",
         "repro/collect_repository_metadata.py",
@@ -1364,6 +1537,8 @@ def main() -> int:
         "repro/sync_affected_trajectory_behavior_annotations.py",
         "repro/sync_environment_repair_reruns.py",
         "repro/sync_environment_trajectory_behavior_annotations.py",
+        "repro/sync_zero_pass_contract_repair_reruns.py",
+        "repro/sync_zero_pass_trajectory_behavior_annotations.py",
         "repro/recompute_analysis.py",
         "repro/build_failure_annotation_packets.py",
         "repro/summarize_recovery_failure_annotations.py",

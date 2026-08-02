@@ -82,12 +82,21 @@ METADATA_ENTRIES = (
     "run_all.sh",
     "run_all_path_fix.sh",
     "run_infra_retries.sh",
+    "run_retries.sh",
+    "run_supplemental_retries.sh",
+    "run_supplemental2_retries.sh",
     "configs",
+    "configs_retries",
+    "configs_retries_supplemental",
+    "configs_retries_supplemental2",
     "configs_path_fix",
     "configs_path_fix_retries",
     "manifests",
     "analysis",
     "launcher_logs",
+    "launcher_logs_retries",
+    "launcher_logs_retries_supplemental",
+    "launcher_logs_retries_supplemental2",
     "launcher_logs_path_fix",
     "launcher_logs_path_fix_retries",
     "custom_agents",
@@ -265,22 +274,31 @@ def main() -> int:
     configurations = {row["config"] for row in rows}
     tasks = {row["task"] for row in rows}
     cells = {(row["config"], row["task"]) for row in rows}
+    task_manifests = sorted(
+        (run_root / "manifests").glob("affected_tasks_*.txt")
+    )
+    if len(task_manifests) != 1:
+        raise SystemExit(
+            "expected exactly one manifests/affected_tasks_*.txt file"
+        )
     expected_tasks = {
         line.strip()
-        for line in (
-            run_root / "manifests/affected_tasks_24.txt"
-        ).read_text(encoding="utf-8").splitlines()
+        for line in task_manifests[0].read_text(
+            encoding="utf-8"
+        ).splitlines()
         if line.strip()
     }
+    expected_cells = len(expected_tasks) * len(EXPECTED_CONFIGURATIONS)
     if (
-        len(rows) != 240
+        len(rows) != expected_cells
         or configurations != EXPECTED_CONFIGURATIONS
         or tasks != expected_tasks
-        or len(expected_tasks) != 24
-        or len(cells) != 240
+        or not expected_tasks
+        or len(cells) != expected_cells
     ):
         raise SystemExit(
-            "expected a complete 24-task x 10-configuration final trial set"
+            "expected a complete task-manifest x 10-configuration final "
+            "trial set"
         )
     if (
         {row["config"] for row in all_rows} != EXPECTED_CONFIGURATIONS
@@ -295,6 +313,7 @@ def main() -> int:
         "harbor_jobs",
         "harbor_jobs_path_fix",
         "harbor_jobs_path_fix_retries",
+        "harbor_jobs_retries",
     ):
         source_root = run_root / source
         if source_root.is_dir():
@@ -335,6 +354,7 @@ def main() -> int:
             ("harbor_jobs", row["config"]),
             ("harbor_jobs_path_fix", row["config"]),
             ("harbor_jobs_path_fix_retries", row["config"]),
+            ("harbor_jobs_retries", row["config"]),
         }
         if (
             len(relative.parts) != 5
@@ -349,8 +369,17 @@ def main() -> int:
         if trial_dir in trial_directories:
             raise SystemExit(f"duplicate trial directory: {trial_dir}")
         trial_directories.add(trial_dir)
-        result = json.loads(result_path.read_text(encoding="utf-8"))
-        observed_task = str(result.get("task_name") or "").split("/")[-1]
+        try:
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            observed_task = str(
+                result.get("task_name") or ""
+            ).split("/")[-1]
+        except json.JSONDecodeError:
+            if row["path"] in selected_paths:
+                raise SystemExit(
+                    f"selected result is malformed: {result_path}"
+                )
+            observed_task = row["task"]
         if observed_task != row["task"]:
             raise SystemExit(
                 f"{result_path}: task {observed_task!r} != {row['task']!r}"
@@ -362,19 +391,27 @@ def main() -> int:
                 raise SystemExit(f"missing required trial file: {required_path}")
         if row["path"] not in selected_paths:
             continue
-        for required in REQUIRED_SELECTED_TRIAL_FILES:
-            required_path = trial_dir / required
-            reject_symlink(required_path)
-            if not required_path.is_file():
-                raise SystemExit(
-                    f"selected trial is missing required file: {required_path}"
-                )
-        verifier_evidence = (
-            trial_dir / "verifier/test-stdout.txt",
-            trial_dir / "verifier/ctrf.json",
+        agent_timeout_without_reward = (
+            row.get("exception_type") == "AgentTimeoutError"
+            and row.get("reward_available", "").lower() == "false"
         )
-        if not any(path.is_file() for path in verifier_evidence):
-            raise SystemExit(f"missing verifier evidence under {trial_dir}")
+        if not agent_timeout_without_reward:
+            for required in REQUIRED_SELECTED_TRIAL_FILES:
+                required_path = trial_dir / required
+                reject_symlink(required_path)
+                if not required_path.is_file():
+                    raise SystemExit(
+                        f"selected trial is missing required file: "
+                        f"{required_path}"
+                    )
+            verifier_evidence = (
+                trial_dir / "verifier/test-stdout.txt",
+                trial_dir / "verifier/ctrf.json",
+            )
+            if not any(path.is_file() for path in verifier_evidence):
+                raise SystemExit(
+                    f"missing verifier evidence under {trial_dir}"
+                )
         agent_dir = trial_dir / "agent"
         if not any((agent_dir / name).is_file() for name in PUBLIC_AGENT_FILES):
             raise SystemExit(f"missing public agent log under {trial_dir}")
@@ -400,8 +437,41 @@ def main() -> int:
                 path=run_root / "configs" / f"{configuration}.json",
                 redactions=redactions,
             )
+            add_path(
+                archive,
+                run_root=run_root,
+                path=(
+                    run_root
+                    / "configs_retries_supplemental2"
+                    / f"{configuration}.json"
+                ),
+                redactions=redactions,
+            )
+            add_path(
+                archive,
+                run_root=run_root,
+                path=(
+                    run_root
+                    / "configs_retries"
+                    / f"{configuration}.json"
+                ),
+                redactions=redactions,
+            )
+            add_path(
+                archive,
+                run_root=run_root,
+                path=(
+                    run_root
+                    / "configs_retries_supplemental"
+                    / f"{configuration}.json"
+                ),
+                redactions=redactions,
+            )
             for logs_directory in (
                 "launcher_logs",
+                "launcher_logs_retries",
+                "launcher_logs_retries_supplemental",
+                "launcher_logs_retries_supplemental2",
                 "launcher_logs_path_fix",
                 "launcher_logs_path_fix_retries",
             ):
@@ -444,7 +514,7 @@ def main() -> int:
     with tarfile.open(metadata_path, "w:gz", compresslevel=6) as archive:
         for entry in METADATA_ENTRIES:
             if not (run_root / entry).exists():
-                raise SystemExit(f"missing run metadata entry: {entry}")
+                continue
             add_path(
                 archive,
                 run_root=run_root,
@@ -492,10 +562,11 @@ def main() -> int:
         encoding="utf-8",
     )
     (output_dir / "README.md").write_text(
-        "# Environment-repair Harbor jobs\n\n"
-        "These archives contain the 24-task by 10-configuration rerun used "
+        "# Targeted DepBench Harbor jobs\n\n"
+        f"These archives contain the {len(tasks)}-task by "
+        "10-configuration rerun used "
         "to update the final results. Each configuration archive preserves "
-        "all original, toolchain-path replacement, and infrastructure-retry "
+        "all original and infrastructure-retry "
         "Harbor trials. Completed trials include result metadata, patches, "
         "raw agent logs, recovered trajectories, and verifier outputs; "
         "pre-verifier setup failures retain their result and trial logs. "

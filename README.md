@@ -119,7 +119,7 @@ Task Docker images are referenced from `task.toml` as
 |---|---|
 | [`trajectories/`](trajectories/) | Gzip JSONL trajectory exports for the 10 harness/model configurations |
 | [`verify_logs/`](verify_logs/) | Verifier stdout and CTRF exports aligned with trajectory rows |
-| [`jobs/`](jobs/) | Sanitized, per-configuration Harbor job archives for the environment-repair rerun |
+| [`jobs/`](jobs/) | Sanitized, per-configuration Harbor job archives for targeted repair reruns |
 | [`results/`](results/) | Original and final per-task outcomes plus rerun provenance |
 | [`analysis/`](analysis/) | Ecosystem results, coverage, repository metadata, and trajectory scans |
 | [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and analysis helpers |
@@ -135,12 +135,13 @@ Task Docker images are referenced from `task.toml` as
 | File | Purpose |
 |---|---|
 | `results/summary.{csv,json}` | Configuration-level pass, fail, and no-reward counts |
-| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime, trajectory-recovery, metadata-correction, affected-contract, and environment-repair reruns |
+| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime, trajectory-recovery, metadata-correction, affected-contract, environment-repair, and zero-pass contract-repair reruns |
 | `results/targeted_runtime_exception_reruns_203.csv` | Targeted runtime-exception rerun records |
 | `results/trajectory_recovery_reruns_203.csv` | Reruns used to recover previously unavailable OpenCode trajectories |
 | `results/task_metadata_correction_reruns_203.csv` | Ten reruns after correcting the Strawberry task dependency from Flask to graphql-core |
 | `results/affected_contract_reruns_203.csv` | 560 reruns covering the 56 affected tasks across all 10 configurations |
 | `results/environment_repair_reruns_203.csv` | 240 reruns covering the 24 environment-affected tasks across all 10 configurations |
+| `results/zero_pass_contract_repair_reruns_203.csv` | 200 reruns covering the 20 zero-pass contract-repair tasks across all 10 configurations |
 | `results/original_per_trial_results.jsonl.gz` | Frozen metadata for the original 2,030 trials |
 | `results/per_trial_results.jsonl.gz` | Compact metadata for the 2,030 final selected trials |
 | `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
@@ -151,8 +152,8 @@ Task Docker images are referenced from `task.toml` as
 | `analysis/test_patch_behavior_classification_203.csv` | Static held-out test-patch behavior labels and size metrics for the 203 release tasks |
 | `analysis/trajectory_behavior_*` | Final per-trajectory behavior annotations and summaries |
 | `analysis/trajectory_scan_*` | Exploratory rule-based keyword scan outputs |
-| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 80 final recovery-rerun non-passes |
-| `analysis/final_failure_*` | Final root-cause classification for 474 non-pass outcomes in the four RQ3 configurations |
+| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 68 final recovery-rerun non-passes |
+| `analysis/final_failure_*` | Final root-cause classification for 475 non-pass outcomes in the four RQ3 configurations |
 
 ### Repository metadata
 

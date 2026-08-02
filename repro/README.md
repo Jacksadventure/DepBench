@@ -167,6 +167,8 @@ Harbor jobs can rebuild final trajectories, verifier rows, and result tables:
 ```bash
 python3 repro/sync_environment_repair_reruns.py \
   --rerun-root /path/to/environment24x10-rerun
+python3 repro/sync_zero_pass_contract_repair_reruns.py \
+  --rerun-root /path/to/zero-pass20x10-rerun
 python3 repro/rebuild_final_artifacts.py \
   --experiment-root /path/to/experiment-worktree \
   --include-recovery \
@@ -174,21 +176,28 @@ python3 repro/rebuild_final_artifacts.py \
   --include-affected \
   --affected-root /path/to/affected56x10-rerun \
   --include-environment \
-  --environment-root /path/to/environment24x10-rerun
+  --environment-root /path/to/environment24x10-rerun \
+  --include-zero-pass-repair \
+  --zero-pass-root /path/to/zero-pass20x10-rerun
 python3 repro/redact_release_trajectories.py
 python3 repro/scan_trajectories.py
 python3 repro/sync_environment_trajectory_behavior_annotations.py
+python3 repro/sync_zero_pass_trajectory_behavior_annotations.py
 python3 repro/summarize_trajectory_behavior_annotations.py
 python3 repro/rebuild_final_failure_classification.py \
   --legacy-annotation-root /path/to/original/annotations \
   --paper-analysis /path/to/paper/analysis \
   --affected-analysis /path/to/affected56x10-rerun/analysis \
-  --environment-analysis /path/to/environment24x10-rerun/analysis
+  --environment-analysis /path/to/environment24x10-rerun/analysis \
+  --zero-pass-analysis /path/to/zero-pass20x10-rerun/analysis
 python3 repro/summarize_recovery_failure_annotations.py
 python3 repro/recompute_analysis.py
 python3 repro/package_harbor_jobs.py \
   --run-root /path/to/environment24x10-rerun \
   --output-dir jobs/environment24x10_20260729T031538Z
+python3 repro/package_harbor_jobs.py \
+  --run-root /path/to/zero-pass20x10-rerun \
+  --output-dir jobs/zero_pass20x10_20260731T063410Z
 python3 repro/refresh_secret_scan_review.py
 python3 repro/audit_release_compliance.py
 python3 repro/validate_release.py

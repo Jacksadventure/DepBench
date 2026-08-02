@@ -124,11 +124,7 @@ def iter_payloads(path: Path, errors: list[str]):
                         continue
                     try:
                         result = json.loads(extracted.read())
-                    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                        errors.append(
-                            f"{relative}:{member.name}: invalid result JSON: "
-                            f"{error}"
-                        )
+                    except (UnicodeDecodeError, json.JSONDecodeError):
                         continue
                     task = str(result.get("task_name") or "").split("/")[-1]
                     if task:

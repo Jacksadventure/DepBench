@@ -51,6 +51,7 @@ AFFECTED_FILES = {
     ),
 }
 ENVIRONMENT_FILES = AFFECTED_FILES
+ZERO_PASS_FILES = AFFECTED_FILES
 
 
 def jsonl(path: Path) -> list[dict[str, Any]]:
@@ -166,6 +167,7 @@ def main() -> int:
     parser.add_argument("--paper-analysis", type=Path, required=True)
     parser.add_argument("--affected-analysis", type=Path, required=True)
     parser.add_argument("--environment-analysis", type=Path, required=True)
+    parser.add_argument("--zero-pass-analysis", type=Path, required=True)
     args = parser.parse_args()
 
     legacy = load_legacy(args.legacy_annotation_root)
@@ -187,6 +189,11 @@ def main() -> int:
         args.environment_analysis,
         ENVIRONMENT_FILES,
         "environment-repair",
+    )
+    zero_pass = load_rerun_labels(
+        args.zero_pass_analysis,
+        ZERO_PASS_FILES,
+        "zero-pass-contract-repair",
     )
 
     outcomes = [
@@ -229,6 +236,21 @@ def main() -> int:
                 ),
             }
             classification_source = "environment_repair_rerun_annotation"
+        elif source == "zero_pass_contract_repair_rerun":
+            label = zero_pass[(configuration, task, trial)]
+            normalized = {
+                "category": label["category"],
+                "confidence": confidence(label["confidence"]),
+                "rationale": label["rationale"],
+                "evidence_source": label["evidence_source"],
+                "annotator": label["annotator"],
+                "visible_then_hidden_overfit": bool(
+                    label["visible_then_hidden_overfit"]
+                ),
+            }
+            classification_source = (
+                "zero_pass_contract_repair_rerun_annotation"
+            )
         elif source == "targeted_rerun":
             label = runtime[(configuration, task, trial)]
             normalized = {

@@ -20,6 +20,9 @@ RECOVERY_PATH = ROOT / "results/trajectory_recovery_reruns_203.csv"
 CORRECTION_PATH = ROOT / "results/task_metadata_correction_reruns_203.csv"
 AFFECTED_PATH = ROOT / "results/affected_contract_reruns_203.csv"
 ENVIRONMENT_PATH = ROOT / "results/environment_repair_reruns_203.csv"
+ZERO_PASS_PATH = (
+    ROOT / "results/zero_pass_contract_repair_reruns_203.csv"
+)
 FINAL_OUTCOMES_PATH = ROOT / "results/final_per_task_outcomes.csv"
 
 RERUN_CONFIGURATIONS = {
@@ -105,6 +108,19 @@ def read_reruns() -> dict[tuple[str, str], dict]:
             key = (row["configuration"], row["task"])
             reruns[key] = row | {
                 "outcome_source": "environment_repair_rerun",
+                "normalized_configuration": key[0],
+            }
+    if ZERO_PASS_PATH.exists():
+        repaired = list(csv.DictReader(ZERO_PASS_PATH.open(encoding="utf-8")))
+        if len(repaired) != 200:
+            raise SystemExit(
+                f"expected 200 zero-pass contract repair reruns, "
+                f"got {len(repaired)}"
+            )
+        for row in repaired:
+            key = (row["configuration"], row["task"])
+            reruns[key] = row | {
+                "outcome_source": "zero_pass_contract_repair_rerun",
                 "normalized_configuration": key[0],
             }
     return reruns
@@ -263,6 +279,9 @@ def update_summary(outcomes: list[dict], rerun_counts: Counter) -> None:
     document["environment_repair_rerun_cells"] = rerun_counts[
         "environment_repair_rerun"
     ]
+    document["zero_pass_contract_repair_rerun_cells"] = rerun_counts[
+        "zero_pass_contract_repair_rerun"
+    ]
     document["targeted_rerun_results"] = str(RERUN_PATH.relative_to(ROOT))
     if RECOVERY_PATH.exists():
         document["trajectory_recovery_rerun_results"] = str(
@@ -279,6 +298,10 @@ def update_summary(outcomes: list[dict], rerun_counts: Counter) -> None:
     if ENVIRONMENT_PATH.exists():
         document["environment_repair_rerun_results"] = str(
             ENVIRONMENT_PATH.relative_to(ROOT)
+        )
+    if ZERO_PASS_PATH.exists():
+        document["zero_pass_contract_repair_rerun_results"] = str(
+            ZERO_PASS_PATH.relative_to(ROOT)
         )
     json_path.write_text(
         json.dumps(document, indent=2, ensure_ascii=True) + "\n",
@@ -336,7 +359,9 @@ def main() -> None:
     reruns = read_reruns()
     outcomes = build_final_outcomes(baseline, reruns)
     expected_reruns = (
-        922
+        1018
+        if ZERO_PASS_PATH.exists()
+        else 922
         if ENVIRONMENT_PATH.exists()
         else 773
         if AFFECTED_PATH.exists()
