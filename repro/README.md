@@ -88,9 +88,9 @@ DEPBENCH_PRE_VERIFY_CMD="npm install" \
   bash repro/run_patch_verifier.sh 29ki__29k__3418 /path/to/agent.patch
 ```
 
-## Inspect reported artifacts
+## Validate the benchmark
 
-Validate the release layout:
+Validate the downloaded task contracts and repository layout:
 
 ```bash
 python3 repro/audit_release_compliance.py
@@ -100,111 +100,10 @@ python3 repro/validate_release.py
 The compliance audit checks repository governance files, source headers,
 license-category accounting, known internal path markers, and high-confidence
 credential patterns. It also scans the downloaded dataset when
-`dataset/tasks/` is present and unpacks published Harbor job archives. External
-Microsoft approval steps are tracked in
+`dataset/tasks/` is present. External Microsoft approval steps are tracked in
 `OPEN_SOURCE_RELEASE_CHECKLIST.md`.
 
-Read one reported trajectory and verifier row:
-
-```bash
-python3 repro/read_trial.py --configuration gpt55__codex --task 29ki__29k__3418 --show-verifier
-```
-
-Configuration names match the gzip JSONL filenames under `trajectories/` and `verify_logs/` without the `.jsonl.gz` suffix.
-
-## Scan trajectories
-
-Run the trajectory scanner:
-
-```bash
-python3 repro/scan_trajectories.py
-```
-
-By default, this reads `trajectories/*.jsonl.gz` and writes:
-
-- `analysis/trajectory_scan_detail.csv`
-- `analysis/trajectory_scan_summary.csv`
-- `analysis/trajectory_scan_by_source.csv`
-- `analysis/trajectory_scan_summary.json`
-
-The scanner is an exploratory keyword diagnostic. It uses one rule set across
-all configurations and only scans agent-authored trajectory steps. The
-by-source table separates original, targeted-rerun, and trajectory-recovery
-rows.
-
-## Summarize trajectory behavior annotations
-
-Validate the one-per-final-trajectory behavior annotations and regenerate the
-configuration and source summaries:
-
-```bash
-python3 repro/summarize_trajectory_behavior_annotations.py
-```
-
-This writes `analysis/trajectory_behavior_summary_203.{csv,json}` and
-`analysis/trajectory_behavior_by_source_203.csv`. These annotation summaries,
-not the exploratory keyword scan, provide the paper's final trajectory behavior
-counts.
-
-## Summarize recovery failure annotations
-
-Validate the 80 final non-pass trajectory-recovery annotations and regenerate their
-category summaries:
-
-```bash
-python3 repro/summarize_recovery_failure_annotations.py
-```
-
-The checked-in annotation JSONL records the selected category, confidence,
-visible-then-hidden flag, rationale, and evidence source for each non-pass.
-
-## Rebuild final author artifacts
-
-The original 2,030-cell metadata baseline is frozen in
-`results/original_per_trial_results.jsonl.gz`. Authors with access to the raw
-Harbor jobs can rebuild final trajectories, verifier rows, and result tables:
-
-```bash
-python3 repro/sync_environment_repair_reruns.py \
-  --rerun-root /path/to/environment24x10-rerun
-python3 repro/sync_zero_pass_contract_repair_reruns.py \
-  --rerun-root /path/to/zero-pass20x10-rerun
-python3 repro/rebuild_final_artifacts.py \
-  --experiment-root /path/to/experiment-worktree \
-  --include-recovery \
-  --include-correction \
-  --include-affected \
-  --affected-root /path/to/affected56x10-rerun \
-  --include-environment \
-  --environment-root /path/to/environment24x10-rerun \
-  --include-zero-pass-repair \
-  --zero-pass-root /path/to/zero-pass20x10-rerun
-python3 repro/redact_release_trajectories.py
-python3 repro/scan_trajectories.py
-python3 repro/sync_environment_trajectory_behavior_annotations.py
-python3 repro/sync_zero_pass_trajectory_behavior_annotations.py
-python3 repro/summarize_trajectory_behavior_annotations.py
-python3 repro/rebuild_final_failure_classification.py \
-  --legacy-annotation-root /path/to/original/annotations \
-  --paper-analysis /path/to/paper/analysis \
-  --affected-analysis /path/to/affected56x10-rerun/analysis \
-  --environment-analysis /path/to/environment24x10-rerun/analysis \
-  --zero-pass-analysis /path/to/zero-pass20x10-rerun/analysis
-python3 repro/summarize_recovery_failure_annotations.py
-python3 repro/recompute_analysis.py
-python3 repro/package_harbor_jobs.py \
-  --run-root /path/to/environment24x10-rerun \
-  --output-dir jobs/environment24x10_20260729T031538Z
-python3 repro/package_harbor_jobs.py \
-  --run-root /path/to/zero-pass20x10-rerun \
-  --output-dir jobs/zero_pass20x10_20260731T063410Z
-python3 repro/refresh_secret_scan_review.py
-python3 repro/audit_release_compliance.py
-python3 repro/validate_release.py
-```
-
-`sync_targeted_rerun_results.py` regenerates numeric tables from the frozen
-baseline and the checked-in rerun CSV files without requiring raw Harbor jobs.
-The published `jobs/` archives exclude authentication, installation, session,
-plugin-cache, and SQLite state while retaining final patches, public agent logs,
-trajectory data, and verifier outputs.
+Run results, trajectories, verifier logs, failure annotations, and Harbor job
+archives are intentionally not distributed from the `main` branch. Maintainer
+scripts for processing private experiment outputs remain under `repro/`, but
+they require the corresponding external inputs.

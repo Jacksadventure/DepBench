@@ -43,18 +43,14 @@ checked directly.
 
 ## At a glance
 
-| Tasks | Source repositories | Ecosystems | Evaluated configurations | Reported trials |
-|---:|---:|---:|---:|---:|
-| **203** | **159** | **5** | **10** | **2,030** |
-
-The strongest historical configuration in this snapshot solves **104/203 tasks
-(51.2%)**. Complete configuration-level results are available in
-[`results/summary.csv`](results/summary.csv).
+| Tasks | Source repositories | Ecosystems |
+|---:|---:|---:|
+| **203** | **159** | **5** |
 
 ## Quick start
 
 Install the release helpers, download the pinned benchmark snapshot from
-Hugging Face, and validate the complete release:
+Hugging Face, and validate the benchmark:
 
 ```bash
 python3 -m pip install .
@@ -117,12 +113,8 @@ Task Docker images are referenced from `task.toml` as
 
 | Path | Contents |
 |---|---|
-| [`trajectories/`](trajectories/) | Gzip JSONL trajectory exports for the 10 harness/model configurations |
-| [`verify_logs/`](verify_logs/) | Verifier stdout and CTRF exports aligned with trajectory rows |
-| [`jobs/`](jobs/) | Sanitized, per-configuration Harbor job archives for targeted repair reruns |
-| [`results/`](results/) | Original and final per-task outcomes plus rerun provenance |
-| [`analysis/`](analysis/) | Ecosystem results, coverage, repository metadata, and trajectory scans |
-| [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and analysis helpers |
+| [`analysis/`](analysis/) | Task-contract audits, dependency metadata, repository metadata, and static task classifications |
+| [`repro/`](repro/) | Download, validation, image, verifier, Harbor, and benchmark-audit helpers |
 | [`custom_agents/`](custom_agents/) | Harbor adapters used by the example configurations |
 | [`assets/`](assets/) | DepBench brand assets and responsive benchmark flow diagrams |
 | [`MANIFEST.json`](MANIFEST.json) | Machine-readable release and dataset provenance |
@@ -130,30 +122,16 @@ Task Docker images are referenced from `task.toml` as
 | [`NOTICE.txt`](NOTICE.txt) | Distribution-level third-party notice and attribution pointers |
 | [`OPEN_SOURCE_RELEASE_CHECKLIST.md`](OPEN_SOURCE_RELEASE_CHECKLIST.md) | Repository checks and outstanding Microsoft approval steps |
 
-### Result files
+### Audit files
 
 | File | Purpose |
 |---|---|
-| `results/summary.{csv,json}` | Configuration-level pass, fail, and no-reward counts |
-| `results/final_per_task_outcomes.csv` | Final outcomes after applying runtime, trajectory-recovery, metadata-correction, affected-contract, environment-repair, and zero-pass contract-repair reruns |
-| `results/targeted_runtime_exception_reruns_203.csv` | Targeted runtime-exception rerun records |
-| `results/trajectory_recovery_reruns_203.csv` | Reruns used to recover previously unavailable OpenCode trajectories |
-| `results/task_metadata_correction_reruns_203.csv` | Ten reruns after correcting the Strawberry task dependency from Flask to graphql-core |
-| `results/affected_contract_reruns_203.csv` | 560 reruns covering the 56 affected tasks across all 10 configurations |
-| `results/environment_repair_reruns_203.csv` | 240 reruns covering the 24 environment-affected tasks across all 10 configurations |
-| `results/zero_pass_contract_repair_reruns_203.csv` | 200 reruns covering the 20 zero-pass contract-repair tasks across all 10 configurations |
-| `results/original_per_trial_results.jsonl.gz` | Frozen metadata for the original 2,030 trials |
-| `results/per_trial_results.jsonl.gz` | Compact metadata for the 2,030 final selected trials |
-| `analysis/ecosystem_results.csv` | Results by configuration and ecosystem |
-| `analysis/coverage.csv` | Trajectory and verifier-log coverage |
 | `analysis/dependency_metadata_corrections_2026-07-26.{md,csv}` | Human-readable and machine-readable audit of 44 corrected package/version metadata rows |
 | `analysis/bot_pr_dependency_audit_2026-07-26.{md,csv}` | Cross-check of those 44 rows against merged Dependabot/Renovate PR declarations and final diffs |
 | `analysis/instruction_bump_audit_203.{md,csv,json}` | Per-task audit of all 203 final Bump instructions against packaged manifests and upstream PR metadata |
 | `analysis/test_patch_behavior_classification_203.csv` | Static held-out test-patch behavior labels and size metrics for the 203 release tasks |
-| `analysis/trajectory_behavior_*` | Final per-trajectory behavior annotations and summaries |
-| `analysis/trajectory_scan_*` | Exploratory rule-based keyword scan outputs |
-| `analysis/trajectory_recovery_failure_*` | Root-cause annotations and summaries for 68 final recovery-rerun non-passes |
-| `analysis/final_failure_*` | Final root-cause classification for 475 non-pass outcomes in the four RQ3 configurations |
+| `analysis/task_change_mechanism_*` | Direct/indirect dependency-upgrade mechanism labels and taxonomy for all 203 tasks |
+| `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Contract-audit decisions for the 37 reviewed tasks |
 
 ### Repository metadata
 
@@ -177,49 +155,18 @@ Common workflows are available as focused helpers:
 | Pull all task images | `bash repro/pull_task_images.sh` |
 | Verify one oracle solution | `bash repro/run_oracle_solution.sh <task>` |
 | Verify a candidate patch | `bash repro/run_patch_verifier.sh <task> <patch>` |
-| Scan released trajectories | `python3 repro/scan_trajectories.py` |
 | Run with Harbor | [`repro/HARBOR.md`](repro/HARBOR.md) |
 | Read the full reproduction guide | [`repro/README.md`](repro/README.md) |
 
 Harbor configuration templates for every reported configuration are under
 [`repro/examples/`](repro/examples/).
 
-## Artifact formats
-
-<details>
-<summary><strong>Trajectory rows</strong></summary>
-
-`trajectories/*.jsonl.gz` contains one row per final selected trial with:
-
-- `task`, `trial`, `harness`, `llm`, and `model`
-- `reward` and `exception_type`
-- `outcome_source`, `source_job`, and `trajectory_source`
-- `has_trajectory`
-- an ATIF-like `trajectory` object when available
-
-The release keeps the original numeric baseline separately so rerun-backed rows
-can be traced without conflating original and final trials.
-
-</details>
-
-<details>
-<summary><strong>Verifier rows</strong></summary>
-
-`verify_logs/*.jsonl.gz` follows the same configuration naming and row alignment
-as `trajectories/`. Each row includes trial metadata, reward text, verifier
-stdout as `verifier_test_stdout`, and CTRF JSON as `verifier_ctrf` when
-available.
-
-Coverage is summarized in `verify_logs/index.{csv,json}`.
-
-</details>
-
 ## Licensing and third-party content
 
 Microsoft-authored source code, documentation, and DepBench brand assets in
 this repository are licensed under the [MIT License](LICENSE.txt). Benchmark
-tasks, source excerpts, patches, trajectories, verifier logs, and other
-material originating from third-party repositories are not relicensed under
+tasks, source excerpts, patches, and other material originating from
+third-party repositories are not relicensed under
 that MIT license. The MIT license does not grant trademark rights.
 
 The complete source-repository and detected-license mapping is available in
@@ -241,11 +188,6 @@ Authentication values must be supplied at runtime through environment
 variables or another approved secret-injection mechanism. Generated example
 configs intentionally contain an empty `env` object and must not be committed
 after credentials are added.
-
-Published trajectories and verifier logs can contain public source excerpts,
-test fixtures, prompts, tool output, and repository identifiers. Treat them as
-research artifacts rather than clean-room source code, and complete the
-applicable privacy and Open Data review before release.
 
 ## Project governance
 

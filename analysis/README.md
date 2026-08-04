@@ -1,58 +1,26 @@
-# Analysis tables
+# Benchmark audits
 
-This directory contains aggregate analysis tables derived from the release artifacts.
+This directory contains task-level metadata and static audits for the
+contract-clean 203-task benchmark.
 
-- `ecosystem_results.csv`: pass/fail/no-reward counts and rates by configuration and ecosystem.
-- `coverage.csv`: trajectory and verifier-log coverage by configuration.
-- `trajectory_scan_summary.csv`: aggregate trajectory-scan counts by configuration.
-- `trajectory_scan_by_source.csv`: the same scan split by original and rerun
-  outcome source.
-- `trajectory_scan_detail.csv`: per-trial trajectory-scan features.
-- `original_full_run_trajectory_scan_summary.csv`: frozen original full-run
-  behavior counts retained as rerun provenance.
-- `trajectory_behavior_annotations_203.jsonl`: one repository-schema discovery
-  behavior annotation for each of the 2,030 final trajectories.
-- `trajectory_behavior_annotation_protocol.md`: label definitions and final
-  annotation provenance.
-- `trajectory_behavior_summary_203.csv`: final behavior counts by configuration.
-- `trajectory_behavior_by_source_203.csv`: final behavior counts split by
-  original and each final rerun source.
-- `trajectory_behavior_summary_203.json`: behavior summary plus annotation
-  provenance.
-- `trajectory_recovery_failure_classification_203.jsonl`: root-cause labels
-  for all 80 final non-pass trajectory-recovery reruns.
-- `trajectory_recovery_failure_category_counts_203.csv`: recovery non-pass
-  category counts by configuration.
-- `trajectory_recovery_failure_summary_203.json`: category, confidence, and
-  visible-then-hidden summary for the recovery annotations.
-- `repository_metadata.{csv,json}`: metadata for the 159 unique GitHub
-  repositories represented by the release, including canonical URLs, licenses,
-  primary languages, archive status, and task mappings.
-- `task_repository_metadata.csv`: the same repository metadata expanded to the
-  203 task rows.
-- `runtime_exception_rerun_summary_203.json`: numeric summary after applying
-  the final runtime and trajectory-recovery reruns.
-- `affected_contract_rerun_summary_203.json`: outcome and exception summary
-  for the 56-task by 10-configuration canonical-contract rerun.
-- `environment_repair_rerun_summary_203.json`: outcome and exception summary
-  for the 24-task by 10-configuration environment-repair rerun.
-- `zero_pass_contract_repair_rerun_summary_203.json`: outcome and exception
-  summary for the 20-task by 10-configuration contract-repair rerun.
-- `failure_labels_*.jsonl`: parallel annotations for final rerun non-passes in
-  the four RQ3 configurations.
-- `final_failure_classification_203.jsonl`: final root-cause labels for all 475
-  non-pass outcomes in the four RQ3 configurations.
-- `final_failure_category_counts_203.csv`: final RQ3 category counts.
-- `final_failure_summary_203.json`: final RQ3 classification provenance and
-  aggregate counts.
-- `paper_numbers_203.json`: result-derived numbers used to synchronize the two
-  paper worktrees.
-- `test_patch_behavior_classification_203.csv`: static primary test-behavior
-  labels and hidden-test patch-size metrics used for RQ2/RQ4.
+- `repository_metadata.{csv,json}`: canonical URLs, licenses, primary
+  languages, archive status, and task mappings for the 159 source repositories.
+- `task_repository_metadata.csv`: repository metadata expanded to all 203 task
+  rows.
+- `dependency_metadata_corrections_2026-07-26.{md,csv}`: audited dependency
+  identity and version corrections.
+- `bot_pr_dependency_audit_2026-07-26.{md,csv}`: cross-checks against the
+  associated Dependabot or Renovate pull requests.
+- `instruction_bump_audit_203.{md,csv,json}`: per-task verification of the Bump
+  instruction against the packaged manifest and upstream pull request.
+- `task_change_mechanism_*`: direct and indirect dependency-upgrade mechanism
+  classifications and taxonomy.
+- `test_patch_behavior_classification_203.csv`: static held-out test-patch
+  behavior labels and size metrics.
 - `test_contract_repair_decisions_2026-07-14.{md,csv}`: decisions and rationale
-  for the 37 reviewed semantic/mixed test contracts.
+  for the 37 reviewed test contracts.
+- `secret_scan_review_2026-07-23.csv`: reviewed private-key fixture headers in
+  the downloadable benchmark tasks.
 
-All aggregate tables are generated from the 203-task filtered
-`trajectories/`, `verify_logs/`, and `results/` files in this branch. The
-37-row contract decision report is retained as audit provenance for both kept
-and removed tasks.
+Run results, trajectories, verifier logs, failure annotations, and Harbor job
+archives are intentionally not distributed from the `main` branch.

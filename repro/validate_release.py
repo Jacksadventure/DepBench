@@ -87,6 +87,12 @@ ZERO_PASS_REPAIR_TASKS = {
     "oxidecomputer__dropshot__630",
     "qntm__base65536__37",
 }
+EXPERIMENT_ARTIFACT_DIRECTORIES = {
+    "jobs",
+    "results",
+    "trajectories",
+    "verify_logs",
+}
 
 
 def count_gzip_jsonl(path: Path) -> int:
@@ -113,6 +119,127 @@ def result_reward(result: dict) -> float:
         )
     )
     return 0.0 if value is None else float(value)
+
+
+def validate_benchmark_only(active_tasks: set[str]) -> int:
+    manifest = json.loads((ROOT / "MANIFEST.json").read_text())
+    forbidden_content_keys = {
+        "jobs",
+        "results",
+        "trajectories",
+        "verify_logs",
+    }
+    forbidden_manifest_fields = {
+        "affected_contract_rerun_cells",
+        "environment_repair_job_bundle",
+        "environment_repair_rerun_cells",
+        "targeted_rerun_cells",
+        "task_metadata_correction_rerun_cells",
+        "total_trials",
+        "trajectory_recovery_non_pass_annotations",
+        "trajectory_recovery_rerun_cells",
+        "zero_pass_contract_repair_job_bundle",
+        "zero_pass_contract_repair_rerun_cells",
+    }
+    if (
+        manifest.get("dataset") != "DepBench contract-clean 203"
+        or manifest.get("tasks") != 203
+        or manifest.get("source_tasks") != 219
+        or manifest.get("configurations") != 10
+        or manifest.get("dataset_repository", {}).get("tasks") != 203
+    ):
+        raise SystemExit("MANIFEST.json does not describe the benchmark-only release")
+    if forbidden_content_keys & set(manifest.get("contents", {})):
+        raise SystemExit("MANIFEST.json still advertises removed experiment artifacts")
+    if forbidden_manifest_fields & set(manifest):
+        raise SystemExit("MANIFEST.json still contains experiment-result fields")
+
+    repository_rows = list(
+        csv.DictReader((ROOT / "analysis/repository_metadata.csv").open())
+    )
+    task_repository_rows = list(
+        csv.DictReader((ROOT / "analysis/task_repository_metadata.csv").open())
+    )
+    instruction_rows = list(
+        csv.DictReader(
+            (ROOT / "analysis/instruction_bump_audit_203.csv").open()
+        )
+    )
+    mechanism_rows = list(
+        csv.DictReader(
+            (
+                ROOT
+                / "analysis/task_change_mechanism_classification_203.csv"
+            ).open()
+        )
+    )
+    test_patch_rows = list(
+        csv.DictReader(
+            (
+                ROOT / "analysis/test_patch_behavior_classification_203.csv"
+            ).open()
+        )
+    )
+    if len(repository_rows) != 159:
+        raise SystemExit("expected metadata for 159 source repositories")
+    for label, rows, field in (
+        ("task repository metadata", task_repository_rows, "task"),
+        ("instruction audit", instruction_rows, "task"),
+        ("task mechanism classification", mechanism_rows, "task"),
+        ("test-patch classification", test_patch_rows, "folder"),
+    ):
+        if len(rows) != 203 or {row[field] for row in rows} != active_tasks:
+            raise SystemExit(f"{label} does not cover the 203-task release")
+
+    required = [
+        "README.md",
+        "LICENSE.txt",
+        "NOTICE.txt",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "CODE_OF_CONDUCT.md",
+        "SUPPORT.md",
+        "THIRD_PARTY_NOTICES.md",
+        "OPEN_SOURCE_RELEASE_CHECKLIST.md",
+        "MANIFEST.json",
+        "analysis/bot_pr_dependency_audit_2026-07-26.csv",
+        "analysis/dependency_metadata_corrections_2026-07-26.csv",
+        "analysis/instruction_bump_audit_203.csv",
+        "analysis/repository_metadata.csv",
+        "analysis/repository_metadata.json",
+        "analysis/secret_scan_review_2026-07-23.csv",
+        "analysis/task_change_mechanism_classification_203.csv",
+        "analysis/task_change_mechanism_summary_203.json",
+        "analysis/task_change_mechanism_taxonomy_203.md",
+        "analysis/task_repository_metadata.csv",
+        "analysis/test_contract_repair_decisions_2026-07-14.csv",
+        "analysis/test_patch_behavior_classification_203.csv",
+        "repro/download_benchmark.py",
+        "repro/audit_release_compliance.py",
+        "repro/TASK_SCHEMA.md",
+        "repro/run_oracle_solution.sh",
+        "repro/run_patch_verifier.sh",
+    ]
+    missing = [path for path in required if not (ROOT / path).is_file()]
+    if missing:
+        raise SystemExit(f"missing required benchmark files: {missing}")
+
+    example_configs = sorted((ROOT / "repro/examples").glob("*.json"))
+    if len(example_configs) != 10:
+        raise SystemExit(
+            f"expected 10 Harbor example configs, got {len(example_configs)}"
+        )
+    for path in example_configs:
+        config = json.loads(path.read_text())
+        if config["datasets"][0]["path"] != "dataset/tasks":
+            raise SystemExit(f"{path}: expected dataset/tasks relative path")
+        if set(config["datasets"][0]["task_names"]) != active_tasks:
+            raise SystemExit(f"{path}: task_names do not match the dataset")
+        if config["agents"][0]["env"]:
+            raise SystemExit(f"{path}: checked-in agent env must be empty")
+
+    print("DepBench benchmark validation passed: 203 tasks, no run artifacts.")
+    return 0
 
 
 def main() -> int:
@@ -162,6 +289,19 @@ def main() -> int:
     }
     if len(removed_tasks) != 16 or active_tasks & removed_tasks:
         raise SystemExit("invalid test-contract removal is incomplete")
+
+    present_artifact_directories = {
+        name
+        for name in EXPERIMENT_ARTIFACT_DIRECTORIES
+        if (ROOT / name).exists()
+    }
+    if not present_artifact_directories:
+        return validate_benchmark_only(active_tasks)
+    if present_artifact_directories != EXPERIMENT_ARTIFACT_DIRECTORIES:
+        raise SystemExit(
+            "experiment artifacts are partially present: "
+            f"{sorted(present_artifact_directories)}"
+        )
 
     summary_rows = list(csv.DictReader((ROOT / "results/summary.csv").open()))
     if len(summary_rows) != 10:

@@ -32,8 +32,8 @@ Microsoft internal approvals have been granted.
   retain the approval record.
 - [ ] Obtain CELA disposition for the 11 tasks with source-available, custom, or
   undeclared terms, including `LicenseRef-Databricks`.
-- [ ] Complete privacy review for trajectories, verifier logs, prompts, source
-  excerpts, contributor identifiers, and Hugging Face artifacts.
+- [ ] Complete privacy review for benchmark prompts, source excerpts,
+  contributor identifiers, and Hugging Face artifacts.
 - [ ] Complete the applicable SDL/security review, threat model, secret scan,
   dependency review, and PoliCheck run.
 - [ ] Produce and review the required software bill of materials or equivalent

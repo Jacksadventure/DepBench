@@ -1,5 +1,0 @@
-# Environment-repair Harbor jobs
-
-These archives contain the 24-task by 10-configuration rerun used to update the final results. Each configuration archive preserves all original, toolchain-path replacement, and infrastructure-retry Harbor trials. Completed trials include result metadata, patches, raw agent logs, recovered trajectories, and verifier outputs; pre-verifier setup failures retain their result and trial logs. `run_metadata.tar.gz` contains the frozen configurations, task/image manifests, launcher logs, analysis summaries, and custom adapters.
-
-Agent authentication/install state, session stores, plugin caches, SQLite state, and bytecode caches are excluded because they are not required to reproduce or audit the selected trials. Host paths, usernames, internal service labels, and credential-like token strings are replaced with stable placeholders; counts and archive SHA-256 hashes are recorded in `manifest.json`. Hash files inside `run_metadata.tar.gz` describe the pre-redaction run root and therefore may differ for path-bearing archived members.

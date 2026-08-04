@@ -15,9 +15,8 @@ and task mapping are recorded in:
 - `analysis/task_repository_metadata.csv`
 
 Users must review the license and other terms of each source repository before
-redistributing or using a task, source excerpt, patch, trajectory, verifier
-log, or derived artifact. Upstream licenses and notices remain controlling for
-upstream material.
+redistributing or using a task, source excerpt, patch, or derived artifact.
+Upstream licenses and notices remain controlling for upstream material.
 
 The current metadata classifies 192 tasks as originating from open-source
 repositories. The following 11 tasks require additional review because their
