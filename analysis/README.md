@@ -19,6 +19,16 @@ This directory contains task-level metadata and static audits for the
   behavior labels and size metrics.
 - `test_contract_repair_decisions_2026-07-14.{md,csv}`: decisions and rationale
   for the 36 reviewed test contracts retained in main metadata.
+- `task_source_builds.{csv,json}`: upstream repository URL, fixed base commit,
+  language base image, Dockerfile path, and Dockerfile checksum for every task.
+- `base_image_digests.json`: immutable registry manifest digest for each of the
+  41 language base-image tags used by the source-build Dockerfiles.
+- `source_build_audit_201.{csv,json}`: per-task evidence that the Dockerfile
+  built, exposed its compiler under a login shell, checked out the recorded
+  commit, and left a clean worktree.
+- `source_build_audit_201.md`: concise method, adjustments, and result summary.
+- `source_commit_audit_201.{csv,json}`: direct Git-protocol verification that
+  all 201 recorded base commits remain fetchable from their canonical URLs.
 - `secret_scan_review_2026-07-23.csv`: reviewed private-key fixture headers in
   the downloadable benchmark tasks.
 

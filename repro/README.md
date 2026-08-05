@@ -14,24 +14,25 @@ python3 repro/download_benchmark.py
 ```
 
 This creates the ignored local paths `dataset/tasks/` and
-`dataset/task_summary.json`. The downloader removes the two license-excluded
-tasks documented in the root README and materializes the 201-task `main`
-dataset.
+`dataset/task_summary.json`. The pinned archive directly contains the
+201-task `main` dataset; the two license-excluded tasks documented in the root
+README are not packaged.
 
 ## Requirements
 
 - The benchmark downloaded from Hugging Face with the command above
-- Docker with access to the task images listed in `dataset/tasks/*/task.toml`
+- Docker with network access to the source repositories, base-image registry,
+  and package registries used during local builds
 - Bash
 - Python 3.10+ for the JSONL helper scripts
 - Harbor, if you want to execute benchmark jobs through the benchmark harness
-- Network access when a task verifier installs test dependencies
+- Network access while task images and verifier dependencies are built
 
 ## Task contract
 
 For each task, the agent-facing input is:
 
-- `/app`: the project checkout inside the task Docker image
+- `/app`: the project checkout created by `environment/Dockerfile`
 - `dataset/tasks/<task>/instruction.md`: the prompt text
 
 The following files are for scoring and must not be shown to the agent:
@@ -46,26 +47,28 @@ After the agent finishes, the verifier applies `tests/test.patch` when present a
 
 For Harbor-based execution, see `repro/HARBOR.md`.
 
-## Pull task images
+## Build task images
 
-Pull all task images:
-
-```bash
-bash repro/pull_task_images.sh
-```
-
-Pull selected tasks:
+Build all task images locally from their upstream source repositories:
 
 ```bash
-bash repro/pull_task_images.sh 29ki__29k__3418 ArcadeData__arcadedb__2808
+bash repro/build_task_images.sh
 ```
 
-The 57 Maven image tags repaired on 2026-07-13 are listed with their old and
-new manifest digests in `repro/java_home_image_repair_2026-07-13.csv`.
-Maintainers can use `repro/repair_task_image_toolchain_paths.py` to rebuild
-selected Rust, Java, or Go task images with toolchain entry points that remain
-available under login shells. The command verifies each staging image before
-an optional canonical-tag push and writes old/new image provenance to JSON.
+Build selected tasks:
+
+```bash
+bash repro/build_task_images.sh 29ki__29k__3418 ArcadeData__arcadedb__2808
+```
+
+Each Dockerfile installs the required build tools, clones the repository,
+checks out its fixed base commit, bootstraps dependencies, restores a clean Git
+worktree, and exposes language toolchains to Harbor login shells. Source pins
+are listed in `analysis/task_source_builds.{csv,json}`.
+
+The release audit rebuilt every Dockerfile and checked the runtime toolchain,
+Git HEAD, and clean worktree. Results are in
+`analysis/source_build_audit_201.{csv,json}`.
 
 ## Verify the oracle solution for one task
 

@@ -24,9 +24,13 @@ if [ ! -d "$TASK_DIR" ]; then
   exit 1
 fi
 
-image="$(awk -F'"' '/^[[:space:]]*docker_image[[:space:]]*=/{print $2; exit}' "$TASK_DIR/task.toml")"
+image="${DEPBENCH_IMAGE_PREFIX:-depbench-local}:$TASK"
 cpus="$(awk -F'= *' '/^[[:space:]]*cpus[[:space:]]*=/{print $2; exit}' "$TASK_DIR/task.toml")"
 memory_mb="$(awk -F'= *' '/^[[:space:]]*memory_mb[[:space:]]*=/{print $2; exit}' "$TASK_DIR/task.toml")"
+
+if [ "${DEPBENCH_FORCE_BUILD:-0}" = "1" ] || ! docker image inspect "$image" >/dev/null 2>&1; then
+  bash "$ROOT/repro/build_task_images.sh" "$TASK"
+fi
 
 mkdir -p "$LOGS_DIR/verifier"
 

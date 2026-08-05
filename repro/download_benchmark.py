@@ -17,15 +17,10 @@ from huggingface_hub import hf_hub_download
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPO_ID = "ZijiantheJack/DepBench"
-DEFAULT_REVISION = "678ef766a0dfbe3953557270b2bcbcbac683900c"
-ARCHIVE_FILENAME = "depbench-v4-with-test203.tar.gz"
-ARCHIVE_SHA256 = "8a652fa388bcb8ebe23e3cf9906073cbf3bb2a693586240fa48df3942c95879d"
-SOURCE_TASKS = 203
+DEFAULT_REVISION = "e9a39e9f937fd14225a4a681853f9c026039374e"
+ARCHIVE_FILENAME = "depbench-main-source-build201.tar.gz"
+ARCHIVE_SHA256 = "00f641612d40e4d5fe9550a7f8eaee945277afb5a20bebab42028140d20b658d"
 EXPECTED_TASKS = 201
-EXCLUDED_TASKS = {
-    "databricks__cli__1326",
-    "nearform__brokeneck__820",
-}
 
 
 def validate_dataset(destination: Path, expected_tasks: int) -> None:
@@ -42,32 +37,6 @@ def validate_dataset(destination: Path, expected_tasks: int) -> None:
             "benchmark validation failed: "
             f"summary={len(summary)} directories={len(directory_tasks)}"
         )
-
-
-def apply_license_exclusions(destination: Path) -> None:
-    summary_path = destination / "dataset/task_summary.json"
-    tasks_path = destination / "dataset/tasks"
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    summary_tasks = {row["folder"] for row in summary}
-    if not EXCLUDED_TASKS <= summary_tasks:
-        missing = sorted(EXCLUDED_TASKS - summary_tasks)
-        raise SystemExit(
-            f"license-excluded tasks missing from source archive: {missing}"
-        )
-
-    for task in EXCLUDED_TASKS:
-        task_path = tasks_path / task
-        if not task_path.is_dir():
-            raise SystemExit(f"license-excluded task directory missing: {task_path}")
-        shutil.rmtree(task_path)
-
-    filtered_summary = [
-        row for row in summary if row["folder"] not in EXCLUDED_TASKS
-    ]
-    summary_path.write_text(
-        json.dumps(filtered_summary, indent=2) + "\n",
-        encoding="utf-8",
-    )
 
 
 def extract_archive(archive_path: Path, destination: Path) -> None:
@@ -119,8 +88,6 @@ def main() -> int:
     ) as temporary_directory:
         temporary_path = Path(temporary_directory)
         extract_archive(archive_path, temporary_path)
-        validate_dataset(temporary_path, SOURCE_TASKS)
-        apply_license_exclusions(temporary_path)
         validate_dataset(temporary_path, EXPECTED_TASKS)
 
         destination_dataset = destination / "dataset"

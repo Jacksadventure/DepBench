@@ -1,8 +1,9 @@
 # Running the release with Harbor
 
 This release can be consumed directly by Harbor after downloading the task
-directories from Hugging Face. The downloaded `dataset/tasks/` directory follows
-Harbor's task layout and each `task.toml` points to a prebuilt Docker image.
+directories from Hugging Face. The downloaded `dataset/tasks/` directory
+follows Harbor's task layout and contains a source-build Dockerfile for every
+task.
 
 ## Install
 
@@ -44,9 +45,14 @@ python3 repro/make_harbor_config.py \
 The generated config uses:
 
 - `dataset/tasks` as the task source
-- Docker environments with `force_build=false`
-- the task image named in each `task.toml`
+- Docker environments with `force_build=true`
+- local task-image builds from each `environment/Dockerfile`
+- task-specific memory limits from each `task.toml`
 - the custom agent adapters in `custom_agents/`
+
+On the first run, Harbor pulls the language base image, clones the task's
+upstream repository, checks out the fixed base commit, and bootstraps
+dependencies. Later runs can reuse Docker's local build cache.
 
 ## Run Harbor
 

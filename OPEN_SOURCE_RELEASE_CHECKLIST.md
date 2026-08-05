@@ -67,5 +67,6 @@ Microsoft internal approvals have been granted.
   or remove affected artifacts without changing benchmark semantics. The
   current grouped findings are in
   `analysis/secret_scan_review_2026-07-23.csv`.
-- [ ] Confirm that Docker task images and the Hugging Face snapshot correspond
-  to the reviewed commit, immutable digests, and approved third-party terms.
+- [ ] Confirm that source-build Dockerfiles and the Hugging Face snapshot
+  correspond to the reviewed commits, immutable base-image digests, and
+  approved third-party terms.

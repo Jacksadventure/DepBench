@@ -9,6 +9,7 @@ import gzip
 import hashlib
 import io
 import json
+import re
 import tarfile
 from collections import Counter
 from pathlib import Path, PurePosixPath
@@ -95,7 +96,7 @@ EXPERIMENT_ARTIFACT_DIRECTORIES = {
 }
 MAIN_DATASET = "DepBench main redistributable 201"
 MAIN_TASKS = 201
-SOURCE_ARCHIVE_TASKS = 203
+SOURCE_ARCHIVE_TASKS = 201
 MAIN_REPOSITORIES = 157
 LICENSE_EXCLUDED_TASKS = {
     "databricks__cli__1326",
@@ -156,8 +157,10 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         or manifest.get("configurations") != 10
         or manifest.get("dataset_repository", {}).get("tasks")
         != SOURCE_ARCHIVE_TASKS
-        or manifest.get("dataset_repository", {}).get("materialized_tasks")
-        != MAIN_TASKS
+        or manifest.get("dataset_repository", {}).get("materialized_tasks") != MAIN_TASKS
+        or manifest.get("dataset_repository", {}).get("build_mode")
+        != "local_source_build"
+        or manifest.get("dataset_repository", {}).get("base_images") != 41
         or {
             row.get("task") for row in manifest.get("license_exclusions", [])
         }
@@ -195,6 +198,18 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
             ).open()
         )
     )
+    source_build_rows = list(
+        csv.DictReader((ROOT / "analysis/task_source_builds.csv").open())
+    )
+    source_build_audit_rows = list(
+        csv.DictReader((ROOT / "analysis/source_build_audit_201.csv").open())
+    )
+    source_commit_audit_rows = list(
+        csv.DictReader((ROOT / "analysis/source_commit_audit_201.csv").open())
+    )
+    base_image_digests = json.loads(
+        (ROOT / "analysis/base_image_digests.json").read_text()
+    )
     if len(repository_rows) != MAIN_REPOSITORIES:
         raise SystemExit(
             f"expected metadata for {MAIN_REPOSITORIES} source repositories"
@@ -204,11 +219,51 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         ("instruction audit", instruction_rows, "task"),
         ("task mechanism classification", mechanism_rows, "task"),
         ("test-patch classification", test_patch_rows, "folder"),
+        ("source-build metadata", source_build_rows, "task"),
+        ("source-build audit", source_build_audit_rows, "task"),
+        ("source-commit audit", source_commit_audit_rows, "task"),
     ):
         if len(rows) != MAIN_TASKS or {row[field] for row in rows} != active_tasks:
             raise SystemExit(
                 f"{label} does not cover the {MAIN_TASKS}-task release"
             )
+    for row in source_build_audit_rows:
+        if any(
+            row[field] != "pass"
+            for field in (
+                "static_status",
+                "build_status",
+                "runtime_status",
+                "git_head_status",
+                "worktree_status",
+            )
+        ) or row["error"]:
+            raise SystemExit(f"{row['task']}: source-build audit did not pass")
+    source_commit_audits = {
+        row["task"]: row for row in source_commit_audit_rows
+    }
+    source_builds = {row["task"]: row for row in source_build_rows}
+    source_build_audits = {
+        row["task"]: row for row in source_build_audit_rows
+    }
+    if {
+        row["base_image"] for row in source_build_rows
+    } != set(base_image_digests):
+        raise SystemExit("base-image digest inventory does not cover source builds")
+    for task, source in source_builds.items():
+        expected_digest = base_image_digests[source["base_image"]]
+        if (
+            source["base_image_digest"] != expected_digest
+            or source["base_image_reference"]
+            != f"{source['base_image']}@{expected_digest}"
+            or source_build_audits[task]["base_image_digest"]
+            != expected_digest
+            or source_commit_audits[task]["fetch_status"] != "pass"
+            or source_commit_audits[task]["resolved_commit"]
+            != source["base_commit"]
+            or source_commit_audits[task]["error"]
+        ):
+            raise SystemExit(f"{task}: source-build provenance is stale")
 
     required = [
         "README.md",
@@ -222,11 +277,19 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         "OPEN_SOURCE_RELEASE_CHECKLIST.md",
         "MANIFEST.json",
         "analysis/bot_pr_dependency_audit_2026-07-26.csv",
+        "analysis/base_image_digests.json",
         "analysis/dependency_metadata_corrections_2026-07-26.csv",
         "analysis/instruction_bump_audit_201.csv",
         "analysis/repository_metadata.csv",
         "analysis/repository_metadata.json",
         "analysis/secret_scan_review_2026-07-23.csv",
+        "analysis/source_build_audit_201.csv",
+        "analysis/source_build_audit_201.json",
+        "analysis/source_build_audit_201.md",
+        "analysis/source_commit_audit_201.csv",
+        "analysis/source_commit_audit_201.json",
+        "analysis/task_source_builds.csv",
+        "analysis/task_source_builds.json",
         "analysis/task_change_mechanism_classification_201.csv",
         "analysis/task_change_mechanism_summary_201.json",
         "analysis/task_change_mechanism_taxonomy_201.md",
@@ -235,6 +298,13 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         "analysis/test_patch_behavior_classification_201.csv",
         "repro/download_benchmark.py",
         "repro/audit_release_compliance.py",
+        "repro/audit_source_builds.py",
+        "repro/audit_source_commits.py",
+        "repro/build_task_images.sh",
+        "repro/HUGGING_FACE_DATASET_CARD.md",
+        "repro/materialize_source_build_tasks.py",
+        "repro/package_source_build_dataset.py",
+        "repro/publish_source_build_hf.py",
         "repro/TASK_SCHEMA.md",
         "repro/run_oracle_solution.sh",
         "repro/run_patch_verifier.sh",
@@ -256,6 +326,47 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
             raise SystemExit(f"{path}: task_names do not match the dataset")
         if config["agents"][0]["env"]:
             raise SystemExit(f"{path}: checked-in agent env must be empty")
+        if config["environment"]["force_build"] is not True:
+            raise SystemExit(f"{path}: source-build release requires force_build=true")
+        if config["environment"]["override_memory_mb"] is not None:
+            raise SystemExit(f"{path}: expected task-specific memory limits")
+
+    for task in sorted(active_tasks):
+        task_dir = ROOT / "dataset/tasks" / task
+        task_toml = (task_dir / "task.toml").read_text(encoding="utf-8")
+        dockerfile_path = task_dir / "environment/Dockerfile"
+        if "docker_image" in task_toml:
+            raise SystemExit(f"{task}: task.toml references a prebuilt image")
+        if not dockerfile_path.is_file():
+            raise SystemExit(f"{task}: source-build Dockerfile is missing")
+        if (task_dir / "environment/docker-compose.yaml").exists():
+            raise SystemExit(f"{task}: placeholder docker-compose.yaml remains")
+        dockerfile = dockerfile_path.read_text(encoding="utf-8")
+        source = source_builds[task]
+        timeout_match = re.search(
+            r"^build_timeout_sec\s*=\s*([0-9.]+)\s*$",
+            task_toml,
+            re.MULTILINE,
+        )
+        build_timeout = float(timeout_match.group(1) if timeout_match else 1800)
+        if (
+            float(source_build_audits[task]["duration_seconds"])
+            > build_timeout + 30
+        ):
+            raise SystemExit(f"{task}: source build exceeded task build timeout")
+        if (
+            "git clone" not in dockerfile
+            or source["repository_url"] not in dockerfile
+            or source["base_commit"] not in dockerfile
+            or source["base_image_reference"] not in dockerfile
+            or dockerfile.index("git clone") > dockerfile.index(source["base_commit"])
+            or "manifest.patch" in dockerfile
+            or "\nCOPY " in dockerfile
+            or "depbench-task-images" in dockerfile
+            or hashlib.sha256(dockerfile.encode()).hexdigest()
+            != source["dockerfile_sha256"]
+        ):
+            raise SystemExit(f"{task}: invalid source-build Dockerfile")
 
     print(
         f"DepBench benchmark validation passed: {MAIN_TASKS} tasks, "

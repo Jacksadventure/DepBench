@@ -63,7 +63,11 @@ def main() -> int:
     parser.add_argument("--all-tasks", action="store_true")
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--jobs-dir", default="harbor_jobs")
-    parser.add_argument("--memory-mb", type=int, default=8192)
+    parser.add_argument(
+        "--memory-mb",
+        type=int,
+        help="override every task's memory limit; defaults to task.toml",
+    )
     parser.add_argument("--max-retries", type=int, default=0)
     parser.add_argument("--absolute-paths", action="store_true", help="write absolute dataset paths instead of release-root-relative paths")
     parser.add_argument("--output", type=Path, required=True)
@@ -97,7 +101,7 @@ def main() -> int:
         },
         "environment": {
             "type": "docker",
-            "force_build": False,
+            "force_build": True,
             "delete": True,
             "override_memory_mb": args.memory_mb,
             "env": {},

@@ -51,8 +51,8 @@ upgrade can be checked directly.
 
 ## Quick start
 
-Install the release helpers, download the pinned source snapshot from Hugging
-Face, apply the `main` branch license exclusions, and validate the benchmark:
+Install the release helpers, download the pinned 201-task snapshot from
+Hugging Face, and validate the benchmark:
 
 ```bash
 python3 -m pip install .
@@ -70,9 +70,9 @@ dataset/
 ```
 
 The Hugging Face revision and archive SHA-256 are pinned in
-[`MANIFEST.json`](MANIFEST.json). The downloader verifies the 203-task source
-archive, excludes the two tasks listed below, and materializes the 201-task
-`main` dataset. The downloaded `dataset/` directory is excluded from Git.
+[`MANIFEST.json`](MANIFEST.json). The archive directly contains the 201-task
+`main` dataset; the two license-excluded tasks listed below are not packaged.
+The downloaded `dataset/` directory is excluded from Git.
 
 ### License-excluded tasks
 
@@ -102,7 +102,8 @@ Each task under `dataset/tasks/<task>/` contains:
 | Path | Role | Agent visibility |
 |---|---|---|
 | `instruction.md` | Task prompt | Visible |
-| `task.toml` | Docker image, resources, and verifier timeout | Harness |
+| `task.toml` | Resources and verifier timeout | Harness |
+| `environment/Dockerfile` | Clone the upstream repository, checkout the fixed base commit, and bootstrap dependencies | Harness |
 | `environment/patches/manifest.patch` | Dependency upgrade applied during setup | Hidden |
 | `solution/code.patch` | Oracle source repair | Hidden |
 | `solution/manifest.patch` | Oracle dependency manifest patch | Hidden |
@@ -112,13 +113,16 @@ Each task under `dataset/tasks/<task>/` contains:
 | `tests/test_state.py` | Verifier state helper | Hidden |
 
 Some build- or compile-only witnesses do not require `tests/test.patch`.
-Task Docker images are referenced from `task.toml` as
-`idk233333/depbench-task-images:<task-folder>`.
+There are no prebuilt task-image references in the release. Harbor builds each
+task locally from `environment/Dockerfile`; each Dockerfile clones the
+repository URL and checks out the immutable commit recorded in
+`analysis/task_source_builds.{csv,json}`.
 
 ## Evaluation protocol
 
 1. Select a task from `dataset/task_summary.json`.
-2. Start the repository state provided by the task Docker image.
+2. Build `environment/Dockerfile`, which clones and checks out the task's fixed
+   base commit.
 3. Apply `environment/patches/manifest.patch`.
 4. Give the agent only the working repository and `instruction.md`.
 5. Keep `solution/` and `tests/` unavailable to the agent.
@@ -146,6 +150,11 @@ Task Docker images are referenced from `task.toml` as
 | `analysis/dependency_metadata_corrections_2026-07-26.{md,csv}` | Human-readable and machine-readable audit of 44 corrected package/version metadata rows |
 | `analysis/bot_pr_dependency_audit_2026-07-26.{md,csv}` | Cross-check of those 44 rows against merged Dependabot/Renovate PR declarations and final diffs |
 | `analysis/instruction_bump_audit_201.{md,csv,json}` | Per-task audit of all 201 distributed Bump instructions against packaged manifests and upstream PR metadata |
+| `analysis/task_source_builds.{csv,json}` | Repository URL, fixed base commit, base-image reference, Dockerfile path, and Dockerfile checksum for every task |
+| `analysis/base_image_digests.json` | Immutable manifest digest for all 41 language base images |
+| `analysis/source_build_audit_201.{csv,json}` | Per-task local build, runtime toolchain, checkout, and clean-worktree validation |
+| `analysis/source_build_audit_201.md` | Source-build audit method, adjustments, and result summary |
+| `analysis/source_commit_audit_201.{csv,json}` | Per-task Git fetch validation for every canonical repository URL and base commit |
 | `analysis/test_patch_behavior_classification_201.csv` | Static held-out test-patch behavior labels and size metrics for the 201 distributed tasks |
 | `analysis/task_change_mechanism_*` | Direct/indirect dependency-upgrade mechanism labels and taxonomy for all 201 distributed tasks |
 | `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Contract-audit decisions for the 36 reviewed tasks retained in main metadata |
@@ -169,7 +178,7 @@ Common workflows are available as focused helpers:
 |---|---|
 | Download the benchmark | `python3 repro/download_benchmark.py` |
 | Validate the release | `python3 repro/validate_release.py` |
-| Pull all task images | `bash repro/pull_task_images.sh` |
+| Build all task images locally | `bash repro/build_task_images.sh` |
 | Verify one oracle solution | `bash repro/run_oracle_solution.sh <task>` |
 | Verify a candidate patch | `bash repro/run_patch_verifier.sh <task> <patch>` |
 | Run with Harbor | [`repro/HARBOR.md`](repro/HARBOR.md) |
