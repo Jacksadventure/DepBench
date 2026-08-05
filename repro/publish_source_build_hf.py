@@ -20,8 +20,8 @@ from huggingface_hub import HfApi
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_TASKS = 201
-DEFAULT_REPO_ID = "ZijiantheJack/DepBench"
-DEFAULT_BRANCH = "source-build-main"
+DEFAULT_REPO_ID = "Depbench/build_from_source"
+DEFAULT_BRANCH = "main"
 
 
 def sha256(path: Path) -> str:
@@ -50,6 +50,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-id", default=DEFAULT_REPO_ID)
     parser.add_argument("--branch", default=DEFAULT_BRANCH)
+    parser.add_argument(
+        "--create-pr",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="upload through a pull request (default: enabled)",
+    )
     parser.add_argument(
         "--archive",
         type=Path,
@@ -103,6 +109,7 @@ def main() -> int:
                 "Replace prebuilt task-image references with Dockerfiles that "
                 "clone canonical repositories and checkout fixed commits."
             ),
+            create_pr=args.create_pr,
             delete_patterns=[
                 "dataset/**",
                 "analysis/**",
@@ -115,6 +122,7 @@ def main() -> int:
 
     print(f"repo={args.repo_id}")
     print(f"branch={args.branch}")
+    print(f"create_pr={args.create_pr}")
     print(f"commit={result.oid}")
     print(f"archive={archive.name}")
     print(f"sha256={archive_digest}")
