@@ -20,10 +20,15 @@ DEFAULT_REPO_ID = "ZijiantheJack/DepBench"
 DEFAULT_REVISION = "678ef766a0dfbe3953557270b2bcbcbac683900c"
 ARCHIVE_FILENAME = "depbench-v4-with-test203.tar.gz"
 ARCHIVE_SHA256 = "8a652fa388bcb8ebe23e3cf9906073cbf3bb2a693586240fa48df3942c95879d"
-EXPECTED_TASKS = 203
+SOURCE_TASKS = 203
+EXPECTED_TASKS = 201
+EXCLUDED_TASKS = {
+    "databricks__cli__1326",
+    "nearform__brokeneck__820",
+}
 
 
-def validate_dataset(destination: Path) -> None:
+def validate_dataset(destination: Path, expected_tasks: int) -> None:
     summary_path = destination / "dataset/task_summary.json"
     tasks_path = destination / "dataset/tasks"
     if not summary_path.is_file() or not tasks_path.is_dir():
@@ -32,11 +37,37 @@ def validate_dataset(destination: Path) -> None:
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     summary_tasks = {row["folder"] for row in summary}
     directory_tasks = {path.name for path in tasks_path.iterdir() if path.is_dir()}
-    if len(summary) != EXPECTED_TASKS or summary_tasks != directory_tasks:
+    if len(summary) != expected_tasks or summary_tasks != directory_tasks:
         raise SystemExit(
             "benchmark validation failed: "
             f"summary={len(summary)} directories={len(directory_tasks)}"
         )
+
+
+def apply_license_exclusions(destination: Path) -> None:
+    summary_path = destination / "dataset/task_summary.json"
+    tasks_path = destination / "dataset/tasks"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary_tasks = {row["folder"] for row in summary}
+    if not EXCLUDED_TASKS <= summary_tasks:
+        missing = sorted(EXCLUDED_TASKS - summary_tasks)
+        raise SystemExit(
+            f"license-excluded tasks missing from source archive: {missing}"
+        )
+
+    for task in EXCLUDED_TASKS:
+        task_path = tasks_path / task
+        if not task_path.is_dir():
+            raise SystemExit(f"license-excluded task directory missing: {task_path}")
+        shutil.rmtree(task_path)
+
+    filtered_summary = [
+        row for row in summary if row["folder"] not in EXCLUDED_TASKS
+    ]
+    summary_path.write_text(
+        json.dumps(filtered_summary, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def extract_archive(archive_path: Path, destination: Path) -> None:
@@ -88,7 +119,9 @@ def main() -> int:
     ) as temporary_directory:
         temporary_path = Path(temporary_directory)
         extract_archive(archive_path, temporary_path)
-        validate_dataset(temporary_path)
+        validate_dataset(temporary_path, SOURCE_TASKS)
+        apply_license_exclusions(temporary_path)
+        validate_dataset(temporary_path, EXPECTED_TASKS)
 
         destination_dataset = destination / "dataset"
         if destination_dataset.is_symlink():
@@ -97,7 +130,7 @@ def main() -> int:
             shutil.rmtree(destination_dataset)
         shutil.move(temporary_path / "dataset", destination_dataset)
 
-    validate_dataset(destination)
+    validate_dataset(destination, EXPECTED_TASKS)
     print(
         f"DepBench ready: {EXPECTED_TASKS} tasks in "
         f"{destination / 'dataset/tasks'} ({args.repo_id}@{args.revision})"

@@ -1,18 +1,18 @@
-# Instruction Bump Audit - 203 Tasks
+# Instruction Bump Audit - 201 Tasks
 
 Every active task was checked against its packaged manifest patch, upstream pull request metadata, and final `instruction.md`.
 
 ## Result
 
-- Tasks audited: **203**
-- Passed: **203**
+- Tasks audited: **201**
+- Passed: **201**
 - Needs review: **0**
 
 ## Evidence Classes
 
 | Evidence | Tasks |
 |---|---:|
-| `exact_versions` | 197 |
+| `exact_versions` | 195 |
 | `group_update` | 5 |
 | `pr_only_source_revision` | 1 |
 
@@ -20,9 +20,9 @@ Every active task was checked against its packaged manifest patch, upstream pull
 
 | PR evidence | Tasks |
 |---|---:|
-| `exact_declared` | 170 |
+| `exact_declared` | 169 |
 | `group_declared` | 5 |
-| `library_declared` | 20 |
+| `library_declared` | 19 |
 | `not_declared` | 3 |
 | `versions_declared` | 5 |
 
@@ -52,7 +52,6 @@ Every active task was checked against its packaged manifest patch, upstream pull
 | `mightyiam__eslint-config-love__2178` | `eslint 9.12.0 -> 9.35.0` | `exact_versions` | `library_declared` | `pass` |
 | `mitmproxy__mitmproxy_rs__142` | `dependencies group previous versions -> updated versions` | `group_update` | `group_declared` | `pass` |
 | `mitre__heimdall2__2276` | `d3 6.1.1 -> 7.2.0` | `exact_versions` | `not_declared` | `pass` |
-| `nearform__brokeneck__820` | `react-router-dom 5.2.0 -> 6.4.1` | `exact_versions` | `library_declared` | `pass` |
 | `octokit__auth-oauth-app.js__137` | `@octokit/types 6.0.0 -> 6.0.3` | `exact_versions` | `library_declared` | `pass` |
 | `octokit__plugin-paginate-rest.js__226` | `@octokit/types 5.5.0 -> 6.0.1` | `exact_versions` | `library_declared` | `pass` |
 | `odanado__cloud-cryptographic-wallet__672` | `@ethereumjs/common 2.6.2 -> 3.0.0` | `exact_versions` | `library_declared` | `pass` |

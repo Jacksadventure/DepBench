@@ -71,14 +71,6 @@ LICENSE_OVERRIDES = {
         "license_category": "open_source",
         "license_source": "repository_license_file",
     },
-    "databricks/cli": {
-        "license_spdx_id": "LicenseRef-Databricks",
-        "license_name": "Databricks License",
-        "license_file_url": "https://github.com/databricks/cli/blob/main/LICENSE",
-        "license_status": "verified_license_file",
-        "license_category": "custom",
-        "license_source": "repository_license_file",
-    },
     "elastic/cloud-on-k8s": {
         "license_spdx_id": "Elastic-2.0",
         "license_name": "Elastic License 2.0",
@@ -126,14 +118,6 @@ LICENSE_OVERRIDES = {
         "license_status": "verified_license_file",
         "license_category": "custom",
         "license_source": "repository_license_file",
-    },
-    "nearform/brokeneck": {
-        "license_spdx_id": "NOASSERTION",
-        "license_name": "No repository-level license declared",
-        "license_file_url": "",
-        "license_status": "not_declared",
-        "license_category": "not_declared",
-        "license_source": "repository_and_package_metadata_review",
     },
     "opengovsg/askgovsg": {
         "license_spdx_id": "LicenseRef-MIT-with-GovTech-terms",

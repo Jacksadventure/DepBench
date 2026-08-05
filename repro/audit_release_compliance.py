@@ -227,8 +227,7 @@ def check_license_inventory(errors: list[str]) -> None:
     expected = {
         "open_source": 192,
         "source_available": 7,
-        "custom": 3,
-        "not_declared": 1,
+        "custom": 2,
     }
     if dict(category_tasks) != expected:
         errors.append(
@@ -238,11 +237,9 @@ def check_license_inventory(errors: list[str]) -> None:
     notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
     for identifier in (
         "SSPL-1.0",
-        "LicenseRef-Databricks",
         "Elastic-2.0",
         "FSL-1.1-ALv2",
         "LicenseRef-Apache-2.0-with-MITRE-terms",
-        "NOASSERTION",
         "LicenseRef-MIT-with-GovTech-terms",
         "BUSL-1.1",
     ):

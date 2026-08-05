@@ -2,7 +2,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Build the reviewed direct/indirect change-mechanism analysis for 203 tasks."""
+"""Build the reviewed direct/indirect change-mechanism analysis for 201 tasks."""
 
 from __future__ import annotations
 
@@ -15,13 +15,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK_SUMMARY = ROOT / "dataset" / "task_summary.json"
-OUTPUT_CSV = ROOT / "analysis" / "task_change_mechanism_classification_203.csv"
-OUTPUT_JSON = ROOT / "analysis" / "task_change_mechanism_summary_203.json"
-OUTPUT_MD = ROOT / "analysis" / "task_change_mechanism_taxonomy_203.md"
+OUTPUT_CSV = ROOT / "analysis" / "task_change_mechanism_classification_201.csv"
+OUTPUT_JSON = ROOT / "analysis" / "task_change_mechanism_summary_201.json"
+OUTPUT_MD = ROOT / "analysis" / "task_change_mechanism_taxonomy_201.md"
 
-EXPECTED_TASK_COUNT = 203
+EXPECTED_TASK_COUNT = 201
 EXPECTED_TASK_ORDER_SHA256 = (
-    "c2da6aa10bb9fbd26b6e8871c3c92472253fc88fd1aef6675d4c995d7bb7c3e8"
+    "8eda5875680b07f6ad2f5f8048f4ea5f6a1019ce757fec88224d764560a6c3f4"
 )
 
 MECHANISMS = {
@@ -84,6 +84,11 @@ PN PN FS FS AR FS TS TS PN AR
 AR PN PN CB TS TS RS PN TS CB
 FS RS TS
 """.split()
+# These source-snapshot rows are not distributed from main because of their
+# repository licensing status.
+LABEL_CODES = [
+    code for index, code in enumerate(LABEL_CODES) if index not in {51, 120}
+]
 
 CODE_TO_MECHANISM = {
     "PN": "package-module-namespace",
@@ -195,7 +200,7 @@ def build_summary(rows: list[dict[str, str]]) -> dict:
 def write_markdown(summary: dict) -> None:
     scopes = {row["scope"]: row for row in summary["scope_counts"]}
     lines = [
-        "# Task Change Mechanism Classification (203 Tasks)",
+        "# Task Change Mechanism Classification (201 Tasks)",
         "",
         "## Classification rule",
         "",
@@ -245,7 +250,7 @@ def write_markdown(summary: dict) -> None:
             "mechanism, not every secondary effect present in a task.",
             "",
             "The task-level labels are in",
-            "`analysis/task_change_mechanism_classification_203.csv`.",
+            "`analysis/task_change_mechanism_classification_201.csv`.",
             "",
         ]
     )

@@ -93,6 +93,14 @@ EXPERIMENT_ARTIFACT_DIRECTORIES = {
     "trajectories",
     "verify_logs",
 }
+MAIN_DATASET = "DepBench main redistributable 201"
+MAIN_TASKS = 201
+SOURCE_ARCHIVE_TASKS = 203
+MAIN_REPOSITORIES = 157
+LICENSE_EXCLUDED_TASKS = {
+    "databricks__cli__1326",
+    "nearform__brokeneck__820",
+}
 
 
 def count_gzip_jsonl(path: Path) -> int:
@@ -142,11 +150,18 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         "zero_pass_contract_repair_rerun_cells",
     }
     if (
-        manifest.get("dataset") != "DepBench contract-clean 203"
-        or manifest.get("tasks") != 203
+        manifest.get("dataset") != MAIN_DATASET
+        or manifest.get("tasks") != MAIN_TASKS
         or manifest.get("source_tasks") != 219
         or manifest.get("configurations") != 10
-        or manifest.get("dataset_repository", {}).get("tasks") != 203
+        or manifest.get("dataset_repository", {}).get("tasks")
+        != SOURCE_ARCHIVE_TASKS
+        or manifest.get("dataset_repository", {}).get("materialized_tasks")
+        != MAIN_TASKS
+        or {
+            row.get("task") for row in manifest.get("license_exclusions", [])
+        }
+        != LICENSE_EXCLUDED_TASKS
     ):
         raise SystemExit("MANIFEST.json does not describe the benchmark-only release")
     if forbidden_content_keys & set(manifest.get("contents", {})):
@@ -162,34 +177,38 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
     )
     instruction_rows = list(
         csv.DictReader(
-            (ROOT / "analysis/instruction_bump_audit_203.csv").open()
+            (ROOT / "analysis/instruction_bump_audit_201.csv").open()
         )
     )
     mechanism_rows = list(
         csv.DictReader(
             (
                 ROOT
-                / "analysis/task_change_mechanism_classification_203.csv"
+                / "analysis/task_change_mechanism_classification_201.csv"
             ).open()
         )
     )
     test_patch_rows = list(
         csv.DictReader(
             (
-                ROOT / "analysis/test_patch_behavior_classification_203.csv"
+                ROOT / "analysis/test_patch_behavior_classification_201.csv"
             ).open()
         )
     )
-    if len(repository_rows) != 159:
-        raise SystemExit("expected metadata for 159 source repositories")
+    if len(repository_rows) != MAIN_REPOSITORIES:
+        raise SystemExit(
+            f"expected metadata for {MAIN_REPOSITORIES} source repositories"
+        )
     for label, rows, field in (
         ("task repository metadata", task_repository_rows, "task"),
         ("instruction audit", instruction_rows, "task"),
         ("task mechanism classification", mechanism_rows, "task"),
         ("test-patch classification", test_patch_rows, "folder"),
     ):
-        if len(rows) != 203 or {row[field] for row in rows} != active_tasks:
-            raise SystemExit(f"{label} does not cover the 203-task release")
+        if len(rows) != MAIN_TASKS or {row[field] for row in rows} != active_tasks:
+            raise SystemExit(
+                f"{label} does not cover the {MAIN_TASKS}-task release"
+            )
 
     required = [
         "README.md",
@@ -204,16 +223,16 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         "MANIFEST.json",
         "analysis/bot_pr_dependency_audit_2026-07-26.csv",
         "analysis/dependency_metadata_corrections_2026-07-26.csv",
-        "analysis/instruction_bump_audit_203.csv",
+        "analysis/instruction_bump_audit_201.csv",
         "analysis/repository_metadata.csv",
         "analysis/repository_metadata.json",
         "analysis/secret_scan_review_2026-07-23.csv",
-        "analysis/task_change_mechanism_classification_203.csv",
-        "analysis/task_change_mechanism_summary_203.json",
-        "analysis/task_change_mechanism_taxonomy_203.md",
+        "analysis/task_change_mechanism_classification_201.csv",
+        "analysis/task_change_mechanism_summary_201.json",
+        "analysis/task_change_mechanism_taxonomy_201.md",
         "analysis/task_repository_metadata.csv",
         "analysis/test_contract_repair_decisions_2026-07-14.csv",
-        "analysis/test_patch_behavior_classification_203.csv",
+        "analysis/test_patch_behavior_classification_201.csv",
         "repro/download_benchmark.py",
         "repro/audit_release_compliance.py",
         "repro/TASK_SCHEMA.md",
@@ -238,7 +257,10 @@ def validate_benchmark_only(active_tasks: set[str]) -> int:
         if config["agents"][0]["env"]:
             raise SystemExit(f"{path}: checked-in agent env must be empty")
 
-    print("DepBench benchmark validation passed: 203 tasks, no run artifacts.")
+    print(
+        f"DepBench benchmark validation passed: {MAIN_TASKS} tasks, "
+        "no run artifacts."
+    )
     return 0
 
 
@@ -253,10 +275,15 @@ def main() -> int:
     task_summary = json.loads(task_summary_path.read_text())
     task_dirs = [p for p in tasks_path.iterdir() if p.is_dir()]
     active_tasks = {row["folder"] for row in task_summary}
-    if len(task_summary) != 203 or len(task_dirs) != 203:
-        raise SystemExit(f"expected 203 tasks, got summary={len(task_summary)} dirs={len(task_dirs)}")
+    if len(task_summary) != MAIN_TASKS or len(task_dirs) != MAIN_TASKS:
+        raise SystemExit(
+            f"expected {MAIN_TASKS} tasks, got "
+            f"summary={len(task_summary)} dirs={len(task_dirs)}"
+        )
     if active_tasks != {path.name for path in task_dirs}:
         raise SystemExit("task_summary folders do not match dataset/tasks")
+    if active_tasks & LICENSE_EXCLUDED_TASKS:
+        raise SystemExit("license-excluded tasks remain in the main dataset")
 
     invalid_tasks = [
         path.parent.name
@@ -275,8 +302,8 @@ def main() -> int:
         decision: sum(row["decision"] == decision for row in decision_rows)
         for decision in ("repair", "repackage", "mark_invalid")
     }
-    if len(decision_rows) != 37 or decision_counts != {
-        "repair": 8,
+    if len(decision_rows) != 36 or decision_counts != {
+        "repair": 7,
         "repackage": 13,
         "mark_invalid": 16,
     }:

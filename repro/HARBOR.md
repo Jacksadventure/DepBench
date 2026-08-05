@@ -14,7 +14,7 @@ python3 repro/download_benchmark.py
 ```
 
 This installs the release helper package and dependencies, then downloads the
-pinned 203-task benchmark snapshot.
+pinned source snapshot and materializes the 201-task `main` benchmark.
 
 ## Generate a Harbor config
 
@@ -30,7 +30,7 @@ python3 repro/make_harbor_config.py \
   --output repro/examples/codex_gpt55_one_task.json
 ```
 
-Create a config for all 203 tasks:
+Create a config for all 201 distributed tasks:
 
 ```bash
 python3 repro/make_harbor_config.py \

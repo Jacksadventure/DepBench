@@ -30,8 +30,8 @@ Microsoft internal approvals have been granted.
   and logo where required.
 - [ ] Complete the Microsoft Open Data review for the Hugging Face dataset and
   retain the approval record.
-- [ ] Obtain CELA disposition for the 11 tasks with source-available, custom, or
-  undeclared terms, including `LicenseRef-Databricks`.
+- [ ] Obtain CELA disposition for the 9 distributed tasks with
+  source-available or custom terms.
 - [ ] Complete privacy review for benchmark prompts, source excerpts,
   contributor identifiers, and Hugging Face artifacts.
 - [ ] Complete the applicable SDL/security review, threat model, secret scan,

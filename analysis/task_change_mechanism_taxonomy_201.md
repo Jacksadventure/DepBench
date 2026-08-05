@@ -1,4 +1,4 @@
-# Task Change Mechanism Classification (203 Tasks)
+# Task Change Mechanism Classification (201 Tasks)
 
 ## Classification rule
 
@@ -11,22 +11,22 @@ classified by the mechanism that dominates the oracle repair.
 
 | Scope | Tasks | Share |
 | --- | ---: | ---: |
-| Direct | 144 | 70.9% |
-| Indirect | 59 | 29.1% |
-| Total | 203 | 100.0% |
+| Direct | 142 | 70.6% |
+| Indirect | 59 | 29.4% |
+| Total | 201 | 100.0% |
 
 ## Primary mechanisms
 
 | Scope | Mechanism | Tasks | Share |
 | --- | --- | ---: | ---: |
-| Direct | `package-module-namespace` | 33 | 16.3% |
-| Direct | `api-symbol-removal-rename` | 47 | 23.2% |
-| Direct | `function-signature-calling-convention` | 27 | 13.3% |
-| Direct | `type-interface-schema` | 37 | 18.2% |
-| Indirect | `runtime-semantic-behavior` | 20 | 9.9% |
+| Direct | `package-module-namespace` | 33 | 16.4% |
+| Direct | `api-symbol-removal-rename` | 46 | 22.9% |
+| Direct | `function-signature-calling-convention` | 27 | 13.4% |
+| Direct | `type-interface-schema` | 36 | 17.9% |
+| Indirect | `runtime-semantic-behavior` | 20 | 10.0% |
 | Indirect | `dependency-chain-resolution` | 6 | 3.0% |
-| Indirect | `configuration-build-tooling` | 18 | 8.9% |
-| Indirect | `generated-output-data-contract` | 15 | 7.4% |
+| Indirect | `configuration-build-tooling` | 18 | 9.0% |
+| Indirect | `generated-output-data-contract` | 15 | 7.5% |
 
 ## Definitions
 
@@ -46,4 +46,4 @@ patch, and hidden-test/verifier witness. They describe the primary repair
 mechanism, not every secondary effect present in a task.
 
 The task-level labels are in
-`analysis/task_change_mechanism_classification_203.csv`.
+`analysis/task_change_mechanism_classification_201.csv`.

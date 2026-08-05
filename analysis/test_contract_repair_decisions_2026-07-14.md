@@ -2,17 +2,17 @@
 
 Date: 2026-07-14
 
-Scope: 35 semantic and 2 mixed/ambiguous test-contract findings in the
+Scope: 34 semantic and 2 mixed/ambiguous test-contract findings in the
 219-task `v4-with-test` dataset.
 
 ## Summary
 
 | Decision | Tasks |
 | --- | ---: |
-| Repair | 8 |
+| Repair | 7 |
 | Repackage | 13 |
 | Mark invalid | 16 |
-| Total | 37 |
+| Total | 36 |
 
 A repaired or repackaged task was required to satisfy `base=0`,
 `manifest-only=0`, and `oracle=1`, with the manifest-only failure caused by the
@@ -55,9 +55,7 @@ dependency upgrade. Invalid tasks remain in the dataset and carry
 | 30 | `typescript-eslint__tslint-to-eslint-config__1192` | semantic | repackage | `ccfd38dec` | Replaced a direct helper test with strict TypeScript 4.4 unknown-catch compilation. |
 | 31 | `webhintio__hint__4027` | semantic | repackage | `25137b6f2` | Narrowed the task to the utils-css PostCSS 8 type migration. |
 | 32 | `dschadow__JavaSecurity__236` | semantic | repair | `d698920ee` | Preserved one-million iterations and private/public salt semantics through Shiro 2 parameters. |
-| 33 | `nearform__brokeneck__820` | semantic | repair | `ef00ab977` | Relaxed hidden tests to accept hook-based and compatibility Router v6 migrations. |
-| 34 | `nuts-foundation__nuts-node__426` | semantic | repackage | `6b3a3a920` | Removed non-derivable random signatures and narrowed to the direct jwx sign-option API break. |
-| 35 | `solana-labs__solana-program-library__4301` | semantic | repackage | `b03ea113f` | Replaced contradictory behavioral assertions with the SPL Token TypeScript compile boundary. |
-| 36 | `ampproject__amp-wp__6853` | mixed | mark_invalid | `cb02fe98a` | eslint-plugin-jest is lint-only; oracle changes unrelated application hook state. |
-| 37 | `camunda-community-hub__spring-zeebe__642` | mixed | mark_invalid | `e205bff59` | Zeebe patch upgrade passes unchanged; hidden test introduces an independent worker bugfix. |
-
+| 33 | `nuts-foundation__nuts-node__426` | semantic | repackage | `6b3a3a920` | Removed non-derivable random signatures and narrowed to the direct jwx sign-option API break. |
+| 34 | `solana-labs__solana-program-library__4301` | semantic | repackage | `b03ea113f` | Replaced contradictory behavioral assertions with the SPL Token TypeScript compile boundary. |
+| 35 | `ampproject__amp-wp__6853` | mixed | mark_invalid | `cb02fe98a` | eslint-plugin-jest is lint-only; oracle changes unrelated application hook state. |
+| 36 | `camunda-community-hub__spring-zeebe__642` | mixed | mark_invalid | `e205bff59` | Zeebe patch upgrade passes unchanged; hidden test introduces an independent worker bugfix. |

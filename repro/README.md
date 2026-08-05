@@ -14,7 +14,9 @@ python3 repro/download_benchmark.py
 ```
 
 This creates the ignored local paths `dataset/tasks/` and
-`dataset/task_summary.json`.
+`dataset/task_summary.json`. The downloader removes the two license-excluded
+tasks documented in the root README and materializes the 201-task `main`
+dataset.
 
 ## Requirements
 

@@ -70,7 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-prefix",
         type=Path,
-        default=Path("analysis/instruction_bump_audit_203"),
+        default=Path("analysis/instruction_bump_audit_201"),
     )
     return parser.parse_args()
 
@@ -340,7 +340,7 @@ def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
     ]
 
     lines = [
-        "# Instruction Bump Audit - 203 Tasks",
+        f"# Instruction Bump Audit - {len(rows)} Tasks",
         "",
         "Every active task was checked against its packaged manifest patch, upstream "
         "pull request metadata, and final `instruction.md`.",
@@ -414,8 +414,8 @@ def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
 def main() -> None:
     args = parse_args()
     summary = json.loads(args.summary.read_text(encoding="utf-8"))
-    if len(summary) != 203:
-        raise SystemExit(f"expected 203 task summary rows, got {len(summary)}")
+    if len(summary) != 201:
+        raise SystemExit(f"expected 201 task summary rows, got {len(summary)}")
 
     source_tasks = args.source_root / "harbor_benchmark" / "tasks_v4"
     rows = [

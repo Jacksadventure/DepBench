@@ -4,7 +4,7 @@ This audit checks the 44 recently corrected dependency metadata rows against the
 
 The two unresolved attributions identified by this audit were corrected by the
 2026-07-27 full 203-task review. The final state is recorded in
-`analysis/instruction_bump_audit_203.{md,csv,json}`.
+`analysis/instruction_bump_audit_201.{md,csv,json}`.
 
 ## Scope
 

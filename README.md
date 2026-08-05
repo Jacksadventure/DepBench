@@ -11,8 +11,8 @@
   <a href="https://huggingface.co/datasets/ZijiantheJack/DepBench">
     <img alt="Hugging Face dataset" src="https://img.shields.io/badge/Hugging%20Face-Dataset-FFD21E?style=flat-square">
   </a>
-  <img alt="203 tasks" src="https://img.shields.io/badge/tasks-203-2E8B57?style=flat-square">
-  <img alt="159 repositories" src="https://img.shields.io/badge/repositories-159-3B82F6?style=flat-square">
+  <img alt="201 tasks" src="https://img.shields.io/badge/tasks-201-2E8B57?style=flat-square">
+  <img alt="157 repositories" src="https://img.shields.io/badge/repositories-157-3B82F6?style=flat-square">
   <img alt="5 ecosystems" src="https://img.shields.io/badge/ecosystems-5-8B5CF6?style=flat-square">
   <img alt="contract-clean release" src="https://img.shields.io/badge/release-contract--clean-343A40?style=flat-square">
 </p>
@@ -32,10 +32,12 @@ DepBench evaluates whether coding agents can repair repository-level breakages
 caused by dependency upgrades. Its tasks originate from real merged Dependabot
 and Renovate pull requests and span npm/yarn, Maven, Go modules, Cargo, and pip.
 
-This contract-clean release retains **203 valid tasks** from the original
-219-task snapshot. Each task separates the dependency upgrade, the developer
-repair, and the hidden verifier so that the causal effect of the upgrade can be
-checked directly.
+The contract-clean source snapshot retains 203 valid tasks from the original
+219-task snapshot. The `main` branch distributes **201 tasks** after excluding
+two projects whose repository terms do not provide a clear basis for direct
+redistribution. Each distributed task separates the dependency upgrade, the
+developer repair, and the hidden verifier so that the causal effect of the
+upgrade can be checked directly.
 
 > [!IMPORTANT]
 > `solution/` and `tests/` are published for reproducibility. Keep both
@@ -45,12 +47,12 @@ checked directly.
 
 | Tasks | Source repositories | Ecosystems |
 |---:|---:|---:|
-| **203** | **159** | **5** |
+| **201** | **157** | **5** |
 
 ## Quick start
 
-Install the release helpers, download the pinned benchmark snapshot from
-Hugging Face, and validate the benchmark:
+Install the release helpers, download the pinned source snapshot from Hugging
+Face, apply the `main` branch license exclusions, and validate the benchmark:
 
 ```bash
 python3 -m pip install .
@@ -68,8 +70,23 @@ dataset/
 ```
 
 The Hugging Face revision and archive SHA-256 are pinned in
-[`MANIFEST.json`](MANIFEST.json). The downloaded `dataset/` directory is
-excluded from Git.
+[`MANIFEST.json`](MANIFEST.json). The downloader verifies the 203-task source
+archive, excludes the two tasks listed below, and materializes the 201-task
+`main` dataset. The downloaded `dataset/` directory is excluded from Git.
+
+### License-excluded tasks
+
+The `main` branch does not directly distribute the following task packages
+because of their upstream repository licensing status:
+
+| Repository | Dependency upgrade | Upstream pull request |
+|---|---|---|
+| `databricks/cli` | `github.com/databricks/databricks-sdk-go` 0.36.0 to 0.37.0 | [databricks/cli#1326](https://github.com/databricks/cli/pull/1326) |
+| `nearform/brokeneck` | `react-router-dom` 5.2.0 to 6.4.1 | [nearform/brokeneck#820](https://github.com/nearform/brokeneck/pull/820) |
+
+Users may inspect those upstream pull requests and independently reconstruct
+or attempt the upgrades, subject to the upstream repositories' terms. Neither
+task is included in the 201-task dataset materialized by the `main` branch.
 
 ## Benchmark design
 
@@ -128,15 +145,15 @@ Task Docker images are referenced from `task.toml` as
 |---|---|
 | `analysis/dependency_metadata_corrections_2026-07-26.{md,csv}` | Human-readable and machine-readable audit of 44 corrected package/version metadata rows |
 | `analysis/bot_pr_dependency_audit_2026-07-26.{md,csv}` | Cross-check of those 44 rows against merged Dependabot/Renovate PR declarations and final diffs |
-| `analysis/instruction_bump_audit_203.{md,csv,json}` | Per-task audit of all 203 final Bump instructions against packaged manifests and upstream PR metadata |
-| `analysis/test_patch_behavior_classification_203.csv` | Static held-out test-patch behavior labels and size metrics for the 203 release tasks |
-| `analysis/task_change_mechanism_*` | Direct/indirect dependency-upgrade mechanism labels and taxonomy for all 203 tasks |
-| `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Contract-audit decisions for the 37 reviewed tasks |
+| `analysis/instruction_bump_audit_201.{md,csv,json}` | Per-task audit of all 201 distributed Bump instructions against packaged manifests and upstream PR metadata |
+| `analysis/test_patch_behavior_classification_201.csv` | Static held-out test-patch behavior labels and size metrics for the 201 distributed tasks |
+| `analysis/task_change_mechanism_*` | Direct/indirect dependency-upgrade mechanism labels and taxonomy for all 201 distributed tasks |
+| `analysis/test_contract_repair_decisions_2026-07-14.{md,csv}` | Contract-audit decisions for the 36 reviewed tasks retained in main metadata |
 
 ### Repository metadata
 
 `analysis/repository_metadata.{csv,json}` records repository URLs, licenses,
-primary languages, archive status, and task counts for the 159 source
+primary languages, archive status, and task counts for the 157 distributed
 repositories. `analysis/task_repository_metadata.csv` provides the corresponding
 task-level mapping.
 
@@ -171,9 +188,9 @@ that MIT license. The MIT license does not grant trademark rights.
 
 The complete source-repository and detected-license mapping is available in
 `analysis/repository_metadata.{csv,json}` and
-`analysis/task_repository_metadata.csv`. Of the 203 tasks, 192 are classified
-as originating from open-source repositories and 11 use source-available,
-custom, or undeclared terms. See
+`analysis/task_repository_metadata.csv`. Of the 201 distributed tasks, 192 are
+classified as originating from open-source repositories and 9 use
+source-available or custom terms. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before redistribution or use.
 
 ## Data, privacy, and network notice
@@ -212,8 +229,9 @@ logos are subject to those third-party’s policies.
 
 ## Release policy
 
-The `main` branch contains reported artifacts and reproduction helpers.
+The `main` branch contains benchmark metadata and reproduction helpers.
 Directory-format benchmark contracts are versioned on
 [Hugging Face](https://huggingface.co/datasets/ZijiantheJack/DepBench) and
-downloaded on demand. Pin both the Git commit and the Hugging Face revision for
+downloaded on demand; the `main` downloader enforces the license exclusions
+documented above. Pin both the Git commit and the Hugging Face revision for
 reproducible experiments.

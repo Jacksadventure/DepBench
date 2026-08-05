@@ -62,7 +62,7 @@ applied five additional metadata corrections:
 | `spiffe__spire__4184` | `github.com/hashicorp/vault/sdk 0.9.0 -> 0.9.1` |
 
 The final per-task evidence is in
-`analysis/instruction_bump_audit_203.{md,csv,json}`. That audit supersedes the
+`analysis/instruction_bump_audit_201.{md,csv,json}`. That audit supersedes the
 intermediate attribution for the affected rows in the historical table below.
 
 ## Detailed Corrections
