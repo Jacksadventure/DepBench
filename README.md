@@ -31,6 +31,10 @@
 DepBench evaluates whether coding agents can repair repository-level breakages
 caused by dependency upgrades. Its tasks originate from real merged Dependabot
 and Renovate pull requests and span npm/yarn, Maven, Go modules, Cargo, and pip.
+DepBench uses the
+[Harbor framework](https://github.com/harbor-framework/harbor) as its evaluation
+harness for running agents, building isolated task environments, invoking
+verifiers, and collecting trial results.
 
 The contract-clean source snapshot retains 203 valid tasks from the original
 219-task snapshot. The `main` branch distributes **201 tasks** after excluding
