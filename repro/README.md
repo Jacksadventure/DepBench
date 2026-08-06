@@ -5,7 +5,7 @@ This directory contains the minimal helper files for using the release snapshot.
 ## Download the benchmark
 
 The directory-format task contracts are hosted at
-[Depbench/build_from_source](https://huggingface.co/datasets/Depbench/build_from_source/tree/3dfc6d08c8c83ec578f32c175cb7be2b8d5bec93).
+[Depbench/build_from_source](https://huggingface.co/datasets/Depbench/build_from_source/tree/3eef955c222baa310ef039153755ec9d7cdb03f3).
 From the release root, install the package and download the pinned snapshot:
 
 ```bash

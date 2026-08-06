@@ -8,7 +8,7 @@
 **A repository-level benchmark for dependency-upgrade repair by coding agents**
 
 <p>
-  <a href="https://huggingface.co/datasets/Depbench/build_from_source/tree/3dfc6d08c8c83ec578f32c175cb7be2b8d5bec93">
+  <a href="https://huggingface.co/datasets/Depbench/build_from_source/tree/3eef955c222baa310ef039153755ec9d7cdb03f3">
     <img alt="Hugging Face dataset" src="https://img.shields.io/badge/Hugging%20Face-Dataset-FFD21E?style=flat-square">
   </a>
   <img alt="201 tasks" src="https://img.shields.io/badge/tasks-201-2E8B57?style=flat-square">
@@ -242,7 +242,7 @@ logos are subject to those third-party’s policies.
 
 The `main` branch contains benchmark metadata and reproduction helpers.
 Directory-format benchmark contracts are versioned on
-[Hugging Face](https://huggingface.co/datasets/Depbench/build_from_source/tree/3dfc6d08c8c83ec578f32c175cb7be2b8d5bec93) and
+[Hugging Face](https://huggingface.co/datasets/Depbench/build_from_source/tree/3eef955c222baa310ef039153755ec9d7cdb03f3) and
 downloaded on demand; the `main` downloader enforces the license exclusions
 documented above. Pin both the Git commit and the Hugging Face revision for
 reproducible experiments.
