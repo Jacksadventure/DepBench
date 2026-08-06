@@ -51,6 +51,8 @@ upgrade can be checked directly.
 
 ## Quick start
 
+DepBench release helpers require Python 3.12 or newer.
+
 Install the release helpers, download the pinned 201-task snapshot from
 Hugging Face, and validate the benchmark:
 

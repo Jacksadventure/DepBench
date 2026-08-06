@@ -24,7 +24,7 @@ README are not packaged.
 - Docker with network access to the source repositories, base-image registry,
   and package registries used during local builds
 - Bash
-- Python 3.10+ for the JSONL helper scripts
+- Python 3.12+ for the release helpers and Harbor
 - Harbor, if you want to execute benchmark jobs through the benchmark harness
 - Network access while task images and verifier dependencies are built
 
