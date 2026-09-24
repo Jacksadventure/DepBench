@@ -1,0 +1,97 @@
+diff --git a/src/adapters/fsFileSystem.ts b/src/adapters/fsFileSystem.ts
+--- a/src/adapters/fsFileSystem.ts
++++ b/src/adapters/fsFileSystem.ts
+@@ -1,6 +1,7 @@
+ import * as fs from "fs";
+ import { promisify } from "util";
+ 
++import { asError } from "../utils";
+ import { FileSystem } from "./fileSystem";
+ 
+ const readFile = promisify(fs.readFile);
+@@ -18,14 +19,15 @@ export const fsFileSystem: FileSystem = {
+         try {
+             return (await readFile(filePath)).toString();
+         } catch (error) {
+-            return error;
++            return asError(error);
+         }
+     },
+     writeFile: async (filePath: string, contents: string) => {
+         try {
+-            return writeFile(filePath, contents);
++            await writeFile(filePath, contents);
++            return undefined;
+         } catch (error) {
+-            return error;
++            return asError(error);
+         }
+     },
+ };
+diff --git a/src/cli/main.ts b/src/cli/main.ts
+--- a/src/cli/main.ts
++++ b/src/cli/main.ts
+@@ -3,6 +3,7 @@ import { EOL } from "os";
+ import { processLogger } from "../adapters/processLogger";
+ import { runCliDependencies } from "../api/dependencies";
+ import { runCli } from "../cli/runCli";
++import { asError } from "../utils";
+ 
+ export const main = async (argv: string[]) => {
+     try {
+@@ -14,7 +15,7 @@ export const main = async (argv: string[]) => {
+         }
+     } catch (error) {
+         processLogger.info.close();
+-        processLogger.stdout.write(`Error in tslint-to-eslint-config: ${error.stack}${EOL}`);
++        processLogger.stdout.write(`Error in tslint-to-eslint-config: ${asError(error).stack}${EOL}`);
+         process.exitCode = 1;
+     }
+ };
+diff --git a/src/input/findRawConfiguration.ts b/src/input/findRawConfiguration.ts
+--- a/src/input/findRawConfiguration.ts
++++ b/src/input/findRawConfiguration.ts
+@@ -1,4 +1,5 @@
+ import { SansDependencies } from "../binding";
++import { asError } from "../utils";
+ import { importer } from "./importer";
+ 
+ export const findRawConfiguration = async <Configuration>(
+@@ -11,7 +12,7 @@ export const findRawConfiguration = async <Configuration>(
+     try {
+         results = (await fileImporter(filePath)) as Configuration;
+     } catch (error) {
+-        return error;
++        return asError(error);
+     }
+ 
+     return {
+diff --git a/src/input/findReportedConfiguration.ts b/src/input/findReportedConfiguration.ts
+--- a/src/input/findReportedConfiguration.ts
++++ b/src/input/findReportedConfiguration.ts
+@@ -1,4 +1,5 @@
+ import { Exec } from "../adapters/exec";
++import { asError } from "../utils";
+ 
+ export type DeepPartial<T> = {
+     [P in keyof T]?: T[P] extends Record<string, unknown> ? DeepPartial<T[P]> : T[P];
+@@ -37,6 +38,6 @@ const execAndCatch = async (exec: Exec, fullCommand: string): Promise<string | E
+ 
+         return stdout;
+     } catch (error) {
+-        return error;
++        return asError(error);
+     }
+ };
+diff --git a/src/utils.ts b/src/utils.ts
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -4,6 +4,8 @@ export type Entries<T> = {
+     [K in keyof T]: [K, T[K]];
+ }[keyof T][];
+ 
++export const asError = (error: unknown) => (error instanceof Error ? error : new Error(`${error}`));
++
+ export const isDefined = <Item>(item: Item | undefined): item is Item => item !== undefined;
+ 
+ export const isError = <Item>(item: Item | Error): item is Error => item instanceof Error;

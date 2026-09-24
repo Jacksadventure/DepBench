@@ -1,0 +1,42 @@
+diff --git a/freechat-start/src/main/java/fun/freechat/config/TomcatConfig.java b/freechat-start/src/main/java/fun/freechat/config/TomcatConfig.java
+--- a/freechat-start/src/main/java/fun/freechat/config/TomcatConfig.java
++++ b/freechat-start/src/main/java/fun/freechat/config/TomcatConfig.java
+@@ -1,17 +1,22 @@
+ package fun.freechat.config;
+ 
+-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.context.annotation.Configuration;
+ 
+ @Configuration
+ @SuppressWarnings("unused")
+ public class TomcatConfig {
++    @Value("${spring.mvc.async.requestTimeout}")
++    private long asyncRequestTimeout;
+ 
+     @Bean
+     public TomcatServletWebServerFactory tomcatServletWebServerFactory() {
+         TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+-        factory.addConnectorCustomizers(connector -> connector.setAsyncTimeout(300_000L)); // Set async timeout to 5 minutes
++        factory.addConnectorCustomizers(
++                connector -> connector.setAsyncTimeout(asyncRequestTimeout)
++        );
+         return factory;
+     }
+ }
+\ No newline at end of file
+diff --git a/freechat-start/src/main/resources/application.yml b/freechat-start/src/main/resources/application.yml
+--- a/freechat-start/src/main/resources/application.yml
++++ b/freechat-start/src/main/resources/application.yml
+@@ -113,6 +113,9 @@ spring:
+     url: jdbc:mysql://localhost:3306/freechat?useUnicode=true&characterEncoding=utf-8
+     username: root
+     password: hello1234
++  mvc:
++    async:
++      requestTimeout: 300000
+   security:
+     oauth2:
+       client:

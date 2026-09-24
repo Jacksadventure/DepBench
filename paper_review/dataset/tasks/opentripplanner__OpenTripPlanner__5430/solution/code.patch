@@ -1,0 +1,338 @@
+diff --git a/src/ext/java/org/opentripplanner/ext/traveltime/IsochroneRenderer.java b/src/ext/java/org/opentripplanner/ext/traveltime/IsochroneRenderer.java
+--- a/src/ext/java/org/opentripplanner/ext/traveltime/IsochroneRenderer.java
++++ b/src/ext/java/org/opentripplanner/ext/traveltime/IsochroneRenderer.java
+@@ -4,13 +4,13 @@
+ import java.util.ArrayList;
+ import java.util.List;
+ import org.geojson.MultiPolygon;
++import org.geotools.api.feature.simple.SimpleFeatureType;
+ import org.geotools.data.simple.SimpleFeatureCollection;
+ import org.geotools.feature.DefaultFeatureCollection;
+ import org.geotools.feature.simple.SimpleFeatureBuilder;
+ import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+ import org.geotools.referencing.crs.DefaultGeographicCRS;
+ import org.locationtech.jts.geom.Geometry;
+-import org.opengis.feature.simple.SimpleFeatureType;
+ import org.opentripplanner.ext.traveltime.geometry.DelaunayIsolineBuilder;
+ import org.opentripplanner.ext.traveltime.geometry.ZMetric;
+ import org.opentripplanner.ext.traveltime.geometry.ZSampleGrid;
+diff --git a/src/ext/java/org/opentripplanner/ext/traveltime/RasterRenderer.java b/src/ext/java/org/opentripplanner/ext/traveltime/RasterRenderer.java
+--- a/src/ext/java/org/opentripplanner/ext/traveltime/RasterRenderer.java
++++ b/src/ext/java/org/opentripplanner/ext/traveltime/RasterRenderer.java
+@@ -5,6 +5,8 @@
+ import jakarta.ws.rs.core.StreamingOutput;
+ import java.awt.image.DataBuffer;
+ import javax.media.jai.RasterFactory;
++import org.geotools.api.parameter.GeneralParameterValue;
++import org.geotools.api.parameter.ParameterValueGroup;
+ import org.geotools.coverage.grid.GridCoverage2D;
+ import org.geotools.coverage.grid.GridCoverageFactory;
+ import org.geotools.coverage.grid.GridEnvelope2D;
+@@ -13,12 +15,10 @@
+ import org.geotools.gce.geotiff.GeoTiffFormat;
+ import org.geotools.gce.geotiff.GeoTiffWriteParams;
+ import org.geotools.gce.geotiff.GeoTiffWriter;
+-import org.geotools.geometry.Envelope2D;
++import org.geotools.geometry.jts.ReferencedEnvelope;
+ import org.geotools.referencing.crs.DefaultGeographicCRS;
+ import org.geotools.referencing.operation.transform.AffineTransform2D;
+ import org.locationtech.jts.geom.Coordinate;
+-import org.opengis.parameter.GeneralParameterValue;
+-import org.opengis.parameter.ParameterValueGroup;
+ import org.opentripplanner.ext.traveltime.geometry.ZSampleGrid;
+ 
+ public class RasterRenderer {
+@@ -49,7 +49,7 @@ static StreamingOutput createGeoTiffRaster(ZSampleGrid<WTWD> sampleGrid) {
+       raster.setSample(s.getX() - minX, maxY - s.getY(), 0, z.wTime / z.w);
+     }
+ 
+-    Envelope2D geom = new GridGeometry2D(
++    ReferencedEnvelope geom = new GridGeometry2D(
+       new GridEnvelope2D(0, 0, width, height),
+       new AffineTransform2D(resX, 0, 0, resY, center.x + resX * minX, center.y + resY * minY),
+       DefaultGeographicCRS.WGS84
+diff --git a/src/main/java/org/opentripplanner/framework/geometry/GeometryUtils.java b/src/main/java/org/opentripplanner/framework/geometry/GeometryUtils.java
+--- a/src/main/java/org/opentripplanner/framework/geometry/GeometryUtils.java
++++ b/src/main/java/org/opentripplanner/framework/geometry/GeometryUtils.java
+@@ -10,6 +10,7 @@
+ import java.util.stream.Stream;
+ import org.geojson.GeoJsonObject;
+ import org.geojson.LngLatAlt;
++import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+ import org.geotools.referencing.CRS;
+ import org.locationtech.jts.algorithm.ConvexHull;
+ import org.locationtech.jts.geom.Coordinate;
+@@ -27,7 +28,6 @@
+ import org.locationtech.jts.linearref.LengthLocationMap;
+ import org.locationtech.jts.linearref.LinearLocation;
+ import org.locationtech.jts.linearref.LocationIndexedLine;
+-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+diff --git a/src/main/java/org/opentripplanner/graph_builder/issue/report/GeoJsonWriter.java b/src/main/java/org/opentripplanner/graph_builder/issue/report/GeoJsonWriter.java
+--- a/src/main/java/org/opentripplanner/graph_builder/issue/report/GeoJsonWriter.java
++++ b/src/main/java/org/opentripplanner/graph_builder/issue/report/GeoJsonWriter.java
+@@ -3,13 +3,13 @@
+ import java.io.IOException;
+ import java.util.Collection;
+ import org.geojson.MultiPolygon;
++import org.geotools.api.feature.simple.SimpleFeatureType;
+ import org.geotools.data.geojson.GeoJSONWriter;
+ import org.geotools.data.simple.SimpleFeatureCollection;
+ import org.geotools.feature.DefaultFeatureCollection;
+ import org.geotools.feature.simple.SimpleFeatureBuilder;
+ import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+ import org.geotools.referencing.crs.DefaultGeographicCRS;
+-import org.opengis.feature.simple.SimpleFeatureType;
+ import org.opentripplanner.datastore.api.CompositeDataSource;
+ import org.opentripplanner.datastore.api.DataSource;
+ import org.opentripplanner.graph_builder.issue.api.DataImportIssue;
+diff --git a/src/main/java/org/opentripplanner/graph_builder/module/ned/ElevationModule.java b/src/main/java/org/opentripplanner/graph_builder/module/ned/ElevationModule.java
+--- a/src/main/java/org/opentripplanner/graph_builder/module/ned/ElevationModule.java
++++ b/src/main/java/org/opentripplanner/graph_builder/module/ned/ElevationModule.java
+@@ -18,13 +18,13 @@
+ import java.util.Map;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.atomic.AtomicInteger;
+-import org.geotools.geometry.DirectPosition2D;
++import org.geotools.api.coverage.Coverage;
++import org.geotools.api.coverage.PointOutsideCoverageException;
++import org.geotools.api.referencing.operation.TransformException;
++import org.geotools.geometry.Position2D;
+ import org.locationtech.jts.geom.Coordinate;
+ import org.locationtech.jts.geom.Geometry;
+ import org.locationtech.jts.geom.impl.PackedCoordinateSequence;
+-import org.opengis.coverage.Coverage;
+-import org.opengis.coverage.PointOutsideCoverageException;
+-import org.opengis.referencing.operation.TransformException;
+ import org.opentripplanner.framework.geometry.EncodedPolyline;
+ import org.opentripplanner.framework.geometry.GeometryUtils;
+ import org.opentripplanner.framework.geometry.SphericalDistanceLibrary;
+@@ -564,7 +564,7 @@ private double getElevation(Coverage coverage, double x, double y)
+       // GeoTIFFs in various projections. Note that GeoTools defaults to strict EPSG axis ordering of (lat, long)
+       // for DefaultGeographicCRS.WGS84, but OTP is using (long, lat) throughout and assumes unprojected DEM
+       // rasters to also use (long, lat).
+-      coverage.evaluate(new DirectPosition2D(GeometryUtils.WGS84_XY, x, y), values);
++      coverage.evaluate(new Position2D(GeometryUtils.WGS84_XY, x, y), values);
+     } catch (PointOutsideCoverageException e) {
+       nPointsOutsideDEM.incrementAndGet();
+       throw e;
+diff --git a/src/main/java/org/opentripplanner/graph_builder/module/ned/GeotiffGridCoverageFactoryImpl.java b/src/main/java/org/opentripplanner/graph_builder/module/ned/GeotiffGridCoverageFactoryImpl.java
+--- a/src/main/java/org/opentripplanner/graph_builder/module/ned/GeotiffGridCoverageFactoryImpl.java
++++ b/src/main/java/org/opentripplanner/graph_builder/module/ned/GeotiffGridCoverageFactoryImpl.java
+@@ -3,12 +3,12 @@
+ import java.io.File;
+ import java.io.IOException;
+ import javax.media.jai.InterpolationBilinear;
++import org.geotools.api.coverage.grid.GridCoverage;
+ import org.geotools.coverage.grid.GridCoverage2D;
+ import org.geotools.coverage.grid.Interpolator2D;
+ import org.geotools.gce.geotiff.GeoTiffFormat;
+ import org.geotools.gce.geotiff.GeoTiffReader;
+ import org.geotools.util.factory.Hints;
+-import org.opengis.coverage.grid.GridCoverage;
+ import org.opentripplanner.datastore.api.DataSource;
+ import org.opentripplanner.datastore.api.FileType;
+ import org.opentripplanner.datastore.file.FileDataSource;
+diff --git a/src/main/java/org/opentripplanner/graph_builder/module/ned/NEDGridCoverageFactoryImpl.java b/src/main/java/org/opentripplanner/graph_builder/module/ned/NEDGridCoverageFactoryImpl.java
+--- a/src/main/java/org/opentripplanner/graph_builder/module/ned/NEDGridCoverageFactoryImpl.java
++++ b/src/main/java/org/opentripplanner/graph_builder/module/ned/NEDGridCoverageFactoryImpl.java
+@@ -11,8 +11,8 @@
+ import java.util.List;
+ import java.util.zip.ZipEntry;
+ import java.util.zip.ZipInputStream;
++import org.geotools.api.coverage.Coverage;
+ import org.geotools.coverage.grid.GridCoverage2D;
+-import org.opengis.coverage.Coverage;
+ import org.opentripplanner.graph_builder.services.ned.ElevationGridCoverageFactory;
+ import org.opentripplanner.graph_builder.services.ned.NEDTileSource;
+ import org.opentripplanner.routing.graph.Graph;
+diff --git a/src/main/java/org/opentripplanner/graph_builder/module/ned/NoDataGridCoverage.java b/src/main/java/org/opentripplanner/graph_builder/module/ned/NoDataGridCoverage.java
+--- a/src/main/java/org/opentripplanner/graph_builder/module/ned/NoDataGridCoverage.java
++++ b/src/main/java/org/opentripplanner/graph_builder/module/ned/NoDataGridCoverage.java
+@@ -6,18 +6,18 @@
+ import java.util.Collection;
+ import java.util.List;
+ import java.util.Set;
++import org.geotools.api.coverage.CannotEvaluateException;
++import org.geotools.api.coverage.PointOutsideCoverageException;
++import org.geotools.api.coverage.SampleDimension;
++import org.geotools.api.coverage.grid.GridCoverage;
++import org.geotools.api.coverage.grid.GridGeometry;
++import org.geotools.api.geometry.Bounds;
++import org.geotools.api.geometry.Position;
++import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
++import org.geotools.api.util.Record;
++import org.geotools.api.util.RecordType;
+ import org.geotools.coverage.grid.GridCoverage2D;
+ import org.geotools.coverage.util.CoverageUtilities;
+-import org.opengis.coverage.CannotEvaluateException;
+-import org.opengis.coverage.PointOutsideCoverageException;
+-import org.opengis.coverage.SampleDimension;
+-import org.opengis.coverage.grid.GridCoverage;
+-import org.opengis.coverage.grid.GridGeometry;
+-import org.opengis.geometry.DirectPosition;
+-import org.opengis.geometry.Envelope;
+-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+-import org.opengis.util.Record;
+-import org.opengis.util.RecordType;
+ 
+ public class NoDataGridCoverage implements GridCoverage {
+ 
+@@ -75,7 +75,7 @@ public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+   }
+ 
+   @Override
+-  public Envelope getEnvelope() {
++  public Bounds getEnvelope() {
+     return gridCoverage.getEnvelope();
+   }
+ 
+@@ -86,44 +86,43 @@ public RecordType getRangeType() {
+ 
+   // Override the evaluate methods, so that a PointOutsideCoverageException is thrown for NO_DATE values
+   @Override
+-  public Set<Record> evaluate(DirectPosition directPosition, Collection<String> collection)
+-    throws PointOutsideCoverageException, CannotEvaluateException {
++  public Set<Record> evaluate(Position directPosition, Collection<String> collection)
++    throws CannotEvaluateException {
+     throw new UnsupportedOperationException("This methods is unsupported");
+   }
+ 
+   @Override
+-  public Object evaluate(DirectPosition directPosition)
+-    throws PointOutsideCoverageException, CannotEvaluateException {
++  public Object evaluate(Position directPosition) throws CannotEvaluateException {
+     throw new UnsupportedOperationException("This methods is unsupported");
+   }
+ 
+   @Override
+-  public boolean[] evaluate(DirectPosition directPosition, boolean[] booleans)
+-    throws PointOutsideCoverageException, CannotEvaluateException, ArrayIndexOutOfBoundsException {
++  public boolean[] evaluate(Position directPosition, boolean[] booleans)
++    throws CannotEvaluateException, ArrayIndexOutOfBoundsException {
+     throw new UnsupportedOperationException("This methods is unsupported");
+   }
+ 
+   @Override
+-  public byte[] evaluate(DirectPosition directPosition, byte[] bytes)
+-    throws PointOutsideCoverageException, CannotEvaluateException, ArrayIndexOutOfBoundsException {
++  public byte[] evaluate(Position directPosition, byte[] bytes)
++    throws CannotEvaluateException, ArrayIndexOutOfBoundsException {
+     throw new UnsupportedOperationException("This methods is unsupported");
+   }
+ 
+   @Override
+-  public int[] evaluate(DirectPosition directPosition, int[] ints)
+-    throws PointOutsideCoverageException, CannotEvaluateException, ArrayIndexOutOfBoundsException {
++  public int[] evaluate(Position directPosition, int[] ints)
++    throws CannotEvaluateException, ArrayIndexOutOfBoundsException {
+     throw new UnsupportedOperationException("This methods is unsupported");
+   }
+ 
+   @Override
+-  public float[] evaluate(DirectPosition directPosition, float[] floats)
+-    throws PointOutsideCoverageException, CannotEvaluateException, ArrayIndexOutOfBoundsException {
++  public float[] evaluate(Position directPosition, float[] floats)
++    throws CannotEvaluateException, ArrayIndexOutOfBoundsException {
+     throw new UnsupportedOperationException("This methods is unsupported");
+   }
+ 
+   @Override
+-  public double[] evaluate(DirectPosition directPosition, double[] dest)
+-    throws PointOutsideCoverageException, CannotEvaluateException, ArrayIndexOutOfBoundsException {
++  public double[] evaluate(Position directPosition, double[] dest)
++    throws CannotEvaluateException, ArrayIndexOutOfBoundsException {
+     gridCoverage.evaluate(directPosition, dest);
+     if (this.noData != null && this.noData.getAsSingleValue() == dest[0]) {
+       throw new PointOutsideCoverageException("Value is NO_DATA.");
+diff --git a/src/main/java/org/opentripplanner/graph_builder/module/ned/UnifiedGridCoverage.java b/src/main/java/org/opentripplanner/graph_builder/module/ned/UnifiedGridCoverage.java
+--- a/src/main/java/org/opentripplanner/graph_builder/module/ned/UnifiedGridCoverage.java
++++ b/src/main/java/org/opentripplanner/graph_builder/module/ned/UnifiedGridCoverage.java
+@@ -3,6 +3,11 @@
+ import java.util.ArrayList;
+ import java.util.List;
+ import javax.media.jai.InterpolationBilinear;
++import org.geotools.api.coverage.CannotEvaluateException;
++import org.geotools.api.coverage.Coverage;
++import org.geotools.api.coverage.PointOutsideCoverageException;
++import org.geotools.api.coverage.SampleDimension;
++import org.geotools.api.geometry.Position;
+ import org.geotools.coverage.AbstractCoverage;
+ import org.geotools.coverage.grid.GridCoverage2D;
+ import org.geotools.coverage.grid.Interpolator2D;
+@@ -11,11 +16,6 @@
+ import org.locationtech.jts.geom.Envelope;
+ import org.locationtech.jts.index.SpatialIndex;
+ import org.locationtech.jts.index.strtree.STRtree;
+-import org.opengis.coverage.CannotEvaluateException;
+-import org.opengis.coverage.Coverage;
+-import org.opengis.coverage.PointOutsideCoverageException;
+-import org.opengis.coverage.SampleDimension;
+-import org.opengis.geometry.DirectPosition;
+ 
+ /**
+  * Stitches together multiple elevation maps into a single elevation map, hackily.  This is
+@@ -75,8 +75,8 @@ protected UnifiedGridCoverage(List<GridCoverage2D> regionCoverages, List<Vertica
+   }
+ 
+   @Override
+-  public Object evaluate(DirectPosition point) throws CannotEvaluateException {
+-    /* we don't use this function, we use evaluate(DirectPosition point, double[] values) */
++  public Object evaluate(Position point) throws CannotEvaluateException {
++    /* we don't use this function, we use evaluate(Position point, double[] values) */
+     return null;
+   }
+ 
+@@ -93,7 +93,7 @@ public SampleDimension getSampleDimension(int index) throws IndexOutOfBoundsExce
+   /**
+    * Calculate the elevation at a given point
+    */
+-  public double[] evaluate(DirectPosition point, double[] values) throws CannotEvaluateException {
++  public double[] evaluate(Position point, double[] values) throws CannotEvaluateException {
+     double x = point.getOrdinate(0);
+     double y = point.getOrdinate(1);
+     Coordinate pointCoordinate = new Coordinate(x, y);
+diff --git a/src/main/java/org/opentripplanner/graph_builder/services/ned/ElevationGridCoverageFactory.java b/src/main/java/org/opentripplanner/graph_builder/services/ned/ElevationGridCoverageFactory.java
+--- a/src/main/java/org/opentripplanner/graph_builder/services/ned/ElevationGridCoverageFactory.java
++++ b/src/main/java/org/opentripplanner/graph_builder/services/ned/ElevationGridCoverageFactory.java
+@@ -1,7 +1,7 @@
+ package org.opentripplanner.graph_builder.services.ned;
+ 
++import org.geotools.api.coverage.Coverage;
+ import org.geotools.coverage.grid.GridCoverage2D;
+-import org.opengis.coverage.Coverage;
+ import org.opentripplanner.routing.graph.Graph;
+ 
+ /**
+diff --git a/src/main/java/org/opentripplanner/street/model/elevation/ElevationUtils.java b/src/main/java/org/opentripplanner/street/model/elevation/ElevationUtils.java
+--- a/src/main/java/org/opentripplanner/street/model/elevation/ElevationUtils.java
++++ b/src/main/java/org/opentripplanner/street/model/elevation/ElevationUtils.java
+@@ -1,11 +1,11 @@
+ package org.opentripplanner.street.model.elevation;
+ 
+-import org.geotools.geometry.DirectPosition3D;
++import org.geotools.api.referencing.FactoryException;
++import org.geotools.api.referencing.operation.MathTransform;
++import org.geotools.api.referencing.operation.TransformException;
++import org.geotools.geometry.Position3D;
+ import org.geotools.referencing.operation.DefaultMathTransformFactory;
+ import org.geotools.referencing.operation.transform.EarthGravitationalModel;
+-import org.opengis.referencing.FactoryException;
+-import org.opengis.referencing.operation.MathTransform;
+-import org.opengis.referencing.operation.TransformException;
+ 
+ /**
+  * Created by demory on 2/16/17.
+@@ -38,8 +38,8 @@ public class ElevationUtils {
+   public static synchronized double computeEllipsoidToGeoidDifference(double lat, double lon)
+     throws TransformException {
+     // Compute the offset
+-    DirectPosition3D dest = new DirectPosition3D();
+-    mt.transform(new DirectPosition3D(lon, lat, 0), dest);
++    Position3D dest = new Position3D();
++    mt.transform(new Position3D(lon, lat, 0), dest);
+     return dest.z;
+   }
+ }

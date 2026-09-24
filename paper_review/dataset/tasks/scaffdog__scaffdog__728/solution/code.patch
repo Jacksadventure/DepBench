@@ -1,0 +1,177 @@
+diff --git a/packages/@scaffdog/error/src/scaffdog-error.ts b/packages/@scaffdog/error/src/scaffdog-error.ts
+--- a/packages/@scaffdog/error/src/scaffdog-error.ts
++++ b/packages/@scaffdog/error/src/scaffdog-error.ts
+@@ -3,7 +3,7 @@ import type {
+   SourcePosition,
+   SourceRange,
+ } from '@scaffdog/types';
+-import chalk from 'chalk';
++import { Chalk } from 'chalk';
+ import stringLength from 'string-length';
+ import { ExtensibleError } from './utils.js';
+ 
+@@ -146,7 +146,7 @@ export class ScaffdogError extends ExtensibleError {
+       return this.message;
+     }
+ 
+-    const chk = new chalk.Instance({
++    const chk = new Chalk({
+       level: options.color ? 1 : 0,
+     });
+ 
+diff --git a/packages/scaffdog/src/commands/create.ts b/packages/scaffdog/src/commands/create.ts
+--- a/packages/scaffdog/src/commands/create.ts
++++ b/packages/scaffdog/src/commands/create.ts
+@@ -125,9 +125,7 @@ https://scaff.dog/docs/templates
+   logger.log('');
+   logger.log(
+     emoji.emojify(
+-      chalk`
+-:dog: Created document "{bold ${path.relative(cwd, filepath)}}"
+-`.trim(),
++      `:dog: Created document ${chalk.bold(path.relative(cwd, filepath))}`,
+     ),
+   );
+ 
+diff --git a/packages/scaffdog/src/commands/generate.ts b/packages/scaffdog/src/commands/generate.ts
+--- a/packages/scaffdog/src/commands/generate.ts
++++ b/packages/scaffdog/src/commands/generate.ts
+@@ -160,7 +160,7 @@ export default createCommand({
+     );
+   } else {
+     dist = dirs[0];
+-    logger.info(chalk`Output destination directory: "{bold.green ${dist}}"`);
++    logger.info(`Output destination directory: "${chalk.bold.green(dist)}"`);
+   }
+ 
+   logger.debug('selected dist: %s', dist);
+@@ -235,7 +235,7 @@ export default createCommand({
+         const relative = path.relative(cwd, file.path);
+ 
+         const ok = await prompt.confirm(
+-          chalk`Would you like to overwrite it? ("{bold.yellow ${relative}}")`,
++          `Would you like to overwrite it? ("${chalk.bold.yellow(relative)}")`,
+           false,
+           {
+             prefix: symbols.warning,
+@@ -261,7 +261,7 @@ export default createCommand({
+   };
+ 
+   logger.log('');
+-  logger.log(emoji.emojify(chalk`:dog: Generated ${msg.write}!${msg.skip}`));
++  logger.log(emoji.emojify(`:dog: Generated ${msg.write}!${msg.skip}`));
+   logger.log('');
+ 
+   [...writes, ...skips].forEach((file) => {
+diff --git a/packages/scaffdog/src/commands/help.ts b/packages/scaffdog/src/commands/help.ts
+--- a/packages/scaffdog/src/commands/help.ts
++++ b/packages/scaffdog/src/commands/help.ts
+@@ -145,7 +145,10 @@ export default createCommand({
+         : []),
+       globalFlagsContent,
+       {
+-        content: chalk`{gray Run {bold scaffdog help [command..]} for help with a specific command.}`,
++        content: chalk.gray(
++          // prettier-ignore
++          `Run ${chalk.bold('scaffdog help [command..]')} for help with a specific command.`,
++        ),
+         raw: true,
+       },
+     ]),
+diff --git a/packages/scaffdog/src/commands/init.ts b/packages/scaffdog/src/commands/init.ts
+--- a/packages/scaffdog/src/commands/init.ts
++++ b/packages/scaffdog/src/commands/init.ts
+@@ -20,7 +20,8 @@ export default createCommand({
+   // create project directory
+   if (fs.directoryExists(dirname)) {
+     const ok = await prompt.confirm(
+-      chalk`"{bold.yellow ${project}}" already exist. Do you want to continue the setup?`,
++      // prettier-ignore
++      `"${chalk.bold.yellow(project)}" already exist. Do you want to continue the setup?`,
+       false,
+       {},
+     );
+@@ -98,23 +99,23 @@ https://scaff.dog/docs/templates
+   const list = files
+     .map((file) => {
+       const relative = path.relative(cwd, file.path);
+-      return chalk`  ${symbols.success} {bold ${relative}}`;
++      return `  ${symbols.success} ${chalk.bold(relative)}`;
+     })
+     .join('\n');
+ 
+   logger.log('');
+   logger.log(
+     emoji.emojify(
+-      chalk`
+-Setup of {bold.green scaffdog} :dog: is complete!
++      `
++Setup of ${chalk.bold.green('scaffdog')} :dog: is complete!
+ 
+ ${list}
+ 
+-Now you can do scaffold by running {green.bold $ scaffdog generate}.
++Now you can do scaffold by running ${chalk.bold.green('$ scaffdog generate')}.
+ 
+ Please refer to the following documents and customize it.
+-{underline https://scaff.dog/docs/templates}
+-`.trim(),
++${chalk.underline('https://scaff.dog/docs/templates')}
++      `.trim(),
+     ),
+   );
+ 
+diff --git a/packages/scaffdog/src/commands/list.ts b/packages/scaffdog/src/commands/list.ts
+--- a/packages/scaffdog/src/commands/list.ts
++++ b/packages/scaffdog/src/commands/list.ts
+@@ -35,12 +35,12 @@ export default createCommand({
+     const t = count('template', doc.templates.length);
+     const q = count('question', doc.questions.size);
+     const meta = [relative, t, q].join(', ');
+-    logger.log(chalk`- {bold ${doc.name}} {gray (${meta})}`);
++    logger.log(`- ${chalk.bold(doc.name)} ${chalk.gray(`(${meta})`)}`);
+   });
+ 
+   const total = documents.length;
+   logger.log('');
+-  logger.log(chalk`{bold.green ${total}} ${plur('file', total)} found.`);
++  logger.log(`${chalk.bold.green(total)} ${plur('file', total)} found.`);
+ 
+   return 0;
+ });
+diff --git a/packages/scaffdog/src/utils/format.ts b/packages/scaffdog/src/utils/format.ts
+--- a/packages/scaffdog/src/utils/format.ts
++++ b/packages/scaffdog/src/utils/format.ts
+@@ -1,4 +1,4 @@
+-import chalk from 'chalk';
++import { Chalk } from 'chalk';
+ import truncate from 'cli-truncate';
+ import figures from 'figures';
+ import wrap from 'wrap-ansi';
+@@ -23,7 +23,7 @@ export const formatFile = (
+   file: File,
+   { columns, color }: FormatFileOptions,
+ ): string => {
+-  const chk = new chalk.Instance({
++  const chk = new Chalk({
+     level: color ? 1 : 0,
+   });
+ 
+@@ -42,7 +42,7 @@ export const formatFile = (
+       chk.green(figures.tick),
+       ' ',
+       chk.gray(chars.y),
+-      chk` File: {bold ${truncate(filename, columns - gutter - 8)}}`,
++      ` File: ${chk.bold(truncate(filename, columns - gutter - 8))}`,
+     ].join(''),
+     chk.gray([chars.x.repeat(gutter), chars.c, body].join('')),
+   );
+@@ -61,7 +61,7 @@ export const formatFile = (
+         const prefix = chk.gray((i === 0 ? ns : ' ').padStart(gutter - 2));
+         const lc = lines.length === 1 && line == '' ? '(empty)' : l;
+ 
+-        output.push(chk` ${prefix} {gray ${chars.y}} ${lc}`);
++        output.push(` ${prefix} ${chk.gray(chars.y)} ${lc}`);
+       });
+     n++;
+   });

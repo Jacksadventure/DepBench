@@ -1,0 +1,56 @@
+diff --git a/mise.toml b/mise.toml
+--- a/mise.toml
++++ b/mise.toml
+@@ -4,7 +4,7 @@
+ "go:github.com/grafana/oats" = "0.3.1"
+ java = "temurin-21.0.7+6.0.LTS"
+ lychee = "0.18.1"
+-protoc = "31.0"
++protoc = "31.1"
+ 
+ [tasks.ci]
+ description = "CI Build"
+@@ -20,6 +20,11 @@ run = "./mvnw spotless:apply"
+ description = "bare compile, ignoring formatting and linters"
+ run = "./mvnw install -DskipTests -Dspotless.check.skip=true -Dcoverage.skip=true -Dcheckstyle.skip=true -Dwarnings=-nowarn"
+ 
++[tasks.generate]
++description = "bare compile, ignoring formatting and linters"
++run = "./mvnw install -DskipTests -Dspotless.check.skip=true -Dcoverage.skip=true -Dcheckstyle.skip=true -Dwarnings=-nowarn"
++env.PROTO_GENERATION = "true"
++
+ [tasks.test]
+ description = "run unit tests, ignoring formatting and linters"
+ run = "./mvnw test -Dspotless.check.skip=true -Dcoverage.skip=true -Dcheckstyle.skip=true -Dwarnings=-nowarn"
+diff --git a/prometheus-metrics-exposition-formats/generate-protobuf.sh b/prometheus-metrics-exposition-formats/generate-protobuf.sh
+--- a/prometheus-metrics-exposition-formats/generate-protobuf.sh
++++ b/prometheus-metrics-exposition-formats/generate-protobuf.sh
+@@ -38,14 +38,14 @@ GENERATED_WITH=$(grep -oP '\/\/ Protobuf Java Version: \K.*' "$TARGET_DIR/${PACK
+ if [[ $GENERATED_WITH != "$PROTOBUF_VERSION" ]]; then
+ 	echo "Generated protobuf sources version $GENERATED_WITH does not match provided version $PROTOBUF_VERSION"
+ 	echo "Please use https://mise.jdx.dev/ - this will use the version specified in mise.toml"
+-	echo "Generated protobuf sources are not up-to-date. Please run 'mise up && mise run test' and commit the changes."
++	echo "Generated protobuf sources are not up-to-date. Please run 'mise up && mise run generater' and commit the changes."
+ 	exit 1
+ fi
+ 
+ STATUS=$(git status --porcelain)
+ if [[ ${REQUIRE_PROTO_UP_TO_DATE:-false} == "true" && -n "$STATUS" ]]; then
+ 	echo "Please use https://mise.jdx.dev/ - this will use the version specified in mise.toml"
+-	echo "Generated protobuf sources are not up-to-date. Please run 'mise run test' and commit the changes."
++	echo "Generated protobuf sources are not up-to-date. Please run 'mise run generate' and commit the changes."
+ 	echo "Local changes:"
+ 	echo "$STATUS"
+ 	exit 1
+diff --git a/prometheus-metrics-exposition-formats/src/main/java/io/prometheus/metrics/expositionformats/internal/PrometheusProtobufWriterImpl.java b/prometheus-metrics-exposition-formats/src/main/java/io/prometheus/metrics/expositionformats/internal/PrometheusProtobufWriterImpl.java
+--- a/prometheus-metrics-exposition-formats/src/main/java/io/prometheus/metrics/expositionformats/internal/PrometheusProtobufWriterImpl.java
++++ b/prometheus-metrics-exposition-formats/src/main/java/io/prometheus/metrics/expositionformats/internal/PrometheusProtobufWriterImpl.java
+@@ -4,7 +4,7 @@
+ 
+ import com.google.protobuf.TextFormat;
+ import io.prometheus.metrics.expositionformats.ExpositionFormatWriter;
+-import io.prometheus.metrics.expositionformats.generated.com_google_protobuf_4_31_0.Metrics;
++import io.prometheus.metrics.expositionformats.generated.com_google_protobuf_4_31_1.Metrics;
+ import io.prometheus.metrics.model.snapshots.ClassicHistogramBuckets;
+ import io.prometheus.metrics.model.snapshots.CounterSnapshot;
+ import io.prometheus.metrics.model.snapshots.CounterSnapshot.CounterDataPointSnapshot;

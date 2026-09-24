@@ -1,0 +1,1058 @@
+diff --git a/dspace-api/src/test/java/org/dspace/util/DSpaceKernelInitializer.java b/dspace-api/src/test/java/org/dspace/util/DSpaceKernelInitializer.java
+--- a/dspace-api/src/test/java/org/dspace/util/DSpaceKernelInitializer.java
++++ b/dspace-api/src/test/java/org/dspace/util/DSpaceKernelInitializer.java
+@@ -83,6 +83,7 @@ public void initialize(final ConfigurableApplicationContext applicationContext)
+      * Initially look for JNDI Resource called "java:/comp/env/dspace.dir".
+      * If not found, use value provided in "dspace.dir" in Spring Environment
+      */
++    @SuppressWarnings("BanJNDI")
+     private String getDSpaceHome(ConfigurableEnvironment environment) {
+         // Load the "dspace.dir" property from Spring's configuration.
+         // This gives us the location of our DSpace configuration, which is
+diff --git a/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureRestRepositoryIT.java b/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureRestRepositoryIT.java
+--- a/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureRestRepositoryIT.java
++++ b/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureRestRepositoryIT.java
+@@ -37,12 +37,12 @@ public class AuthorizationFeatureRestRepositoryIT extends AbstractControllerInte
+     @Autowired
+     private AuthorizationFeatureService authzFeatureService;
+ 
+-    @Test
+     /**
+-     * All the features should be returned
++     * All the features should be returned.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findAllTest() throws Exception {
+         int featuresNum = authzFeatureService.findAll().size();
+         int expReturn = featuresNum > 20 ? 20 : featuresNum;
+@@ -62,20 +62,20 @@ public void findAllTest() throws Exception {
+ 
+     }
+ 
+-    @Test
+     /**
+      * The feature endpoint must provide proper pagination. Unauthorized and
+      * forbidden scenarios are managed in the findAllTest
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findAllWithPaginationTest() throws Exception {
+         int featuresNum = authzFeatureService.findAll().size();
+ 
+         String adminToken = getAuthToken(admin.getEmail(), password);
+-        List<String> featureIDs = new ArrayList<String>();
++        List<String> featureIDs = new ArrayList<>();
+         for (int page = 0; page < featuresNum; page++) {
+-            AtomicReference<String> idRef = new AtomicReference<String>();
++            AtomicReference<String> idRef = new AtomicReference<>();
+ 
+             getClient(adminToken)
+                 .perform(get("/api/authz/features").param("page", String.valueOf(page)).param("size", "1"))
+@@ -101,12 +101,13 @@ public void findAllWithPaginationTest() throws Exception {
+         }
+     }
+ 
+-    @Test
+     /**
+-     * The feature resource endpoint must expose the proper structure and be reserved to administrators
++     * The feature resource endpoint must expose the proper structure and be
++     * reserved to administrators.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findOneTest() throws Exception {
+         getClient().perform(get("/api/authz/features/withdrawItem")).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id", is("withdrawItem")))
+@@ -121,12 +122,12 @@ public void findOneNotFoundTest() throws Exception {
+ 
+     }
+ 
+-    @Test
+     /**
+      * It should be possible to find features by resourcetype. The endpoint is only available to administrators
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByResourceTypeTest() throws Exception {
+         AuthorizationFeature alwaysTrueFeature = authzFeatureService.find(AlwaysTrueFeature.NAME);
+         String adminToken = getAuthToken(admin.getEmail(), password);
+diff --git a/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureServiceIT.java b/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureServiceIT.java
+--- a/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureServiceIT.java
++++ b/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationFeatureServiceIT.java
+@@ -49,12 +49,12 @@ public class AuthorizationFeatureServiceIT extends AbstractControllerIntegration
+     @Autowired
+     private AuthorizationFeatureService authzFeatureService;
+ 
+-    @Test
+     /**
+-     * All the features available in the Sprint Context should be returned
++     * All the features available in the Sprint Context should be returned.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findAllTest() throws Exception {
+         List<AuthorizationFeature> authzFeatureServiceFindAll = authzFeatureService.findAll();
+ 
+@@ -70,12 +70,13 @@ public void findAllTest() throws Exception {
+                 equalTo(featureNames.size()));
+     }
+ 
+-    @Test
+     /**
+-     * The find method should return existing feature and null in the case the feature doesn't exist
++     * The find method should return existing feature  or {@code null} in the
++     * case the feature doesn't exist.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findTest() throws Exception {
+         AuthorizationFeature aFeature = authzFeatureService.find(AlwaysTrueFeature.NAME);
+         assertThat("check that one of our mock feature is retrieved", aFeature.getName(),
+@@ -85,12 +86,12 @@ public void findTest() throws Exception {
+         assertThat("check that not existing feature name return null", aNotExistingFeature, equalTo(null));
+     }
+ 
+-    @Test
+     /**
+-     * The findByResourceType must return only features that support the specified type
++     * The findByResourceType must return only features that support the specified type.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByResourceTypeTest() throws Exception {
+         // we have at least one feature that support the Site object
+         final String siteUniqueType = SiteRest.CATEGORY + "." + SiteRest.NAME;
+@@ -119,12 +120,13 @@ public void findByResourceTypeTest() throws Exception {
+         assertThat(notExistingTypeFeatures.size(), equalTo(0));
+     }
+ 
+-    @Test
+     /**
+-     * The isAuthorized must return true for authorized feature and false for not authorized feature
++     * The isAuthorized must return {@code true} for authorized feature and
++     * {@code false} for not authorized feature.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void isAuthorizedTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+diff --git a/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationRestRepositoryIT.java b/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationRestRepositoryIT.java
+--- a/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationRestRepositoryIT.java
++++ b/dspace-server-webapp/src/test/java/org/dspace/app/rest/AuthorizationRestRepositoryIT.java
+@@ -70,7 +70,7 @@
+ 
+ /**
+  * Test suite for the Authorization endpoint
+- * 
++ *
+  * @author Andrea Bollini (andrea.bollini at 4science.it)
+  *
+  */
+@@ -99,37 +99,37 @@ public class AuthorizationRestRepositoryIT extends AbstractControllerIntegration
+     private Utils utils;
+     private SiteService siteService;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link AlwaysTrueFeature}
+      */
+     private AuthorizationFeature alwaysTrue;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link AlwaysFalseFeature}
+      */
+     private AuthorizationFeature alwaysFalse;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link AlwaysThrowExceptionFeature}
+      */
+     private AuthorizationFeature alwaysException;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link TrueForAdminsFeature}
+      */
+     private AuthorizationFeature trueForAdmins;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link TrueForLoggedUsersFeature}
+      */
+     private AuthorizationFeature trueForLoggedUsers;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link TrueForTestFeature}
+      */
+     private AuthorizationFeature trueForTestUsers;
+ 
+-    /** 
++    /**
+      * this hold a reference to the test feature {@link TrueForUsersInGroupTestFeature}
+      */
+     private AuthorizationFeature trueForUsersInGroupTest;
+@@ -150,12 +150,12 @@ public void setUp() throws Exception {
+         configurationService.setProperty("webui.user.assumelogin", true);
+     }
+ 
+-    @Test
+     /**
+      * This method is not implemented
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findAllTest() throws Exception {
+         String adminToken = getAuthToken(admin.getEmail(), password);
+         getClient(adminToken).perform(get("/api/authz/authorizations"))
+@@ -164,12 +164,12 @@ public void findAllTest() throws Exception {
+                     .andExpect(status().isMethodNotAllowed());
+     }
+ 
+-    @Test
+     /**
+      * Verify that an user can access a specific authorization
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findOneTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -206,12 +206,12 @@ public void findOneTest() throws Exception {
+                             Matchers.is(AuthorizationMatcher.matchAuthorization(authAnonymousUserSite))));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the unauthorized return code is used in the appropriate scenarios
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findOneUnauthorizedTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -229,12 +229,12 @@ public void findOneUnauthorizedTest() throws Exception {
+                     .andExpect(status().isUnauthorized());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the forbidden return code is used in the appropriate scenarios
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findOneForbiddenTest() throws Exception {
+         context.turnOffAuthorisationSystem();
+         Site site = siteService.findSite(context);
+@@ -265,12 +265,12 @@ public void findOneForbiddenTest() throws Exception {
+                     .andExpect(status().isForbidden());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the not found return code is used in the appropriate scenarios
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findOneNotFoundTest() throws Exception {
+         context.turnOffAuthorisationSystem();
+         Site site = siteService.findSite(context);
+@@ -352,12 +352,12 @@ public void findOneNotFoundTest() throws Exception {
+ 
+     }
+ 
+-    @Test
+     /**
+      * Verify that an exception in the feature check will be reported back
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findOneInternalServerErrorTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -375,16 +375,16 @@ public void findOneInternalServerErrorTest() throws Exception {
+                     .andExpect(status().isInternalServerError());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the search by object works properly in allowed scenarios:
+      * - for an administrator
+      * - for an administrator that want to inspect permission of the anonymous users or another user
+      * - for a logged-in "normal" user
+      * - for anonymous
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -667,13 +667,13 @@ public void findByObjectTest() throws Exception {
+             .andExpect(jsonPath("$.page.totalElements", greaterThanOrEqualTo(1)));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the findByObject return an empty page when the requested object doesn't exist but the uri is
+      * potentially valid (i.e. deleted object)
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByNotExistingObjectTest() throws Exception {
+         String wrongSiteUri = "http://localhost/api/core/sites/" + UUID.randomUUID();
+ 
+@@ -759,12 +759,12 @@ public void findByNotExistingObjectTest() throws Exception {
+             .andExpect(jsonPath("$.page.totalElements", is(0)));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the findByObject return the 400 Bad Request response for invalid or missing URI (required parameter)
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectBadRequestTest() throws Exception {
+         String[] invalidUris = new String[] {
+                 "invalid-uri",
+@@ -837,12 +837,12 @@ public void findByObjectBadRequestTest() throws Exception {
+             .andExpect(status().isBadRequest());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the findByObject return the 401 Unauthorized response when an eperson is involved
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectUnauthorizedTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -876,13 +876,13 @@ public void findByObjectUnauthorizedTest() throws Exception {
+             .andExpect(status().isUnauthorized());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the findByObject return the 403 Forbidden response when a non-admin eperson try to search the
+-     * authorization of another eperson
+-     * 
++     * authorization of another eperson.
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectForbiddenTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -920,11 +920,11 @@ public void findByObjectForbiddenTest() throws Exception {
+             .andExpect(status().isForbidden());
+     }
+ 
+-    @Test
+     /**
+      * Verify that an exception in the feature check will be reported back
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectInternalServerErrorTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -977,16 +977,18 @@ public void findByObjectInternalServerErrorTest() throws Exception {
+             .andExpect(status().isInternalServerError());
+     }
+ 
+-    @Test
+     /**
+-     * Verify that the search by object and feature works properly in allowed scenarios:
+-     * - for an administrator
+-     * - for an administrator that want to inspect permission of the anonymous users or another user
+-     * - for a logged-in "normal" user
+-     * - for anonymous
+-     * 
++     * Verify that the search by object and feature works properly in allowed scenarios.
++     * <ul>
++     *  <li>for an administrator</li>
++     *  <li>for an administrator that wants to inspect permission of the anonymous users or another user</li>
++     *  <li>for a logged-in "normal" user</li>
++     *  <li>for a not-logged-in "normal" user</li>
++     * </ul>
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectAndFeatureTest() throws Exception {
+         context.turnOffAuthorisationSystem();
+         Community com = CommunityBuilder.createCommunity(context).withName("A test community").build();
+@@ -1146,12 +1148,12 @@ public void findByObjectAndFeatureTest() throws Exception {
+                 )));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the search by object and feature works return 204 No Content when a feature is not granted
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectAndFeatureNotGrantedTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -1208,13 +1210,13 @@ public void findByObjectAndFeatureNotGrantedTest() throws Exception {
+             .andExpect(jsonPath("$.page.totalElements", is(0)));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the findByObject return the 204 No Content code when the requested object doesn't exist but the uri
+      * is potentially valid (i.e. deleted object) or the feature doesn't exist
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByNotExistingObjectAndFeatureTest() throws Exception {
+         String wrongSiteUri = "http://localhost/api/core/sites/" + UUID.randomUUID();
+         Site site = siteService.findSite(context);
+@@ -1315,13 +1317,13 @@ public void findByNotExistingObjectAndFeatureTest() throws Exception {
+             .andExpect(jsonPath("$.page.totalElements", is(0)));
+     }
+ 
+-    @Test
+     /**
+-     * Verify that the findByObject return the 400 Bad Request response for invalid or missing URI or feature (required
+-     * parameters)
++     * Verify that the findByObject return the 400 Bad Request response for
++     * invalid or missing URI or feature (required parameters).
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectAndFeatureBadRequestTest() throws Exception {
+         String[] invalidUris = new String[] {
+                 "invalid-uri",
+@@ -1390,12 +1392,12 @@ public void findByObjectAndFeatureBadRequestTest() throws Exception {
+         }
+     }
+ 
+-    @Test
+     /**
+      * Verify that the findByObjectAndFeature return the 401 Unauthorized response when an eperson is involved
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectAndFeatureUnauthorizedTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -1433,13 +1435,14 @@ public void findByObjectAndFeatureUnauthorizedTest() throws Exception {
+             .andExpect(status().isUnauthorized());
+     }
+ 
+-    @Test
+     /**
+-     * Verify that the findByObjectAndFeature return the 403 Forbidden response when a non-admin eperson try to search
+-     * the authorization of another eperson
+-     * 
++     * Verify that the findByObjectAndFeature returns the 403 Forbidden response
++     * when a non-admin eperson tries to search the authorization of another
++     * eperson.
++     *
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectAndFeatureForbiddenTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -1481,11 +1484,11 @@ public void findByObjectAndFeatureForbiddenTest() throws Exception {
+             .andExpect(status().isForbidden());
+     }
+ 
+-    @Test
+     /**
+-     * Verify that an exception in the feature check will be reported back
++     * Verify that an exception in the feature check will be reported back.
+      * @throws Exception
+      */
++    @Test
+     public void findByObjectAndFeatureInternalServerErrorTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -1528,16 +1531,18 @@ public void findByObjectAndFeatureInternalServerErrorTest() throws Exception {
+             .andExpect(status().isInternalServerError());
+     }
+ 
+-    @Test
+     /**
+-     * Verify that the search by multiple objects and features works properly in allowed scenarios:
+-     * - for an administrator
+-     * - for an administrator that want to inspect permission of the anonymous users or another user
+-     * - for a logged-in "normal" user
+-     * - for anonymous
++     * Verify that the search by multiple objects and features works properly in allowed scenarios.
++     * <ul>
++     *  <li>for an administrator</li>
++     *  <li>for an administrator that wants to inspect permission of the anonymous users or another user</li>
++     *  <li>for a logged-in "normal" user</li>
++     *  <li>for a not-logged-in user</li>
++     * </ul>
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeaturesTest() throws Exception {
+         context.turnOffAuthorisationSystem();
+         Community com = CommunityBuilder.createCommunity(context).withName("A test community").build();
+@@ -1899,16 +1904,19 @@ public void findByMultipleObjectsAndFeaturesTest() throws Exception {
+             )));
+     }
+ 
+-    @Test
+     /**
+-     * Verify that the paginated search by multiple objects and features works properly in allowed scenarios:
+-     * - for an administrator
+-     * - for an administrator that want to inspect permission of the anonymous users or another user
+-     * - for a logged-in "normal" user
+-     * - for anonymous
++     * Verify that the paginated search by multiple objects and features works
++     * properly in allowed scenarios.
++     * <ul>
++     * <li>for an administrator</li>
++     * <li>for an administrator that wants to inspect permission of the anonymous users or another user</li>
++     * <li>for a logged-in "normal" user</li>
++     * <li>for a not-logged-in user</li>
++     * </ul>
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeaturesPaginationTest() throws Exception {
+         context.turnOffAuthorisationSystem();
+ 
+@@ -2098,12 +2106,12 @@ public void findByMultipleObjectsAndFeaturesPaginationTest() throws Exception {
+                                        )));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the search by many objects and features works return 204 No Content when no feature is granted.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeatureNotGrantedTest() throws Exception {
+ 
+         context.turnOffAuthorisationSystem();
+@@ -2190,14 +2198,15 @@ public void findByMultipleObjectsAndFeatureNotGrantedTest() throws Exception {
+             .andExpect(jsonPath("$.page.totalElements", is(0)));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the find by multiple objects and features
+-     * return the 204 No Content code when the requested object doesn't exist but the uri
+-     * is potentially valid (i.e. deleted object) or the feature doesn't exist
++     * return the 204 No Content code when the requested object doesn't exist
++     * but the uri is potentially valid (a deleted object) or the feature
++     * doesn't exist.
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByNotExistingMultipleObjectsAndFeatureTest() throws Exception {
+         String wrongSiteId = UUID.randomUUID().toString();
+         Site site = siteService.findSite(context);
+@@ -2322,13 +2331,13 @@ public void findByNotExistingMultipleObjectsAndFeatureTest() throws Exception {
+             .andExpect(jsonPath("$.page.totalElements", is(0)));
+     }
+ 
+-    @Test
+     /**
+      * Verify that the find by multiple objects and features
+      * return the 400 Bad Request response for invalid or missing UUID or type
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeatureBadRequestTest() throws Exception {
+         String[] invalidUris = new String[] {
+             "foo",
+@@ -2441,13 +2450,13 @@ public void findByMultipleObjectsAndFeatureBadRequestTest() throws Exception {
+             .andExpect(status().isBadRequest());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the find by multiple objects and features return
+      * the 401 Unauthorized response when an eperson is involved
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeatureUnauthorizedTest() throws Exception {
+         Site site = siteService.findSite(context);
+         String siteId = site.getID().toString();
+@@ -2488,14 +2497,14 @@ public void findByMultipleObjectsAndFeatureUnauthorizedTest() throws Exception {
+             .andExpect(status().isUnauthorized());
+     }
+ 
+-    @Test
+     /**
+      * Verify that the find by multiple objects and features
+      * returns the 403 Forbidden response when a non-admin eperson try to search
+      * the authorization of another eperson
+      *
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeatureForbiddenTest() throws Exception {
+         Site site = siteService.findSite(context);
+         String siteId = site.getID().toString();
+@@ -2545,11 +2554,11 @@ public void findByMultipleObjectsAndFeatureForbiddenTest() throws Exception {
+             .andExpect(status().isForbidden());
+     }
+ 
+-    @Test
+     /**
+      * Verify that an exception in the multiple authorization features check will be reported back
+      * @throws Exception
+      */
++    @Test
+     public void findByMultipleObjectsAndFeatureInternalServerErrorTest() throws Exception {
+         Site site = siteService.findSite(context);
+         String siteId = site.getID().toString();
+@@ -2596,14 +2605,14 @@ public void findByMultipleObjectsAndFeatureInternalServerErrorTest() throws Exce
+             .andExpect(status().isInternalServerError());
+     }
+ 
+-    @Test
+     /**
+      * This test will check that special group are correctly used to verify
+-     * authorization for the current loggedin user but not inherited from the
++     * authorization for the current logged-in user but not inherited from the
+      * Administrators login when they look to authorization of third users
+-     * 
++     *
+      * @throws Exception
+      */
++    @Test
+     public void verifySpecialGroupMembershipTest() throws Exception {
+         Site site = siteService.findSite(context);
+         SiteRest siteRest = siteConverter.convert(site, DefaultProjection.DEFAULT);
+@@ -2802,5 +2811,4 @@ private String getAuthorizationID(String epersonUuid, String featureName, String
+                 + id.toString();
+     }
+ 
+-
+ }
+diff --git a/dspace-server-webapp/src/test/java/org/dspace/app/rest/CollectionRestRepositoryIT.java b/dspace-server-webapp/src/test/java/org/dspace/app/rest/CollectionRestRepositoryIT.java
+--- a/dspace-server-webapp/src/test/java/org/dspace/app/rest/CollectionRestRepositoryIT.java
++++ b/dspace-server-webapp/src/test/java/org/dspace/app/rest/CollectionRestRepositoryIT.java
+@@ -1259,7 +1259,7 @@ public void createTestByAuthorizedUser() throws Exception {
+         authorizeService.addPolicy(context, parentCommunity, Constants.ADD, eperson);
+         context.restoreAuthSystemState();
+ 
+-        AtomicReference<UUID> idRef = new AtomicReference<UUID>();
++        AtomicReference<UUID> idRef = new AtomicReference<>();
+         try {
+         String authToken = getAuthToken(eperson.getEmail(), password);
+ 
+@@ -3197,8 +3197,8 @@ public void patchMetadataCheckReindexingTest() throws Exception {
+                                        )))
+                              .andExpect(jsonPath("$.page.totalElements", is(1)));
+ 
+-        List<Operation> updateTitle = new ArrayList<Operation>();
+-        Map<String, String> value = new HashMap<String, String>();
++        List<Operation> updateTitle = new ArrayList<>();
++        Map<String, String> value = new HashMap<>();
+         value.put("value", "New Name");
+         updateTitle.add(new ReplaceOperation("/metadata/dc.title/0", value));
+ 
+diff --git a/dspace-server-webapp/src/test/java/org/dspace/app/rest/CommunityRestRepositoryIT.java b/dspace-server-webapp/src/test/java/org/dspace/app/rest/CommunityRestRepositoryIT.java
+--- a/dspace-server-webapp/src/test/java/org/dspace/app/rest/CommunityRestRepositoryIT.java
++++ b/dspace-server-webapp/src/test/java/org/dspace/app/rest/CommunityRestRepositoryIT.java
+@@ -1410,11 +1410,11 @@ public void findAllSubCommunitiesGrantAccessAdminsTest() throws Exception {
+                 .withAdminGroup(child2Admin)
+                 .build();
+ 
+-        Community ommunityChild1Child1 = CommunityBuilder.createSubCommunity(context, communityChild1)
++        Community communityChild1Child1 = CommunityBuilder.createSubCommunity(context, communityChild1)
+                 .withName("Sub1 Community 1")
+                 .build();
+ 
+-        Community сommunityChild2Child1 = CommunityBuilder.createSubCommunity(context, communityChild2)
++        Community communityChild2Child1 = CommunityBuilder.createSubCommunity(context, communityChild2)
+                 .withName("Sub2 Community 1")
+                 .build();
+ 
+diff --git a/dspace-server-webapp/src/test/java/org/dspace/app/rest/matcher/RegistrationMatcher.java b/dspace-server-webapp/src/test/java/org/dspace/app/rest/matcher/RegistrationMatcher.java
+--- a/dspace-server-webapp/src/test/java/org/dspace/app/rest/matcher/RegistrationMatcher.java
++++ b/dspace-server-webapp/src/test/java/org/dspace/app/rest/matcher/RegistrationMatcher.java
+@@ -17,7 +17,7 @@
+ 
+ public class RegistrationMatcher {
+ 
+-    private RegistrationMatcher(){}
++    private RegistrationMatcher() {}
+ 
+     public static Matcher<? super Object> matchRegistration(String email, UUID epersonUuid) {
+         return allOf(
+diff --git a/dspace-services/src/test/java/org/dspace/servicemanager/config/DSpaceConfigurationServiceTest.java b/dspace-services/src/test/java/org/dspace/servicemanager/config/DSpaceConfigurationServiceTest.java
+--- a/dspace-services/src/test/java/org/dspace/servicemanager/config/DSpaceConfigurationServiceTest.java
++++ b/dspace-services/src/test/java/org/dspace/servicemanager/config/DSpaceConfigurationServiceTest.java
+@@ -56,7 +56,7 @@ public void init() {
+         configurationService.clear();
+ 
+         // Start fresh with out own set of configs
+-        Map<String, Object> l = new HashMap<String, Object>();
++        Map<String, Object> l = new HashMap<>();
+         l.put("service.name", "DSpace");
+         l.put("sample.array", "itemA,itemB,itemC");
+         l.put("sample.number", "123");
+@@ -86,7 +86,7 @@ public void tearDown() {
+     @Test
+     public void testVariableReplacement() {
+ 
+-        Map<String, Object> l = new HashMap<String, Object>();
++        Map<String, Object> l = new HashMap<>();
+         l.put("service.name", "DSpace");
+         l.put("aaronz", "Aaron Zeckoski");
+         l.put("current.user", "${aaronz}");
+@@ -295,7 +295,7 @@ public void testGetPropertyAsTypeStringClassOfT() {
+         assertEquals("itemC", array[2]);
+         Integer number = configurationService.getPropertyAsType("sample.number", Integer.class);
+         assertNotNull(number);
+-        assertEquals(new Integer(123), number);
++        assertEquals(Integer.valueOf(123), number);
+ 
+         Boolean bool = configurationService.getPropertyAsType("sample.boolean", Boolean.class);
+         assertNotNull(bool);
+@@ -306,7 +306,6 @@ public void testGetPropertyAsTypeStringClassOfT() {
+         assertEquals(Boolean.FALSE, bool2);
+ 
+         boolean bool3 = configurationService.getPropertyAsType("INVALID.PROPERTY", boolean.class);
+-        assertNotNull(bool3);
+         assertEquals(false, bool3);
+ 
+         assertEquals(123, (int) configurationService.getPropertyAsType("sample.number", int.class));
+@@ -333,9 +332,9 @@ public void testGetPropertyAsTypeStringT() {
+         assertEquals("itemB", array[1]);
+         assertEquals("itemC", array[2]);
+ 
+-        Integer number = configurationService.getPropertyAsType("sample.number", new Integer(12345));
++        Integer number = configurationService.getPropertyAsType("sample.number", 12345);
+         assertNotNull(number);
+-        assertEquals(new Integer(123), number);
++        assertEquals(Integer.valueOf(123), number);
+ 
+         Boolean bool = configurationService.getPropertyAsType("sample.boolean", Boolean.FALSE);
+         assertNotNull(bool);
+@@ -522,8 +521,11 @@ public void testReloadConfig() {
+     }
+ 
+     /**
+-     * Tests the ability of our ConfigurationService to automatically reload properties after a set period
+-     * of time.
++     * Tests the ability of our ConfigurationService to automatically reload
++     * properties after a set period of time.
++     * @throws ConfigurationException passed through.
++     * @throws IOException if test properties file cannot be created or copied.
++     * @throws InterruptedException if sleep is interrupted.
+      */
+     @Test
+     public void testAutomaticReload() throws ConfigurationException, IOException, InterruptedException {
+diff --git a/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderHolderTest.java b/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderHolderTest.java
+--- a/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderHolderTest.java
++++ b/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderHolderTest.java
+@@ -8,15 +8,14 @@
+ package org.dspace.utils.servicemanager;
+ 
+ import static org.junit.Assert.assertEquals;
+-import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertNotNull;
+ import static org.junit.Assert.assertNull;
+ import static org.junit.Assert.fail;
+ 
+ import org.junit.Test;
+ 
+ /**
+- * Tests the ability of a provider holder to release a reference correctly
++ * Tests the ability of a provider holder to release a reference correctly.
+  *
+  * @author Aaron Zeckoski (azeckoski @ gmail.com)
+  */
+@@ -28,7 +27,7 @@ public class Thing {
+ 
+     @Test
+     public void testHolder() {
+-        ProviderHolder<Thing> holder = new ProviderHolder<Thing>();
++        ProviderHolder<Thing> holder = new ProviderHolder<>();
+         assertNull(holder.getProvider());
+ 
+         Thing t = new Thing();
+@@ -44,7 +43,7 @@ public void testHolder() {
+ 
+     @Test
+     public void testHolderRelease() {
+-        ProviderHolder<Thing> holder = new ProviderHolder<Thing>();
++        ProviderHolder<Thing> holder = new ProviderHolder<>();
+         Thing t = new Thing();
+         holder.setProvider(t);
+ 
+@@ -66,7 +65,7 @@ public void testHolderRelease() {
+ 
+     @Test
+     public void testHolderException() {
+-        ProviderHolder<Thing> holder = new ProviderHolder<Thing>();
++        ProviderHolder<Thing> holder = new ProviderHolder<>();
+         try {
+             holder.getProviderOrFail();
+             fail("Should have died");
+@@ -87,14 +86,10 @@ public void testHolderException() {
+ 
+     @Test
+     public void testHolderHashEqualsString() {
+-        ProviderHolder<Thing> holder = new ProviderHolder<Thing>();
+-        assertNotNull(holder.hashCode());
+-        assertFalse(holder.equals(null));
++        ProviderHolder<Thing> holder = new ProviderHolder<>();
+         assertNotNull(holder.toString());
+ 
+         holder.setProvider(new Thing());
+-        assertNotNull(holder.hashCode());
+-        assertFalse(holder.equals(null));
+         assertNotNull(holder.toString());
+ 
+         holder = null;
+diff --git a/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderStackTest.java b/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderStackTest.java
+--- a/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderStackTest.java
++++ b/dspace-services/src/test/java/org/dspace/utils/servicemanager/ProviderStackTest.java
+@@ -43,6 +43,7 @@ public UnorderedProvider(String prefix) {
+             this.prefix = prefix;
+         }
+ 
++        @Override
+         public String getPrefix() {
+             return prefix;
+         }
+@@ -56,6 +57,7 @@ public OrderedProvider(String prefix, int order) {
+             this.order = order;
+         }
+ 
++        @Override
+         public int getOrder() {
+             return order;
+         }
+@@ -78,11 +80,11 @@ public ConfigurableApplicationContext getApplicationContext() {
+             }
+ 
+             public <T> List<T> getServicesByType(Class<T> type) {
+-                return new ArrayList<T>();
++                return new ArrayList<>();
+             }
+ 
+             public List<String> getServicesNames() {
+-                return new ArrayList<String>();
++                return new ArrayList<>();
+             }
+ 
+             public <T> Map<String, T> getServicesWithNamesByType(Class<T> type) {
+@@ -111,11 +113,10 @@ public <T> T registerServiceClass(String name, Class<T> type) {
+             public void unregisterService(String name) {
+             }
+         };
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(sm, Provider.class);
+-        assertNotNull(providers.hashCode());
++        ProviderStack<Provider> providers = new ProviderStack<>(sm, Provider.class);
+         assertNotNull(providers.toString());
+         assertEquals(0, providers.size());
+-        assertTrue(providers.getProviders().size() == 0);
++        assertTrue(providers.getProviders().isEmpty());
+ 
+         providers.clear();
+         providers = null;
+@@ -126,13 +127,12 @@ public void unregisterService(String name) {
+      */
+     @Test
+     public void testProviderStackTArray() {
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+         // check the order
+@@ -153,13 +153,12 @@ public void testProviderStackTArray() {
+     @Test
+     public void testAddProvider() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+         // check the order
+@@ -218,13 +217,12 @@ public void testAddProvider() {
+     @Test
+     public void testRemoveProvider() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 
+@@ -249,13 +247,12 @@ public void testRemoveProvider() {
+     @Test
+     public void testGetProviders() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 
+@@ -264,7 +261,7 @@ public void testGetProviders() {
+         assertEquals(4, l.size());
+         l = null;
+ 
+-        providers = new ProviderStack<Provider>();
++        providers = new ProviderStack<>();
+         l = providers.getProviders();
+         assertNotNull(l);
+         assertEquals(0, l.size());
+@@ -280,13 +277,12 @@ public void testGetProviders() {
+     @Test
+     public void testGetIterator() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 
+@@ -302,7 +298,7 @@ public void testGetIterator() {
+         assertNotNull(it.next());
+         assertFalse(it.hasNext());
+ 
+-        providers = new ProviderStack<Provider>();
++        providers = new ProviderStack<>();
+         it = providers.getIterator();
+         assertNotNull(it);
+         assertFalse(it.hasNext());
+@@ -318,13 +314,12 @@ public void testGetIterator() {
+     @Test
+     public void testGetProvider() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 
+@@ -347,13 +342,12 @@ public void testGetProvider() {
+     @Test
+     public void testSize() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 
+@@ -367,18 +361,16 @@ public void testSize() {
+     @Test
+     public void testClear() {
+         // preload
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             new UnorderedProvider("ccc"),
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             new OrderedProvider("aaa", 2)
+         });
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 
+         providers.clear();
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(0, providers.size());
+ 
+@@ -393,14 +385,13 @@ public void testClear() {
+     public void testRefresh() {
+         Provider p1 = new OrderedProvider("aaa", 2);
+         Provider p2 = new UnorderedProvider("ccc");
+-        ProviderStack<Provider> providers = new ProviderStack<Provider>(new Provider[] {
++        ProviderStack<Provider> providers = new ProviderStack<>(new Provider[] {
+             p2,
+             new UnorderedProvider("ddd"),
+             new OrderedProvider("bbb", 5),
+             p1
+         });
+ 
+-        assertNotNull(providers.hashCode());
+         assertNotNull(providers.toString());
+         assertEquals(4, providers.size());
+ 

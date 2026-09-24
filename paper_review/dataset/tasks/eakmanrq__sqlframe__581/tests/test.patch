@@ -1,0 +1,43 @@
+diff --git a/tests/integration/engines/test_int_functions.py b/tests/integration/engines/test_int_functions.py
+--- a/tests/integration/engines/test_int_functions.py
++++ b/tests/integration/engines/test_int_functions.py
+@@ -5117,8 +5117,6 @@ def test_try_element_at(get_session_and_func, get_func):
+     else:
+         assert df.select(try_element_at(df.data, lit(-1)).alias("r")).first()[0] == "c"
+     df = session.createDataFrame([({"a": 1.0, "b": 2.0},)], ["data"])
+-    # if isinstance(session, DuckDBSession):
+-    #     assert df.select(try_element_at(df.data, lit("a")).alias("r")).first()[0] == [1.0]
+     if isinstance(session, PostgresSession):
+         pass
+     else:
+diff --git a/tests/unit/standalone/test_functions.py b/tests/unit/standalone/test_functions.py
+--- a/tests/unit/standalone/test_functions.py
++++ b/tests/unit/standalone/test_functions.py
+@@ -2140,8 +2140,11 @@ def test_array_agg(expression, expected):
+ @pytest.mark.parametrize(
+     "expression, expected",
+     [
+-        (SF.array_append("cola", "val"), "ARRAY_APPEND(cola, 'val')"),
+-        (SF.array_append(SF.col("cola"), SF.col("colb")), "ARRAY_APPEND(cola, colb)"),
++        (SF.array_append("cola", "val"), "ARRAY_APPEND(COALESCE(cola, ARRAY()), 'val')"),
++        (
++            SF.array_append(SF.col("cola"), SF.col("colb")),
++            "ARRAY_APPEND(COALESCE(cola, ARRAY()), colb)",
++        ),
+     ],
+ )
+ def test_array_append(expression, expected):
+@@ -2174,8 +2177,11 @@ def test_array_insert(expression, expected):
+ @pytest.mark.parametrize(
+     "expression, expected",
+     [
+-        (SF.array_prepend("cola", "-"), "ARRAY_PREPEND(cola, '-')"),
+-        (SF.array_prepend(SF.col("cola"), SF.col("colb")), "ARRAY_PREPEND(cola, colb)"),
++        (SF.array_prepend("cola", "-"), "ARRAY_PREPEND(COALESCE(cola, ARRAY()), '-')"),
++        (
++            SF.array_prepend(SF.col("cola"), SF.col("colb")),
++            "ARRAY_PREPEND(COALESCE(cola, ARRAY()), colb)",
++        ),
+     ],
+ )
+ def test_array_prepend(expression, expected):

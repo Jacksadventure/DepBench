@@ -1,0 +1,64 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0fc4b183..7a9628ce 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,18 @@
+ 
+ ## [Unreleased]
+ 
++### Fixed
++
++- Fix broken background images caused by regression in Chrome >= 85, by updated [Marp CLI v0.22.0](https://github.com/marp-team/marp-cli/releases/v0.22.0) ([#175](https://github.com/marp-team/marp-vscode/issues/175), [#176](https://github.com/marp-team/marp-vscode/pull/176))
++
++### Added
++
++- Support for export through installed Microsoft Edge, by updated [Marp CLI v0.22.0](https://github.com/marp-team/marp-cli/releases/v0.22.0) ([#176](https://github.com/marp-team/marp-vscode/pull/176))
++
++### Changed
++
++- Upgrade to [Marp CLI v0.22.0](https://github.com/marp-team/marp-cli/releases/v0.22.0) ([#176](https://github.com/marp-team/marp-vscode/pull/176))
++
+ ## v0.15.1 - 2020-09-16
+ 
+ ### Fixed
+diff --git a/README.md b/README.md
+index 395cacb1..9e379b6e 100644
+--- a/README.md
++++ b/README.md
+@@ -69,7 +69,7 @@ You can also execute command from the Command Palette (<kbd>F1</kbd> or <kbd>Ctr
+ 
+ Default file type can choose by `markdown.marp.exportType` preference.
+ 
+-> ⚠️ Export except HTML requires to install [Google Chrome](https://www.google.com/chrome/) (or [Chromium](https://www.chromium.org/)). You may also specify the custom path for Chrome and Chromium-based browser by preference `markdown.marp.chromePath` (e.g. [Microsoft Edge](https://www.microsoft.com/edge)).
++> ⚠️ Export except HTML requires to install any one of [Google Chrome](https://www.google.com/chrome/), [Chromium](https://www.chromium.org/), or [Microsoft Edge](https://www.microsoft.com/edge). You may also specify the custom path for Chrome / Chromium-based browser by preference `markdown.marp.chromePath`.
+ 
+ ### Use custom theme
+ 
+diff --git a/src/marp-cli.ts b/src/marp-cli.ts
+index cc304e29..5fe37d97 100644
+--- a/src/marp-cli.ts
++++ b/src/marp-cli.ts
+@@ -99,13 +99,18 @@ export default async function runMarpCli(...argv: string[]): Promise<void> {
+       e instanceof CLIError &&
+       e.errorCode === CLIErrorCode.NOT_FOUND_CHROMIUM
+     ) {
+-      const chromium =
+-        process.platform === 'linux'
+-          ? ' or [Chromium](https://www.chromium.org/)'
+-          : ''
++      const browsers = ['[Google Chrome](https://www.google.com/chrome/)']
++
++      if (process.platform === 'linux')
++        browsers.push('[Chromium](https://www.chromium.org/)')
++
++      if (process.platform !== 'linux')
++        browsers.push('[Microsoft Edge](https://www.microsoft.com/edge)')
+ 
+       throw new MarpCLIError(
+-        `It requires to install [Google Chrome](https://www.google.com/chrome/)${chromium} for exporting.`
++        `It requires to install ${browsers
++          .join(', ')
++          .replace(/, ([^,]*)$/, ' or $1')} for exporting.`
+       )
+     }
+ 

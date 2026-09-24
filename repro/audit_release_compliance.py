@@ -178,8 +178,11 @@ def iter_payloads(path: Path, errors: list[str]):
         return
 
     task = "repository-file"
-    if relative.parts[:2] == ("dataset", "tasks") and len(relative.parts) >= 3:
-        task = relative.parts[2]
+    parts = relative.parts
+    if parts[:1] == ("paper_review",):
+        parts = parts[1:]
+    if parts[:2] == ("dataset", "tasks") and len(parts) >= 3:
+        task = parts[2]
     yield str(relative), path.read_bytes(), str(relative), task
 
 

@@ -1,0 +1,76 @@
+diff --git a/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/hash/SHA512.java b/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/hash/SHA512.java
+--- a/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/hash/SHA512.java
++++ b/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/hash/SHA512.java
+@@ -20,7 +20,8 @@ package de.dominikschadow.javasecurity.hash;
+ import org.apache.shiro.crypto.hash.DefaultHashService;
+ import org.apache.shiro.crypto.hash.Hash;
+ import org.apache.shiro.crypto.hash.HashRequest;
+-import org.apache.shiro.util.ByteSource;
++import org.apache.shiro.lang.util.ByteSource;
+ 
++import java.util.Base64;
+ import java.util.Arrays;
+ 
+@@ -35,29 +36,31 @@ public class SHA512 {
+      */
+     private static final byte[] PRIVATE_SALT_BYTES = {3, 1, 4, 1, 5, 9, 2, 6, 5};
+     private static final int ITERATIONS = 1000000;
++    private static final String ITERATIONS_PARAMETER = "SimpleHash.iterations";
++    private static final String PRIVATE_SALT = Base64.getEncoder().encodeToString(PRIVATE_SALT_BYTES);
++    private static final String SECRET_SALT_PARAMETER = "SimpleHash.secretSalt";
+ 
+     public Hash calculateHash(String password) {
+-        ByteSource privateSalt = ByteSource.Util.bytes(PRIVATE_SALT_BYTES);
+         DefaultHashService hashService = new DefaultHashService();
+-        hashService.setPrivateSalt(privateSalt);
+-        hashService.setGeneratePublicSalt(true);
+-        hashService.setHashIterations(ITERATIONS);
+ 
+         HashRequest.Builder builder = new HashRequest.Builder();
+         builder.setSource(ByteSource.Util.bytes(password));
++        builder.addParameter(SECRET_SALT_PARAMETER, PRIVATE_SALT);
++        builder.addParameter(ITERATIONS_PARAMETER, ITERATIONS);
++        builder.setAlgorithmName("SHA-512");
+ 
+         return hashService.computeHash(builder.build());
+     }
+ 
+     public boolean verifyPassword(byte[] originalHash, ByteSource publicSalt, String password) {
+-        ByteSource privateSalt = ByteSource.Util.bytes(PRIVATE_SALT_BYTES);
+         DefaultHashService hashService = new DefaultHashService();
+-        hashService.setPrivateSalt(privateSalt);
+-        hashService.setHashIterations(ITERATIONS);
+ 
+         HashRequest.Builder builder = new HashRequest.Builder();
+         builder.setSource(ByteSource.Util.bytes(password));
+         builder.setSalt(publicSalt);
++        builder.addParameter(SECRET_SALT_PARAMETER, PRIVATE_SALT);
++        builder.addParameter(ITERATIONS_PARAMETER, ITERATIONS);
++        builder.setAlgorithmName("SHA-512");
+ 
+         Hash comparisonHash = hashService.computeHash(builder.build());
+ 
+diff --git a/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/symmetric/AES.java b/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/symmetric/AES.java
+--- a/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/symmetric/AES.java
++++ b/crypto-shiro/src/main/java/de/dominikschadow/javasecurity/symmetric/AES.java
+@@ -17,8 +17,8 @@
+  */
+ package de.dominikschadow.javasecurity.symmetric;
+ 
+-import org.apache.shiro.crypto.AesCipherService;
+-import org.apache.shiro.util.ByteSource;
++import org.apache.shiro.crypto.cipher.AesCipherService;
++import org.apache.shiro.lang.util.ByteSource;
+ 
+ import java.security.Key;
+ 
+@@ -44,8 +44,6 @@ public byte[] encrypt(Key key, byte[] initialText) {
+ 
+     public byte[] decrypt(Key key, byte[] ciphertext) {
+         AesCipherService cipherService = new AesCipherService();
+-        ByteSource plainText = cipherService.decrypt(ciphertext, key.getEncoded());
+-
+-        return plainText.getBytes();
++        return cipherService.decrypt(ciphertext, key.getEncoded()).getClonedBytes();
+     }
+ }

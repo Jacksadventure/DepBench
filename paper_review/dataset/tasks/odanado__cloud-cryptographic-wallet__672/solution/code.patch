@@ -1,0 +1,41 @@
+diff --git a/packages/web3-provider-adapter/src/get-common.ts b/packages/web3-provider-adapter/src/get-common.ts
+index 4ec8c8a3..a55985dd 100644
+--- a/packages/web3-provider-adapter/src/get-common.ts
++++ b/packages/web3-provider-adapter/src/get-common.ts
+@@ -1,12 +1,8 @@
+-import CommonOriginal, { Hardfork } from "@ethereumjs/common";
+-import type { default as CommonType } from "@ethereumjs/common";
++import { Hardfork, Common } from "@ethereumjs/common";
+ import { BN } from "ethereumjs-util";
+-import { interopImportCJSDefault } from "node-cjs-interop";
+ import { query } from "./query.js";
+ 
+-const Common = interopImportCJSDefault(CommonOriginal);
+-
+-export async function getCommon(rpcUrl: string): Promise<CommonType> {
++export async function getCommon(rpcUrl: string): Promise<Common> {
+   const chainId = await query<string>(rpcUrl, "eth_chainId", []);
+ 
+   if (!chainId) {
+@@ -14,7 +10,7 @@ export async function getCommon(rpcUrl: string): Promise<CommonType> {
+   }
+ 
+   return Common.custom({
+-    chainId: new BN(chainId.slice(2), "hex"),
++    chainId: new BN(chainId.slice(2), "hex").toNumber(),
+     defaultHardfork: Hardfork.London,
+   });
+ }
+diff --git a/packages/web3-provider-adapter/src/process-signature.ts b/packages/web3-provider-adapter/src/process-signature.ts
+index bf36d074..fffe7d22 100644
+--- a/packages/web3-provider-adapter/src/process-signature.ts
++++ b/packages/web3-provider-adapter/src/process-signature.ts
+@@ -7,7 +7,7 @@ export function processSignature(
+ ): tx.TypedTransaction {
+   const r = Buffer.from(signature.r.buffer);
+   const s = Buffer.from(signature.s.buffer);
+-  const v = signature.v;
++  const v = BigInt(signature.v);
+   if (typedTransaction instanceof tx.Transaction) {
+     return typedTransaction["_processSignature"](v, r, s);
+   } else {

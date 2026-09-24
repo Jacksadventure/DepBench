@@ -1,0 +1,51 @@
+diff --git a/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt b/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt
+--- a/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt
++++ b/src/main/kotlin/graphql/kickstart/tools/relay/RelayConnectionFactory.kt
+@@ -54,7 +54,7 @@ class RelayConnectionFactory : TypeDefinitionFactory {
+             .fieldDefinition(FieldDefinition("pageInfo", TypeName("PageInfo")))
+             .build()
+ 
+-    private fun createEdgeDefinition(connectionType: String, nodeType: String): ObjectTypeDefinition =
++    private fun createEdgeDefinition(connectionType: String, nodeType: String?): ObjectTypeDefinition =
+         ObjectTypeDefinition.newObjectTypeDefinition()
+             .name(connectionType + "Edge")
+             .fieldDefinition(FieldDefinition("cursor", TypeName("String")))
+@@ -70,7 +70,7 @@ class RelayConnectionFactory : TypeDefinitionFactory {
+             .fieldDefinition(FieldDefinition("endCursor", TypeName("String")))
+             .build()
+ 
+-    private fun Directive.forTypeName(): String {
++    private fun Directive.forTypeName(): String? {
+         return (this.getArgument("for").value as StringValue).value
+     }
+ 
+@@ -82,7 +82,13 @@ class RelayConnectionFactory : TypeDefinitionFactory {
+         return this.directives.map { it.withField(this) }
+     }
+ 
+-    class DirectiveWithField(val field: FieldDefinition, name: String, arguments: List<Argument>, sourceLocation: SourceLocation, comments: List<Comment>) : Directive(name, arguments, sourceLocation, comments, IgnoredChars.EMPTY, emptyMap()) {
++    class DirectiveWithField(
++        val field: FieldDefinition,
++        name: String,
++        arguments: List<Argument>,
++        sourceLocation: SourceLocation?,
++        comments: List<Comment>
++    ) : Directive(name, arguments, sourceLocation, comments, IgnoredChars.EMPTY, emptyMap()) {
+         fun getTypeName(): String {
+             val type = field.type
+             if (type is NonNullType) {
+diff --git a/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt b/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt
+--- a/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt
++++ b/src/main/kotlin/graphql/kickstart/tools/resolver/FieldResolverScanner.kt
+@@ -202,8 +202,9 @@ internal class FieldResolverScanner(val options: SchemaParserOptions) {
+             isSubscription = isSubscription || search.source is GraphQLSubscriptionResolver
+         }
+ 
+-        val sourceName = if (field.sourceLocation != null && field.sourceLocation.sourceName != null) field.sourceLocation.sourceName else "<unknown>"
+-        val sourceLocation = if (field.sourceLocation != null) "$sourceName:${field.sourceLocation.line}" else "<unknown>"
++        val sourceName = field.sourceLocation?.sourceName ?: "<unknown>"
++        val sourceLocation = field.sourceLocation?.let { "$sourceName:${it.line}" } ?: "<unknown>"
++
+         return "No method${if (scannedProperties) " or field" else ""} found as defined in schema $sourceLocation with any of the following signatures " +
+             "(with or without one of $allowedLastArgumentTypes as the last argument), in priority order:\n${signatures.joinToString("\n  ")}" +
+             if (isSubscription) "\n\nNote that a Subscription data fetcher must return a Publisher of events" else ""

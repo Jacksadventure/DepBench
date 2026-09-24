@@ -1,0 +1,76 @@
+diff --git a/plugin/plugin_test.go b/plugin/plugin_test.go
+--- a/plugin/plugin_test.go
++++ b/plugin/plugin_test.go
+@@ -2,11 +2,23 @@ package plugin
+ 
+ import (
+ 	"context"
++	"io"
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/assert"
++	"github.com/urfave/cli/v3"
+ )
+ 
++func setupPluginTest(t *testing.T) *Plugin {
++	t.Helper()
++
++	cli.HelpPrinter = func(_ io.Writer, _ string, _ interface{}) {}
++	got := New(func(_ context.Context) error { return nil })
++	_ = got.App.Run(t.Context(), []string{"wp-docker-buildx"})
++
++	return got
++}
++
+ func TestEnvironmentFlag(t *testing.T) {
+ 	tests := []struct {
+ 		name string
+@@ -31,9 +43,7 @@ func TestEnvironmentFlag(t *testing.T) {
+ 				t.Setenv(key, value)
+ 			}
+ 
+-			got := New(func(_ context.Context) error { return nil })
+-
+-			_ = got.App.Run([]string{"wp-opentofu"})
++			got := setupPluginTest(t)
+ 			_ = got.FlagsFromContext()
+ 
+ 			assert.ElementsMatch(t, tt.want, got.Environment.Value())
+diff --git a/tofu/tofu_test.go b/tofu/tofu_test.go
+--- a/tofu/tofu_test.go
++++ b/tofu/tofu_test.go
+@@ -4,7 +4,6 @@ import (
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/assert"
+-	"github.com/urfave/cli/v2"
+ )
+ 
+ func boolPtr(b bool) *bool {
+@@ -267,7 +266,7 @@ func TestTofu_Plan(t *testing.T) {
+ 		{
+ 			name: "plan with targets",
+ 			tofu: &Tofu{
+-				Targets: *cli.NewStringSlice("target1", "target2"),
++				Targets: []string{"target1", "target2"},
+ 			},
+ 			destroy: false,
+ 			want: []string{
+@@ -360,7 +359,7 @@ func TestTofu_Apply(t *testing.T) {
+ 		{
+ 			name: "apply with targets",
+ 			tofu: &Tofu{
+-				Targets: *cli.NewStringSlice("target1", "target2"),
++				Targets: []string{"target1", "target2"},
+ 			},
+ 			want: []string{
+ 				TofuBin,
+@@ -475,7 +474,7 @@ func TestTofu_Destroy(t *testing.T) {
+ 		{
+ 			name: "destroy with targets",
+ 			tofu: &Tofu{
+-				Targets: *cli.NewStringSlice("target1", "target2"),
++				Targets: []string{"target1", "target2"},
+ 			},
+ 			want: []string{
+ 				TofuBin,

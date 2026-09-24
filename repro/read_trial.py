@@ -26,13 +26,19 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--configuration", required=True, help="file stem such as gpt55__codex")
     parser.add_argument("--task", required=True, help="task folder name")
+    parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        default=ROOT,
+        help="Directory containing trajectories/ and verify_logs/ (e.g. paper_review).",
+    )
     parser.add_argument("--show-trajectory", action="store_true")
     parser.add_argument("--show-verifier", action="store_true")
     args = parser.parse_args()
 
     stem = args.configuration
-    trajectory_path = ROOT / "trajectories" / f"{stem}.jsonl.gz"
-    verifier_path = ROOT / "verify_logs" / f"{stem}.jsonl.gz"
+    trajectory_path = args.artifact_root / "trajectories" / f"{stem}.jsonl.gz"
+    verifier_path = args.artifact_root / "verify_logs" / f"{stem}.jsonl.gz"
     if not trajectory_path.exists():
         raise SystemExit(f"configuration not found: {stem}")
 

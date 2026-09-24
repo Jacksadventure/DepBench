@@ -1,0 +1,116 @@
+diff --git a/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt b/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/EndToEndSpecHelper.kt
+@@ -501,7 +501,7 @@ val customScalarUUID = GraphQLScalarType.newScalar()
+ val customScalarMap = GraphQLScalarType.newScalar()
+     .name("customScalarMap")
+     .description("customScalarMap")
+-    .coercing(object : Coercing<Map<String, Any>, Map<String, Any>> {
++    .coercing(object : Coercing<Map<String, Any?>, Map<String, Any?>> {
+ 
+         @Suppress("UNCHECKED_CAST")
+         override fun parseValue(input: Any, context: GraphQLContext, locale: Locale): Map<String, Any> = input as Map<String, Any>
+@@ -515,8 +515,10 @@ val customScalarMap = GraphQLScalarType.newScalar()
+             variables: CoercedVariables,
+             context: GraphQLContext,
+             locale: Locale
+-        ): Map<String, Any> =
+-            (input as ObjectValue).objectFields.associateBy { it.name }.mapValues { (it.value.value as StringValue).value }
++        ): Map<String, Any?> =
++            (input as ObjectValue).objectFields
++                .associateBy { it.name }
++                .mapValues { (it.value.value as StringValue).value }
+     })
+     .build()
+ 
+diff --git a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverDataFetcherTest.kt
+@@ -296,22 +296,25 @@ class MethodFieldResolverDataFetcherTest {
+         return FieldResolverScanner(options).findFieldResolver(field, resolverInfo).createDataFetcher()
+     }
+ 
+-    private fun createEnvironment(source: Any = Object(), arguments: Map<String, Any> = emptyMap(), context: GraphQLContext? = null): DataFetchingEnvironment {
+-        return DataFetchingEnvironmentImpl.newDataFetchingEnvironment(buildExecutionContext())
+-            .source(source)
+-            .arguments(arguments)
+-            .graphQLContext(context)
+-            .build()
+-    }
+-
+-    private fun buildExecutionContext(): ExecutionContext {
++    private fun createEnvironment(
++        source: Any = Object(),
++        arguments: Map<String, Any> = emptyMap(),
++        context: GraphQLContext = GraphQLContext.newContext().build()
++    ) = DataFetchingEnvironmentImpl.newDataFetchingEnvironment(buildExecutionContext(context))
++        .source(source)
++        .arguments(arguments)
++        .graphQLContext(context)
++        .build()
++
++    private fun buildExecutionContext(context: GraphQLContext): ExecutionContext {
+         val executionStrategy = object : ExecutionStrategy() {
+             override fun execute(executionContext: ExecutionContext, parameters: ExecutionStrategyParameters): CompletableFuture<ExecutionResult> {
+                 throw AssertionError("should not be called")
+             }
+         }
+         val executionId = ExecutionId.from("executionId123")
+         return ExecutionContextBuilder.newExecutionContextBuilder()
++            .graphQLContext(context)
+             .instrumentation(SimplePerformantInstrumentation.INSTANCE)
+             .executionId(executionId)
+             .queryStrategy(executionStrategy)
+diff --git a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/MethodFieldResolverTest.kt
+@@ -246,7 +246,7 @@ class MethodFieldResolverTest {
+         val value get() = internalValue
+ 
+         companion object {
+-            fun of(input: Any) = when (input) {
++            fun of(input: Any?) = when (input) {
+                 is String -> CustomScalar(input)
+                 else -> throw IllegalArgumentException()
+             }
+diff --git a/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt b/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/SchemaClassScannerDirectiveTest.kt
+@@ -37,7 +37,7 @@ class SchemaClassScannerDirectiveTest {
+         assertEquals(value.value, "some thing")
+     }
+ 
+-    data class CustomValue(val value: String)
++    data class CustomValue(val value: String?)
+     private val customValueScalar: GraphQLScalarType = GraphQLScalarType.newScalar()
+         .name("CustomValue")
+         .coercing(object : Coercing<CustomValue, String> {
+diff --git a/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt b/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
+--- a/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
++++ b/src/test/kotlin/graphql/kickstart/tools/SchemaParserTest.kt
+@@ -263,9 +263,9 @@ class SchemaParserTest {
+             .getFieldDefinition("id")
+             .definition!!.sourceLocation
+         assertNotNull(sourceLocation)
+-        assertEquals(sourceLocation.line, 2)
+-        assertEquals(sourceLocation.column, 5)
+-        assertNull(sourceLocation.sourceName)
++        assertEquals(sourceLocation?.line, 2)
++        assertEquals(sourceLocation?.column, 5)
++        assertNull(sourceLocation?.sourceName)
+     }
+ 
+     @Test
+@@ -280,9 +280,9 @@ class SchemaParserTest {
+             .getFieldDefinition("id")
+             .definition!!.sourceLocation
+         assertNotNull(sourceLocation)
+-        assertEquals(sourceLocation.line, 2)
+-        assertEquals(sourceLocation.column, 3)
+-        assertEquals(sourceLocation.sourceName, "Test.graphqls")
++        assertEquals(sourceLocation?.line, 2)
++        assertEquals(sourceLocation?.column, 3)
++        assertEquals(sourceLocation?.sourceName, "Test.graphqls")
+     }
+ 
+     @Test

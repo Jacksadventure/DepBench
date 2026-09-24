@@ -1,0 +1,125 @@
+diff --git a/server/src/modules/enquiry/enquiry.controller.ts b/server/src/modules/enquiry/enquiry.controller.ts
+index 35532943e..d4534ca6c 100644
+--- a/server/src/modules/enquiry/enquiry.controller.ts
++++ b/server/src/modules/enquiry/enquiry.controller.ts
+@@ -62,14 +62,16 @@ export class EnquiryController {
+       })
+       return res.status(201).json({ message: 'Enquiry sent' })
+     } catch (error) {
+-      logger.error({
+-        message: 'Error while sending enquiry email',
+-        meta: {
+-          function: 'sendEnquiry',
+-        },
+-        error,
+-      })
+-      return res.status(400).json({ message: error.message })
++      if (error instanceof Error) {
++        logger.error({
++          message: 'Error while sending enquiry email',
++          meta: {
++            function: 'sendEnquiry',
++          },
++          error,
++        })
++        return res.status(400).json({ message: error.message })
++      }
+     }
+   }
+ }
+diff --git a/server/src/modules/file/file.controller.ts b/server/src/modules/file/file.controller.ts
+index c067fb249..78d8e05d2 100644
+--- a/server/src/modules/file/file.controller.ts
++++ b/server/src/modules/file/file.controller.ts
+@@ -40,15 +40,17 @@ export class FileController {
+       })
+       return res.status(200).json(response)
+     } catch (error) {
+-      const message = error.message
+-      logger.error({
+-        message,
+-        meta: {
+-          function: 'upload',
+-        },
+-        error,
+-      })
+-      return res.status(400).json({ message })
++      if (error instanceof Error) {
++        const message = error.message
++        logger.error({
++          message,
++          meta: {
++            function: 'upload',
++          },
++          error,
++        })
++        return res.status(400).json({ message })
++      }
+     }
+   }
+ }
+diff --git a/server/src/modules/post/post.controller.ts b/server/src/modules/post/post.controller.ts
+index c9d47a608..62bba40a9 100644
+--- a/server/src/modules/post/post.controller.ts
++++ b/server/src/modules/post/post.controller.ts
+@@ -55,17 +55,19 @@ export class PostController {
+       })
+       return res.status(200).json(data)
+     } catch (error) {
+-      if (error.message === 'Invalid tags used in request') {
+-        return res.status(422).json({ message: error.message })
+-      } else {
+-        logger.error({
+-          message: 'Error while listing posts',
+-          meta: {
+-            function: 'listPosts',
+-          },
+-          error,
+-        })
+-        return res.status(500).json({ message: 'Server Error' })
++      if (error instanceof Error) {
++        if (error.message === 'Invalid tags used in request') {
++          return res.status(422).json({ message: error.message })
++        } else {
++          logger.error({
++            message: 'Error while listing posts',
++            meta: {
++              function: 'listPosts',
++            },
++            error,
++          })
++          return res.status(500).json({ message: 'Server Error' })
++        }
+       }
+     }
+   }
+diff --git a/server/src/modules/tags/tags.controller.ts b/server/src/modules/tags/tags.controller.ts
+index 93aa96879..e2c6bd1ba 100644
+--- a/server/src/modules/tags/tags.controller.ts
++++ b/server/src/modules/tags/tags.controller.ts
+@@ -49,7 +49,11 @@ export class TagsController {
+       const result = await this.tagsService.retrieveUsedByUser(userId)
+       return res.json(result)
+     } catch (err) {
+-      return res.status(500).json({ message: err.message })
++      if (err instanceof Error) {
++        return res.status(500).json({ message: err.message })
++      } else {
++        return res.status(500).json({ message: 'Server Error' })
++      }
+     }
+   }
+ 
+@@ -78,7 +82,11 @@ export class TagsController {
+       const result = await this.tagsService.retrieveUsedByAgency(agencyId)
+       return res.json(result)
+     } catch (err) {
+-      return res.status(400).json({ message: err.message })
++      if (err instanceof Error) {
++        return res.status(400).json({ message: err.message })
++      } else {
++        return res.status(500).json({ message: 'Server Error' })
++      }
+     }
+   }
+ }

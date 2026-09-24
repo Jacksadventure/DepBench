@@ -1,0 +1,51 @@
+diff --git a/src/script/components/Avatar.test.tsx b/src/script/components/Avatar.test.tsx
+index b3b4080af3f..d6f7cc54ce0 100644
+--- a/src/script/components/Avatar.test.tsx
++++ b/src/script/components/Avatar.test.tsx
+@@ -36,7 +36,7 @@ class AvatarPage extends TestPage<AvatarProps> {
+   getServiceAvatar = () => this.get('div[data-uie-name="element-avatar-service"]');
+   getUserAvatar = () => this.get('div[data-uie-name="element-avatar-user"]');
+ 
+-  clickUserAvatar = () => this.click(this.getUserParticipantAvatar());
++  clickUserAvatar = () => this.click(this.getUserParticipantAvatar()!);
+ }
+ 
+ describe('Avatar', () => {
+@@ -51,8 +51,8 @@ describe('Avatar', () => {
+ 
+     participantAvatar.clickUserAvatar();
+ 
+-    expect(participantAvatar.getProps().onAvatarClick).toHaveBeenCalledWith(
+-      participantAvatar.getProps().participant,
++    expect(participantAvatar.getProps()?.onAvatarClick).toHaveBeenCalledWith(
++      participantAvatar.getProps()?.participant,
+       jasmine.anything(),
+     );
+   });
+diff --git a/src/script/util/test/TestPage.tsx b/src/script/util/test/TestPage.tsx
+index 3bbd9288df0..37c52de9918 100644
+--- a/src/script/util/test/TestPage.tsx
++++ b/src/script/util/test/TestPage.tsx
+@@ -20,15 +20,17 @@
+ import React from 'react';
+ import {act, fireEvent, render, RenderResult} from '@testing-library/react';
+ 
+-export default class TestPage<T> {
++type ComponentTypes<T> = React.FC<T> | React.ComponentClass<T>;
++
++export default class TestPage<T extends Record<string, any>> {
+   private readonly driver: RenderResult;
+-  private readonly props: T;
+-  private readonly component: React.FC | React.ComponentClass;
++  private readonly props?: T;
++  private readonly component: ComponentTypes<T>;
+ 
+-  constructor(Component: React.FC<T> | React.ComponentClass<T>, props?: T) {
++  constructor(Component: ComponentTypes<T>, props?: T) {
+     this.props = props;
+     this.component = Component;
+-    this.driver = render(<Component {...this.props} />);
++    this.driver = render(<Component {...(props as T)} />);
+   }
+ 
+   get renderResults() {

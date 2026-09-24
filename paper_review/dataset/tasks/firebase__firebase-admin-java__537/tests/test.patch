@@ -1,0 +1,1073 @@
+diff --git a/src/test/java/com/google/firebase/OutgoingHttpRequestTest.java b/src/test/java/com/google/firebase/OutgoingHttpRequestTest.java
+--- a/src/test/java/com/google/firebase/OutgoingHttpRequestTest.java
++++ b/src/test/java/com/google/firebase/OutgoingHttpRequestTest.java
+@@ -21,13 +21,14 @@
+ import static org.junit.Assert.assertSame;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.GenericUrl;
+ import com.google.api.client.http.HttpMethods;
+ import com.google.api.client.http.HttpRequest;
+ import com.google.api.client.http.json.JsonHttpContent;
+ import com.google.api.client.testing.http.MockHttpTransport;
+ import com.google.common.collect.ImmutableMap;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import org.junit.Test;
+ 
+@@ -73,7 +74,7 @@ public void testOutgoingHttpRequest() {
+   @Test
+   public void testOutgoingHttpRequestWithContent() throws IOException {
+     JsonHttpContent streamingContent = new JsonHttpContent(
+-        Utils.getDefaultJsonFactory(),
++        ApiClientUtils.getDefaultJsonFactory(),
+         ImmutableMap.of("key", "value"));
+     HttpRequest httpRequest = new MockHttpTransport().createRequestFactory()
+         .buildPostRequest(new GenericUrl(TEST_URL), streamingContent);
+diff --git a/src/test/java/com/google/firebase/auth/FirebaseAuthIT.java b/src/test/java/com/google/firebase/auth/FirebaseAuthIT.java
+--- a/src/test/java/com/google/firebase/auth/FirebaseAuthIT.java
++++ b/src/test/java/com/google/firebase/auth/FirebaseAuthIT.java
+@@ -24,7 +24,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.GenericUrl;
+ import com.google.api.client.http.HttpRequest;
+ import com.google.api.client.http.HttpResponse;
+@@ -52,6 +51,7 @@
+ import com.google.firebase.auth.UserTestUtils.RandomUser;
+ import com.google.firebase.auth.UserTestUtils.TemporaryUser;
+ import com.google.firebase.auth.hash.Scrypt;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.Nullable;
+ import com.google.firebase.testing.IntegrationTestUtils;
+ import java.io.IOException;
+@@ -79,8 +79,8 @@ public class FirebaseAuthIT {
+       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/resetPassword";
+   private static final String EMAIL_LINK_SIGN_IN_URL =
+       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/emailLinkSignin";
+-  private static final JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
+-  private static final HttpTransport transport = Utils.getDefaultTransport();
++  private static final JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
++  private static final HttpTransport transport = ApiClientUtils.getDefaultTransport();
+   private static final String ACTION_LINK_CONTINUE_URL = "http://localhost/?a=1&b=2#c=3";
+ 
+   private static final FirebaseAuth auth = FirebaseAuth.getInstance(
+diff --git a/src/test/java/com/google/firebase/auth/FirebaseCustomTokenTest.java b/src/test/java/com/google/firebase/auth/FirebaseCustomTokenTest.java
+--- a/src/test/java/com/google/firebase/auth/FirebaseCustomTokenTest.java
++++ b/src/test/java/com/google/firebase/auth/FirebaseCustomTokenTest.java
+@@ -21,7 +21,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.HttpTransport;
+ import com.google.api.client.http.LowLevelHttpRequest;
+ import com.google.api.client.json.gson.GsonFactory;
+@@ -36,9 +35,9 @@
+ import com.google.firebase.TestOnlyImplFirebaseTrampolines;
+ import com.google.firebase.auth.internal.FirebaseCustomAuthToken;
+ import com.google.firebase.database.MapBuilder;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.testing.MultiRequestMockHttpTransport;
+ import com.google.firebase.testing.ServiceAccount;
+-import com.google.firebase.testing.TestUtils;
+ import java.io.IOException;
+ import java.util.List;
+ import org.junit.After;
+@@ -91,7 +90,7 @@ public void testCreateCustomTokenWithDeveloperClaims() throws Exception {
+   @Test
+   public void testCreateCustomTokenWithoutServiceAccountCredentials() throws Exception {
+     MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+-    String content = Utils.getDefaultJsonFactory().toString(
++    String content = ApiClientUtils.getDefaultJsonFactory().toString(
+         ImmutableMap.of("signedBlob", BaseEncoding.base64().encode("test-signature".getBytes())));
+     response.setContent(content);
+     MockHttpTransport transport = new MultiRequestMockHttpTransport(ImmutableList.of(response));
+@@ -116,7 +115,7 @@ public void testCreateCustomTokenWithoutServiceAccountCredentials() throws Excep
+ 
+   @Test
+   public void testCreateCustomTokenWithDiscoveredServiceAccount() throws Exception {
+-    String content = Utils.getDefaultJsonFactory().toString(
++    String content = ApiClientUtils.getDefaultJsonFactory().toString(
+         ImmutableMap.of("signedBlob", BaseEncoding.base64().encode("test-signature".getBytes())));
+     List<MockLowLevelHttpResponse> responses = ImmutableList.of(
+         // Service account discovery response
+diff --git a/src/test/java/com/google/firebase/auth/FirebaseUserManagerTest.java b/src/test/java/com/google/firebase/auth/FirebaseUserManagerTest.java
+--- a/src/test/java/com/google/firebase/auth/FirebaseUserManagerTest.java
++++ b/src/test/java/com/google/firebase/auth/FirebaseUserManagerTest.java
+@@ -25,7 +25,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.GenericUrl;
+ import com.google.api.client.http.HttpHeaders;
+ import com.google.api.client.http.HttpRequest;
+@@ -48,6 +47,7 @@
+ import com.google.firebase.auth.FirebaseUserManager.EmailLinkType;
+ import com.google.firebase.auth.multitenancy.TenantAwareFirebaseAuth;
+ import com.google.firebase.auth.multitenancy.TenantManager;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.SdkUtils;
+ import com.google.firebase.testing.MultiRequestMockHttpTransport;
+ import com.google.firebase.testing.TestResponseInterceptor;
+@@ -67,7 +67,7 @@
+ 
+ public class FirebaseUserManagerTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   private static final String TEST_TOKEN = "token";
+ 
+@@ -1210,7 +1210,7 @@ public void testLinkProvider() {
+     UserRecord.UpdateRequest update = new UserRecord.UpdateRequest("test");
+     Map<String, Object> map = update
+         .setProviderToLink(USER_PROVIDER)
+-        .getProperties(Utils.getDefaultJsonFactory());
++        .getProperties(ApiClientUtils.getDefaultJsonFactory());
+     assertEquals(2, map.size());
+     assertEquals(update.getUid(), map.get("localId"));
+     assertEquals(USER_PROVIDER, map.get("linkProviderUserInfo"));
+@@ -1221,7 +1221,7 @@ public void testDeleteProvider() {
+     UserRecord.UpdateRequest update = new UserRecord.UpdateRequest("test");
+     Map<String, Object> map = update
+         .setProvidersToUnlink(ImmutableList.of("google.com"))
+-        .getProperties(Utils.getDefaultJsonFactory());
++        .getProperties(ApiClientUtils.getDefaultJsonFactory());
+     assertEquals(2, map.size());
+     assertEquals(update.getUid(), map.get("localId"));
+     assertEquals(ImmutableList.of("google.com"), map.get("deleteProvider"));
+@@ -1233,7 +1233,7 @@ public void testDeleteProviderAndPhone() {
+     Map<String, Object> map = update
+         .setProvidersToUnlink(ImmutableList.of("google.com"))
+         .setPhoneNumber(null)
+-        .getProperties(Utils.getDefaultJsonFactory());
++        .getProperties(ApiClientUtils.getDefaultJsonFactory());
+     assertEquals(2, map.size());
+     assertEquals(update.getUid(), map.get("localId"));
+     assertEquals(ImmutableList.of("google.com", "phone"), map.get("deleteProvider"));
+@@ -2898,7 +2898,7 @@ public FirebaseUserManager get() {
+             return FirebaseUserManager.builder()
+                 .setProjectId("test-project-id")
+                 .setHttpRequestFactory(transport.createRequestFactory())
+-                .setJsonFactory(Utils.getDefaultJsonFactory())
++                .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+                 .build();
+           }
+           })
+diff --git a/src/test/java/com/google/firebase/auth/ImportUserRecordTest.java b/src/test/java/com/google/firebase/auth/ImportUserRecordTest.java
+--- a/src/test/java/com/google/firebase/auth/ImportUserRecordTest.java
++++ b/src/test/java/com/google/firebase/auth/ImportUserRecordTest.java
+@@ -19,12 +19,13 @@
+ import static org.junit.Assert.assertEquals;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.base.Strings;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.io.BaseEncoding;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Date;
+@@ -35,7 +36,7 @@
+ 
+ public class ImportUserRecordTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   @Test
+   public void testUidOnlyRecord() {
+diff --git a/src/test/java/com/google/firebase/auth/ListProviderConfigsPageTest.java b/src/test/java/com/google/firebase/auth/ListProviderConfigsPageTest.java
+--- a/src/test/java/com/google/firebase/auth/ListProviderConfigsPageTest.java
++++ b/src/test/java/com/google/firebase/auth/ListProviderConfigsPageTest.java
+@@ -23,9 +23,10 @@
+ import static org.junit.Assert.assertNull;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.common.collect.ImmutableList;
+ import com.google.firebase.auth.internal.ListOidcProviderConfigsResponse;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+@@ -344,7 +345,7 @@ public void testInvalidMaxResults() throws IOException {
+ 
+   private static OidcProviderConfig newOidcProviderConfig(String providerConfigId)
+       throws IOException {
+-    return Utils.getDefaultJsonFactory().fromString(
++    return ApiClientUtils.getDefaultJsonFactory().fromString(
+         String.format("{\"name\":\"%s\"}", providerConfigId), OidcProviderConfig.class);
+   }
+ 
+diff --git a/src/test/java/com/google/firebase/auth/ListUsersPageTest.java b/src/test/java/com/google/firebase/auth/ListUsersPageTest.java
+--- a/src/test/java/com/google/firebase/auth/ListUsersPageTest.java
++++ b/src/test/java/com/google/firebase/auth/ListUsersPageTest.java
+@@ -23,13 +23,13 @@
+ import static org.junit.Assert.assertNull;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.io.BaseEncoding;
+-import com.google.firebase.auth.ListUsersPage;
+ import com.google.firebase.auth.ListUsersPage.ListUsersResult;
+ import com.google.firebase.auth.internal.DownloadAccountResponse;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+@@ -349,14 +349,14 @@ public void testInvalidMaxResults() throws IOException {
+   }
+ 
+   private static ExportedUserRecord newUser(String uid) throws IOException {
+-    JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
++    JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
+     DownloadAccountResponse.User parsed = jsonFactory.fromString(
+         String.format("{\"localId\":\"%s\"}", uid), DownloadAccountResponse.User.class);
+     return new ExportedUserRecord(parsed, jsonFactory);
+   }
+ 
+   private static ExportedUserRecord newUser(String uid, String passwordHash) throws IOException {
+-    JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
++    JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
+     DownloadAccountResponse.User parsed = jsonFactory.fromString(
+         String.format("{\"localId\":\"%s\", \"passwordHash\":\"%s\"}", uid, passwordHash),
+         DownloadAccountResponse.User.class);
+diff --git a/src/test/java/com/google/firebase/auth/OidcProviderConfigTest.java b/src/test/java/com/google/firebase/auth/OidcProviderConfigTest.java
+--- a/src/test/java/com/google/firebase/auth/OidcProviderConfigTest.java
++++ b/src/test/java/com/google/firebase/auth/OidcProviderConfigTest.java
+@@ -20,15 +20,16 @@
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.Map;
+ import org.junit.Test;
+ 
+ public class OidcProviderConfigTest {
+ 
+-  private static final JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
++  private static final JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
+ 
+   private static final String OIDC_JSON_STRING =
+       ("{"
+diff --git a/src/test/java/com/google/firebase/auth/SamlProviderConfigTest.java b/src/test/java/com/google/firebase/auth/SamlProviderConfigTest.java
+--- a/src/test/java/com/google/firebase/auth/SamlProviderConfigTest.java
++++ b/src/test/java/com/google/firebase/auth/SamlProviderConfigTest.java
+@@ -21,18 +21,19 @@
+ import static org.junit.Assert.assertNotNull;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.List;
+ import java.util.Map;
+ import org.junit.Test;
+ 
+ public class SamlProviderConfigTest {
+ 
+-  private static final JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
++  private static final JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
+ 
+   private static final String SAML_JSON_STRING =
+       ("{"
+diff --git a/src/test/java/com/google/firebase/auth/TestTokenFactory.java b/src/test/java/com/google/firebase/auth/TestTokenFactory.java
+--- a/src/test/java/com/google/firebase/auth/TestTokenFactory.java
++++ b/src/test/java/com/google/firebase/auth/TestTokenFactory.java
+@@ -16,7 +16,6 @@
+ 
+ package com.google.firebase.auth;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.api.client.json.webtoken.JsonWebSignature;
+ import com.google.api.client.json.webtoken.JsonWebToken;
+@@ -26,6 +25,8 @@
+ import com.google.api.client.util.Clock;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.io.BaseEncoding;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.security.GeneralSecurityException;
+ import java.security.KeyFactory;
+@@ -35,7 +36,7 @@
+ 
+ class TestTokenFactory {
+ 
+-  public static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  public static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+   public static final Clock CLOCK = new FixedClock(2002000L * 1000);
+   public static final String PROJECT_ID = "proj-test-101";
+   public static final String PRIVATE_KEY_ID = "aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
+diff --git a/src/test/java/com/google/firebase/auth/UserProviderTest.java b/src/test/java/com/google/firebase/auth/UserProviderTest.java
+--- a/src/test/java/com/google/firebase/auth/UserProviderTest.java
++++ b/src/test/java/com/google/firebase/auth/UserProviderTest.java
+@@ -18,17 +18,18 @@
+ 
+ import static org.junit.Assert.assertEquals;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableMap;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.HashMap;
+ import java.util.Map;
+ import org.junit.Test;
+ 
+ public class UserProviderTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   @Test
+   public void testAllProperties() throws IOException {
+diff --git a/src/test/java/com/google/firebase/auth/UserRecordTest.java b/src/test/java/com/google/firebase/auth/UserRecordTest.java
+--- a/src/test/java/com/google/firebase/auth/UserRecordTest.java
++++ b/src/test/java/com/google/firebase/auth/UserRecordTest.java
+@@ -5,13 +5,13 @@
+ import static org.junit.Assert.assertNull;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.firebase.auth.UserRecord.UpdateRequest;
+ import com.google.firebase.auth.internal.DownloadAccountResponse;
+ import com.google.firebase.auth.internal.GetAccountInfoResponse;
++import com.google.firebase.internal.ApiClientUtils;
+ 
+ import java.io.ByteArrayInputStream;
+ import java.io.IOException;
+@@ -21,7 +21,7 @@
+ 
+ public class UserRecordTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   @Test(expected = NullPointerException.class)
+   public void testNullResponse() {
+diff --git a/src/test/java/com/google/firebase/auth/internal/CryptoSignersTest.java b/src/test/java/com/google/firebase/auth/internal/CryptoSignersTest.java
+--- a/src/test/java/com/google/firebase/auth/internal/CryptoSignersTest.java
++++ b/src/test/java/com/google/firebase/auth/internal/CryptoSignersTest.java
+@@ -23,7 +23,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.HttpRequest;
+ import com.google.api.client.http.HttpStatusCodes;
+ import com.google.api.client.testing.http.MockHttpTransport;
+@@ -39,6 +38,7 @@
+ import com.google.firebase.TestOnlyImplFirebaseTrampolines;
+ import com.google.firebase.auth.FirebaseAuthException;
+ import com.google.firebase.auth.MockGoogleCredentials;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.testing.MultiRequestMockHttpTransport;
+ import com.google.firebase.testing.ServiceAccount;
+ import com.google.firebase.testing.TestResponseInterceptor;
+@@ -70,15 +70,15 @@ public void testInvalidServiceAccountCryptoSigner() {
+   @Test
+   public void testIAMCryptoSigner() throws Exception {
+     String signature = BaseEncoding.base64().encode("signed-bytes".getBytes());
+-    String response = Utils.getDefaultJsonFactory().toString(
++    String response = ApiClientUtils.getDefaultJsonFactory().toString(
+         ImmutableMap.of("signedBlob", signature));
+     MockHttpTransport transport = new MockHttpTransport.Builder()
+         .setLowLevelHttpResponse(new MockLowLevelHttpResponse().setContent(response))
+         .build();
+     TestResponseInterceptor interceptor = new TestResponseInterceptor();
+     CryptoSigners.IAMCryptoSigner signer = new CryptoSigners.IAMCryptoSigner(
+         transport.createRequestFactory(),
+-        Utils.getDefaultJsonFactory(),
++        ApiClientUtils.getDefaultJsonFactory(),
+         "test-service-account@iam.gserviceaccount.com");
+     signer.setInterceptor(interceptor);
+ 
+@@ -99,7 +99,7 @@ public void testIAMCryptoSignerHttpError() {
+         .build();
+     CryptoSigners.IAMCryptoSigner signer = new CryptoSigners.IAMCryptoSigner(
+         transport.createRequestFactory(),
+-        Utils.getDefaultJsonFactory(),
++        ApiClientUtils.getDefaultJsonFactory(),
+         "test-service-account@iam.gserviceaccount.com");
+     try {
+       signer.sign("foo".getBytes());
+@@ -115,7 +115,7 @@ public void testIAMCryptoSignerHttpError() {
+   @Test
+   public void testInvalidIAMCryptoSigner() {
+     try {
+-      new CryptoSigners.IAMCryptoSigner(null, Utils.getDefaultJsonFactory(), "test");
++      new CryptoSigners.IAMCryptoSigner(null, ApiClientUtils.getDefaultJsonFactory(), "test");
+       fail("No error thrown for null request factory");
+     } catch (NullPointerException expected) {
+       // expected
+@@ -131,15 +131,15 @@ public void testInvalidIAMCryptoSigner() {
+ 
+     try {
+       new CryptoSigners.IAMCryptoSigner(transport.createRequestFactory(),
+-          Utils.getDefaultJsonFactory(), null);
++          ApiClientUtils.getDefaultJsonFactory(), null);
+       fail("No error thrown for null service account");
+     } catch (IllegalArgumentException expected) {
+       // expected
+     }
+ 
+     try {
+       new CryptoSigners.IAMCryptoSigner(transport.createRequestFactory(),
+-          Utils.getDefaultJsonFactory(), "");
++          ApiClientUtils.getDefaultJsonFactory(), "");
+       fail("No error thrown for empty service account");
+     } catch (IllegalArgumentException expected) {
+       // expected
+@@ -149,7 +149,7 @@ public void testInvalidIAMCryptoSigner() {
+   @Test
+   public void testMetadataService() throws Exception {
+     String signature = BaseEncoding.base64().encode("signed-bytes".getBytes());
+-    String response = Utils.getDefaultJsonFactory().toString(
++    String response = ApiClientUtils.getDefaultJsonFactory().toString(
+         ImmutableMap.of("signedBlob", signature));
+     MockHttpTransport transport = new MultiRequestMockHttpTransport(
+         ImmutableList.of(
+@@ -178,7 +178,7 @@ public void testMetadataService() throws Exception {
+   @Test
+   public void testExplicitServiceAccountEmail() throws Exception {
+     String signature = BaseEncoding.base64().encode("signed-bytes".getBytes());
+-    String response = Utils.getDefaultJsonFactory().toString(
++    String response = ApiClientUtils.getDefaultJsonFactory().toString(
+         ImmutableMap.of("signedBlob", signature));
+ 
+     // Explicit service account should get precedence
+diff --git a/src/test/java/com/google/firebase/auth/internal/ListOidcProviderConfigsResponseTest.java b/src/test/java/com/google/firebase/auth/internal/ListOidcProviderConfigsResponseTest.java
+--- a/src/test/java/com/google/firebase/auth/internal/ListOidcProviderConfigsResponseTest.java
++++ b/src/test/java/com/google/firebase/auth/internal/ListOidcProviderConfigsResponseTest.java
+@@ -20,17 +20,17 @@
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.firebase.auth.OidcProviderConfig;
++import com.google.firebase.internal.ApiClientUtils;
+ 
+ import org.junit.Test;
+ 
+ public class ListOidcProviderConfigsResponseTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   @Test
+   public void testDefaultValues() throws Exception {
+diff --git a/src/test/java/com/google/firebase/auth/internal/ListSamlProviderConfigsResponseTest.java b/src/test/java/com/google/firebase/auth/internal/ListSamlProviderConfigsResponseTest.java
+--- a/src/test/java/com/google/firebase/auth/internal/ListSamlProviderConfigsResponseTest.java
++++ b/src/test/java/com/google/firebase/auth/internal/ListSamlProviderConfigsResponseTest.java
+@@ -20,17 +20,17 @@
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.firebase.auth.SamlProviderConfig;
++import com.google.firebase.internal.ApiClientUtils;
+ 
+ import org.junit.Test;
+ 
+ public class ListSamlProviderConfigsResponseTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   @Test
+   public void testDefaultValues() throws Exception {
+diff --git a/src/test/java/com/google/firebase/auth/internal/ListTenantsResponseTest.java b/src/test/java/com/google/firebase/auth/internal/ListTenantsResponseTest.java
+--- a/src/test/java/com/google/firebase/auth/internal/ListTenantsResponseTest.java
++++ b/src/test/java/com/google/firebase/auth/internal/ListTenantsResponseTest.java
+@@ -20,17 +20,17 @@
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.firebase.auth.multitenancy.Tenant;
++import com.google.firebase.internal.ApiClientUtils;
+ 
+ import org.junit.Test;
+ 
+ public class ListTenantsResponseTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   @Test
+   public void testDefaultValues() throws Exception {
+diff --git a/src/test/java/com/google/firebase/auth/multitenancy/FirebaseTenantClientTest.java b/src/test/java/com/google/firebase/auth/multitenancy/FirebaseTenantClientTest.java
+--- a/src/test/java/com/google/firebase/auth/multitenancy/FirebaseTenantClientTest.java
++++ b/src/test/java/com/google/firebase/auth/multitenancy/FirebaseTenantClientTest.java
+@@ -24,7 +24,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.GenericUrl;
+ import com.google.api.client.http.HttpHeaders;
+ import com.google.api.client.http.HttpRequest;
+@@ -46,6 +45,7 @@
+ import com.google.firebase.auth.FirebaseAuth;
+ import com.google.firebase.auth.FirebaseAuthException;
+ import com.google.firebase.auth.MockGoogleCredentials;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.SdkUtils;
+ import com.google.firebase.testing.MultiRequestMockHttpTransport;
+ import com.google.firebase.testing.TestResponseInterceptor;
+@@ -60,7 +60,7 @@
+ 
+ public class FirebaseTenantClientTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   private static final String TEST_TOKEN = "token";
+ 
+@@ -398,7 +398,9 @@ private static TenantManager createRetryDisabledTenantManager(MockLowLevelHttpRe
+         .setCredentials(credentials)
+         .build());
+     FirebaseTenantClient tenantClient = new FirebaseTenantClient(
+-        "test-project-id", Utils.getDefaultJsonFactory(), transport.createRequestFactory());
++        "test-project-id",
++        ApiClientUtils.getDefaultJsonFactory(),
++        transport.createRequestFactory());
+     return new TenantManager(app, tenantClient);
+   }
+ 
+diff --git a/src/test/java/com/google/firebase/auth/multitenancy/ListTenantsPageTest.java b/src/test/java/com/google/firebase/auth/multitenancy/ListTenantsPageTest.java
+--- a/src/test/java/com/google/firebase/auth/multitenancy/ListTenantsPageTest.java
++++ b/src/test/java/com/google/firebase/auth/multitenancy/ListTenantsPageTest.java
+@@ -23,10 +23,11 @@
+ import static org.junit.Assert.assertNull;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.common.collect.ImmutableList;
+ import com.google.firebase.auth.FirebaseAuthException;
+ import com.google.firebase.auth.internal.ListTenantsResponse;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Iterator;
+@@ -319,7 +320,7 @@ public void testInvalidMaxResults() throws IOException {
+   }
+ 
+   private static Tenant newTenant(String tenantId) throws IOException {
+-    return Utils.getDefaultJsonFactory().fromString(
++    return ApiClientUtils.getDefaultJsonFactory().fromString(
+         String.format("{\"name\":\"%s\"}", tenantId), Tenant.class);
+   }
+ 
+diff --git a/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthIT.java b/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthIT.java
+--- a/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthIT.java
++++ b/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthIT.java
+@@ -23,7 +23,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.GenericUrl;
+ import com.google.api.client.http.HttpRequest;
+ import com.google.api.client.http.HttpResponse;
+@@ -54,6 +53,7 @@
+ import com.google.firebase.auth.UserTestUtils;
+ import com.google.firebase.auth.UserTestUtils.RandomUser;
+ import com.google.firebase.auth.UserTestUtils.TemporaryUser;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.Nullable;
+ import com.google.firebase.testing.IntegrationTestUtils;
+ import java.io.IOException;
+@@ -73,8 +73,8 @@ public class TenantAwareFirebaseAuthIT {
+ 
+   private static final String VERIFY_CUSTOM_TOKEN_URL =
+       "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken";
+-  private static final JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
+-  private static final HttpTransport transport = Utils.getDefaultTransport();
++  private static final JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
++  private static final HttpTransport transport = ApiClientUtils.getDefaultTransport();
+ 
+   private static TenantManager tenantManager;
+   private static TenantAwareFirebaseAuth tenantAwareAuth;
+diff --git a/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthTest.java b/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthTest.java
+--- a/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthTest.java
++++ b/src/test/java/com/google/firebase/auth/multitenancy/TenantAwareFirebaseAuthTest.java
+@@ -21,7 +21,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.HttpMethods;
+ import com.google.api.client.http.HttpRequest;
+ import com.google.api.client.json.GenericJson;
+@@ -38,6 +37,7 @@
+ import com.google.firebase.auth.MockGoogleCredentials;
+ import com.google.firebase.auth.MockTokenVerifier;
+ import com.google.firebase.auth.SessionCookieOptions;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.testing.TestResponseInterceptor;
+ import com.google.firebase.testing.TestUtils;
+ import java.io.ByteArrayOutputStream;
+@@ -270,7 +270,7 @@ private static FirebaseApp initializeAppWithResponse(String response) {
+     MockHttpTransport transport = new MockHttpTransport.Builder()
+         .setLowLevelHttpResponse(new MockLowLevelHttpResponse().setContent(response))
+         .build();
+-    return FirebaseApp.initializeApp(new FirebaseOptions.Builder()
++    return FirebaseApp.initializeApp(FirebaseOptions.builder()
+         .setCredentials(new MockGoogleCredentials("token"))
+         .setHttpTransport(transport)
+         .setProjectId("test-project-id")
+@@ -281,7 +281,7 @@ private static GenericJson parseRequestContent(TestResponseInterceptor intercept
+       throws IOException {
+     ByteArrayOutputStream out = new ByteArrayOutputStream();
+     interceptor.getResponse().getRequest().getContent().writeTo(out);
+-    return Utils.getDefaultJsonFactory().fromString(
++    return ApiClientUtils.getDefaultJsonFactory().fromString(
+         new String(out.toByteArray()), GenericJson.class);
+   }
+ 
+diff --git a/src/test/java/com/google/firebase/auth/multitenancy/TenantTest.java b/src/test/java/com/google/firebase/auth/multitenancy/TenantTest.java
+--- a/src/test/java/com/google/firebase/auth/multitenancy/TenantTest.java
++++ b/src/test/java/com/google/firebase/auth/multitenancy/TenantTest.java
+@@ -20,17 +20,18 @@
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.json.JsonFactory;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.IOException;
+ import java.util.Map;
+ import org.junit.Test;
+ 
+ public class TenantTest {
+ 
+-  private static final JsonFactory JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+-  private static final String TENANT_JSON_STRING = 
++  private static final String TENANT_JSON_STRING =
+       "{"
+         + "\"name\":\"projects/project-id/resource/TENANT_ID\","
+         + "\"displayName\":\"DISPLAY_NAME\","
+diff --git a/src/test/java/com/google/firebase/internal/AbstractPlatformErrorHandlerTest.java b/src/test/java/com/google/firebase/internal/AbstractPlatformErrorHandlerTest.java
+--- a/src/test/java/com/google/firebase/internal/AbstractPlatformErrorHandlerTest.java
++++ b/src/test/java/com/google/firebase/internal/AbstractPlatformErrorHandlerTest.java
+@@ -251,7 +251,7 @@ private ErrorHandlingHttpClient<MockFirebaseException> createHttpClient(
+         .build();
+     return new ErrorHandlingHttpClient<>(
+         transport.createRequestFactory(),
+-        Utils.getDefaultJsonFactory(),
++        ApiClientUtils.getDefaultJsonFactory(),
+         new TestPlatformErrorHandler());
+   }
+ 
+@@ -265,7 +265,7 @@ public LowLevelHttpRequest buildRequest(String method, String url) throws IOExce
+     };
+     return new ErrorHandlingHttpClient<>(
+         transport.createRequestFactory(),
+-        Utils.getDefaultJsonFactory(),
++        ApiClientUtils.getDefaultJsonFactory(),
+         new TestPlatformErrorHandler());
+   }
+ 
+@@ -281,7 +281,7 @@ private static class TestPlatformErrorHandler extends
+       AbstractPlatformErrorHandler<MockFirebaseException> {
+ 
+     TestPlatformErrorHandler() {
+-      super(Utils.getDefaultJsonFactory());
++      super(ApiClientUtils.getDefaultJsonFactory());
+     }
+ 
+     @Override
+diff --git a/src/test/java/com/google/firebase/internal/ErrorHandlingHttpClientTest.java b/src/test/java/com/google/firebase/internal/ErrorHandlingHttpClientTest.java
+--- a/src/test/java/com/google/firebase/internal/ErrorHandlingHttpClientTest.java
++++ b/src/test/java/com/google/firebase/internal/ErrorHandlingHttpClientTest.java
+@@ -22,7 +22,6 @@
+ import static org.junit.Assert.assertSame;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.ByteArrayContent;
+ import com.google.api.client.http.HttpContent;
+ import com.google.api.client.http.HttpMethods;
+@@ -53,7 +52,7 @@
+ 
+ public class ErrorHandlingHttpClientTest {
+ 
+-  private static final JsonFactory DEFAULT_JSON_FACTORY = Utils.getDefaultJsonFactory();
++  private static final JsonFactory DEFAULT_JSON_FACTORY = ApiClientUtils.getDefaultJsonFactory();
+ 
+   private static final HttpRequestInfo TEST_REQUEST = HttpRequestInfo.buildGetRequest(
+       "https://firebase.google.com");
+@@ -69,15 +68,15 @@ public void testNullRequestFactory() {
+   @Test(expected = NullPointerException.class)
+   public void testNullJsonFactory() {
+     new ErrorHandlingHttpClient<>(
+-        Utils.getDefaultTransport().createRequestFactory(),
++        ApiClientUtils.getDefaultTransport().createRequestFactory(),
+         null,
+         new TestHttpErrorHandler());
+   }
+ 
+   @Test(expected = NullPointerException.class)
+   public void testNullErrorHandler() {
+     new ErrorHandlingHttpClient<>(
+-        Utils.getDefaultTransport().createRequestFactory(),
++        ApiClientUtils.getDefaultTransport().createRequestFactory(),
+         DEFAULT_JSON_FACTORY,
+         null);
+   }
+@@ -267,7 +266,7 @@ public void testRetryOnError() {
+     HttpRequestFactory requestFactory = ApiClientUtils.newAuthorizedRequestFactory(
+         app, retryConfig);
+     ErrorHandlingHttpClient<FirebaseException> client = new ErrorHandlingHttpClient<>(
+-        requestFactory, Utils.getDefaultJsonFactory(), new TestHttpErrorHandler());
++        requestFactory, ApiClientUtils.getDefaultJsonFactory(), new TestHttpErrorHandler());
+ 
+     try {
+       client.sendAndParse(TEST_REQUEST, GenericData.class);
+@@ -302,7 +301,7 @@ public AccessToken refreshAccessToken() throws IOException {
+         .build());
+     HttpRequestFactory requestFactory = ApiClientUtils.newAuthorizedRequestFactory(app);
+     ErrorHandlingHttpClient<FirebaseException> client = new ErrorHandlingHttpClient<>(
+-        requestFactory, Utils.getDefaultJsonFactory(), new TestHttpErrorHandler());
++        requestFactory, ApiClientUtils.getDefaultJsonFactory(), new TestHttpErrorHandler());
+ 
+     try {
+       client.sendAndParse(TEST_REQUEST, GenericData.class);
+diff --git a/src/test/java/com/google/firebase/messaging/FirebaseMessagingClientImplTest.java b/src/test/java/com/google/firebase/messaging/FirebaseMessagingClientImplTest.java
+--- a/src/test/java/com/google/firebase/messaging/FirebaseMessagingClientImplTest.java
++++ b/src/test/java/com/google/firebase/messaging/FirebaseMessagingClientImplTest.java
+@@ -43,6 +43,7 @@
+ import com.google.firebase.FirebaseOptions;
+ import com.google.firebase.OutgoingHttpRequest;
+ import com.google.firebase.auth.MockGoogleCredentials;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.SdkUtils;
+ import com.google.firebase.messaging.WebpushNotification.Action;
+ import com.google.firebase.messaging.WebpushNotification.Direction;
+@@ -355,7 +356,7 @@ public void initialize(HttpRequest httpRequest) {
+     };
+     FirebaseMessagingClientImpl client = FirebaseMessagingClientImpl.builder()
+         .setProjectId("test-project")
+-        .setJsonFactory(Utils.getDefaultJsonFactory())
++        .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+         .setRequestFactory(transport.createRequestFactory(initializer))
+         .setChildRequestFactory(Utils.getDefaultTransport().createRequestFactory())
+         .setResponseInterceptor(interceptor)
+@@ -555,7 +556,7 @@ private FirebaseMessagingClientImpl initMessagingClient(
+ 
+     return FirebaseMessagingClientImpl.builder()
+         .setProjectId("test-project")
+-        .setJsonFactory(Utils.getDefaultJsonFactory())
++        .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+         .setRequestFactory(transport.createRequestFactory())
+         .setChildRequestFactory(Utils.getDefaultTransport().createRequestFactory())
+         .setResponseInterceptor(interceptor)
+@@ -578,7 +579,7 @@ private FirebaseMessagingClientImpl initClientWithFaultyTransport() {
+     HttpTransport transport = TestUtils.createFaultyHttpTransport();
+     return FirebaseMessagingClientImpl.builder()
+         .setProjectId("test-project")
+-        .setJsonFactory(Utils.getDefaultJsonFactory())
++        .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+         .setRequestFactory(transport.createRequestFactory())
+         .setChildRequestFactory(Utils.getDefaultTransport().createRequestFactory())
+         .build();
+@@ -596,7 +597,7 @@ private void checkRequest(
+       HttpRequest request, Map<String, Object> expected) throws IOException {
+     ByteArrayOutputStream out = new ByteArrayOutputStream();
+     request.getContent().writeTo(out);
+-    JsonParser parser = Utils.getDefaultJsonFactory().createJsonParser(out.toString());
++    JsonParser parser = ApiClientUtils.getDefaultJsonFactory().createJsonParser(out.toString());
+     Map<String, Object> parsed = new HashMap<>();
+     parser.parseAndClose(parsed);
+     assertEquals(expected, parsed);
+@@ -663,7 +664,7 @@ private int countLinesWithPrefix(String[] lines, String prefix) {
+   private FirebaseMessagingClientImpl.Builder fullyPopulatedBuilder() {
+     return FirebaseMessagingClientImpl.builder()
+         .setProjectId("test-project")
+-        .setJsonFactory(Utils.getDefaultJsonFactory())
++        .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+         .setRequestFactory(Utils.getDefaultTransport().createRequestFactory())
+         .setChildRequestFactory(Utils.getDefaultTransport().createRequestFactory());
+   }
+diff --git a/src/test/java/com/google/firebase/messaging/InstanceIdClientImplTest.java b/src/test/java/com/google/firebase/messaging/InstanceIdClientImplTest.java
+--- a/src/test/java/com/google/firebase/messaging/InstanceIdClientImplTest.java
++++ b/src/test/java/com/google/firebase/messaging/InstanceIdClientImplTest.java
+@@ -40,6 +40,7 @@
+ import com.google.firebase.OutgoingHttpRequest;
+ import com.google.firebase.TestOnlyImplFirebaseTrampolines;
+ import com.google.firebase.auth.MockGoogleCredentials;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.testing.TestResponseInterceptor;
+ import com.google.firebase.testing.TestUtils;
+ import java.io.ByteArrayOutputStream;
+@@ -352,7 +353,7 @@ public void testUnsubscribeParseError() {
+ 
+   @Test(expected = NullPointerException.class)
+   public void testRequestFactoryIsNull() {
+-    new InstanceIdClientImpl(null, Utils.getDefaultJsonFactory());
++    new InstanceIdClientImpl(null, ApiClientUtils.getDefaultJsonFactory());
+   }
+ 
+   @Test(expected = NullPointerException.class)
+@@ -420,7 +421,7 @@ private static InstanceIdClientImpl initInstanceIdClient(
+         .build();
+     return new InstanceIdClientImpl(
+         transport.createRequestFactory(),
+-        Utils.getDefaultJsonFactory(),
++        ApiClientUtils.getDefaultJsonFactory(),
+         interceptor);
+   }
+ 
+@@ -435,7 +436,7 @@ private void checkTopicManagementRequest(
+     ByteArrayOutputStream out = new ByteArrayOutputStream();
+     request.getContent().writeTo(out);
+     Map<String, Object> parsed = new HashMap<>();
+-    JsonParser parser = Utils.getDefaultJsonFactory().createJsonParser(out.toString());
++    JsonParser parser = ApiClientUtils.getDefaultJsonFactory().createJsonParser(out.toString());
+     parser.parseAndClose(parsed);
+     assertEquals(2, parsed.size());
+     assertEquals("/topics/test-topic", parsed.get("to"));
+@@ -467,6 +468,6 @@ private void checkExceptionFromHttpResponse(
+   private InstanceIdClient initClientWithFaultyTransport() {
+     return new InstanceIdClientImpl(
+         TestUtils.createFaultyHttpTransport().createRequestFactory(),
+-        Utils.getDefaultJsonFactory());
++        ApiClientUtils.getDefaultJsonFactory());
+   }
+ }
+diff --git a/src/test/java/com/google/firebase/messaging/MessageTest.java b/src/test/java/com/google/firebase/messaging/MessageTest.java
+--- a/src/test/java/com/google/firebase/messaging/MessageTest.java
++++ b/src/test/java/com/google/firebase/messaging/MessageTest.java
+@@ -25,6 +25,7 @@
+ import com.google.api.client.json.JsonParser;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.messaging.AndroidConfig.Priority;
+ import java.io.IOException;
+ import java.math.BigDecimal;
+@@ -186,7 +187,7 @@ public void testAndroidMessageWithNotification() throws IOException {
+         .put("body_loc_args", ImmutableList.of("body-arg1", "body-arg2", "body-arg3"))
+         .put("channel_id", "channel-id")
+         // There is a problem with the JsonParser assignment to BigDecimal takes priority over
+-        // all other number types and so this integer value is interpreted as a BigDecimal 
++        // all other number types and so this integer value is interpreted as a BigDecimal
+         // rather than an Integer.
+         .put("notification_count", BigDecimal.valueOf(4L))
+         .build();
+@@ -227,7 +228,7 @@ public void testAndroidMessageWithDirectBootOk() throws IOException {
+   public void testAndroidNotificationWithNegativeCount() throws IllegalArgumentException {
+     AndroidNotification.builder().setNotificationCount(-1).build();
+   }
+-  
++
+   @Test
+   public void testAndroidMessageWithoutLocalization() throws IOException {
+     Message message = Message.builder()
+@@ -934,7 +935,7 @@ private static void assertJsonEquals(
+   }
+ 
+   private static Map<String, Object> toMap(Object object) throws IOException {
+-    JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
++    JsonFactory jsonFactory = ApiClientUtils.getDefaultJsonFactory();
+     String json = jsonFactory.toString(object);
+     JsonParser parser = jsonFactory.createJsonParser(json);
+     Map<String, Object> map = new HashMap<>();
+diff --git a/src/test/java/com/google/firebase/projectmanagement/FirebaseProjectManagementServiceImplTest.java b/src/test/java/com/google/firebase/projectmanagement/FirebaseProjectManagementServiceImplTest.java
+--- a/src/test/java/com/google/firebase/projectmanagement/FirebaseProjectManagementServiceImplTest.java
++++ b/src/test/java/com/google/firebase/projectmanagement/FirebaseProjectManagementServiceImplTest.java
+@@ -26,7 +26,6 @@
+ import static org.junit.Assert.assertTrue;
+ import static org.junit.Assert.fail;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.HttpRequest;
+ import com.google.api.client.http.HttpRequestFactory;
+ import com.google.api.client.http.HttpResponse;
+@@ -44,6 +43,7 @@
+ import com.google.firebase.FirebaseOptions;
+ import com.google.firebase.TestOnlyImplFirebaseTrampolines;
+ import com.google.firebase.auth.MockGoogleCredentials;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.SdkUtils;
+ import com.google.firebase.internal.TestApiClientUtils;
+ import com.google.firebase.testing.MultiRequestMockHttpTransport;
+@@ -1135,7 +1135,7 @@ private void checkRequestPayload(Map<String, String> expected) throws IOExceptio
+   private void checkRequestPayload(int index, Map<String, String> expected) throws IOException {
+     ByteArrayOutputStream out = new ByteArrayOutputStream();
+     interceptor.getResponse(index).getRequest().getContent().writeTo(out);
+-    JsonParser parser = Utils.getDefaultJsonFactory().createJsonParser(out.toString());
++    JsonParser parser = ApiClientUtils.getDefaultJsonFactory().createJsonParser(out.toString());
+     Map<String, String> parsed = new HashMap<>();
+     parser.parseAndClose(parsed);
+     assertEquals(expected, parsed);
+diff --git a/src/test/java/com/google/firebase/remoteconfig/FirebaseRemoteConfigClientImplTest.java b/src/test/java/com/google/firebase/remoteconfig/FirebaseRemoteConfigClientImplTest.java
+--- a/src/test/java/com/google/firebase/remoteconfig/FirebaseRemoteConfigClientImplTest.java
++++ b/src/test/java/com/google/firebase/remoteconfig/FirebaseRemoteConfigClientImplTest.java
+@@ -43,6 +43,7 @@
+ import com.google.firebase.FirebaseOptions;
+ import com.google.firebase.OutgoingHttpRequest;
+ import com.google.firebase.auth.MockGoogleCredentials;
++import com.google.firebase.internal.ApiClientUtils;
+ import com.google.firebase.internal.SdkUtils;
+ import com.google.firebase.remoteconfig.internal.TemplateResponse;
+ import com.google.firebase.testing.TestResponseInterceptor;
+@@ -1150,7 +1151,7 @@ private FirebaseRemoteConfigClientImpl initRemoteConfigClient(
+ 
+     return FirebaseRemoteConfigClientImpl.builder()
+             .setProjectId("test-project")
+-            .setJsonFactory(Utils.getDefaultJsonFactory())
++            .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+             .setRequestFactory(transport.createRequestFactory())
+             .setResponseInterceptor(interceptor)
+             .build();
+@@ -1160,15 +1161,15 @@ private FirebaseRemoteConfigClientImpl initClientWithFaultyTransport() {
+     HttpTransport transport = TestUtils.createFaultyHttpTransport();
+     return FirebaseRemoteConfigClientImpl.builder()
+             .setProjectId("test-project")
+-            .setJsonFactory(Utils.getDefaultJsonFactory())
++            .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+             .setRequestFactory(transport.createRequestFactory())
+             .build();
+   }
+ 
+   private FirebaseRemoteConfigClientImpl.Builder fullyPopulatedBuilder() {
+     return FirebaseRemoteConfigClientImpl.builder()
+             .setProjectId("test-project")
+-            .setJsonFactory(Utils.getDefaultJsonFactory())
++            .setJsonFactory(ApiClientUtils.getDefaultJsonFactory())
+             .setRequestFactory(Utils.getDefaultTransport().createRequestFactory());
+   }
+ 
+@@ -1209,7 +1210,7 @@ private void checkRequestContent(
+           HttpRequest request, Map<String, Object> expected) throws IOException {
+     ByteArrayOutputStream out = new ByteArrayOutputStream();
+     request.getContent().writeTo(out);
+-    JsonParser parser = Utils.getDefaultJsonFactory().createJsonParser(out.toString());
++    JsonParser parser = ApiClientUtils.getDefaultJsonFactory().createJsonParser(out.toString());
+     Map<String, Object> parsed = new HashMap<>();
+     parser.parseAndClose(parsed);
+     assertEquals(expected, parsed);
+diff --git a/src/test/java/com/google/firebase/testing/IntegrationTestUtils.java b/src/test/java/com/google/firebase/testing/IntegrationTestUtils.java
+--- a/src/test/java/com/google/firebase/testing/IntegrationTestUtils.java
++++ b/src/test/java/com/google/firebase/testing/IntegrationTestUtils.java
+@@ -18,7 +18,6 @@
+ 
+ import static com.google.common.base.Preconditions.checkNotNull;
+ 
+-import com.google.api.client.googleapis.util.Utils;
+ import com.google.api.client.http.ByteArrayContent;
+ import com.google.api.client.http.GenericUrl;
+ import com.google.api.client.http.HttpRequest;
+@@ -34,6 +33,8 @@
+ import com.google.firebase.TestOnlyImplFirebaseTrampolines;
+ import com.google.firebase.database.DatabaseReference;
+ import com.google.firebase.database.FirebaseDatabase;
++import com.google.firebase.internal.ApiClientUtils;
++
+ import java.io.ByteArrayInputStream;
+ import java.io.FileInputStream;
+ import java.io.IOException;
+@@ -53,7 +54,8 @@ public class IntegrationTestUtils {
+   private static synchronized GenericJson ensureServiceAccount() {
+     if (serviceAccount == null) {
+       try (InputStream stream = new FileInputStream(IT_SERVICE_ACCOUNT_PATH)) {
+-        serviceAccount = Utils.getDefaultJsonFactory().fromInputStream(stream, GenericJson.class);
++        serviceAccount = ApiClientUtils.getDefaultJsonFactory()
++          .fromInputStream(stream, GenericJson.class);
+       } catch (IOException e) {
+         String msg = String.format("Failed to read service account certificate from %s. "
+             + "Integration tests require a service account credential obtained from a Firebase "
+@@ -146,23 +148,23 @@ public static List<DatabaseReference> getRandomNode(FirebaseApp app, int count)
+     }
+     return builder.build();
+   }
+-  
++
+   public static class AppHttpClient {
+ 
+     private final FirebaseApp app;
+     private final FirebaseOptions options;
+     private final HttpRequestFactory requestFactory;
+-    
++
+     public AppHttpClient() {
+       this(FirebaseApp.getInstance());
+     }
+-    
++
+     public AppHttpClient(FirebaseApp app) {
+       this.app = checkNotNull(app);
+       this.options = app.getOptions();
+       this.requestFactory = this.options.getHttpTransport().createRequestFactory();
+     }
+-    
++
+     public ResponseInfo put(String path, String json) throws IOException {
+       String url = options.getDatabaseUrl() + path + "?access_token=" + getToken();
+       HttpRequest request = requestFactory.buildPutRequest(new GenericUrl(url),
+@@ -177,18 +179,18 @@ public ResponseInfo put(String path, String json) throws IOException {
+         }
+       }
+     }
+-    
++
+     private String getToken() {
+       // TODO: We should consider exposing getToken (or similar) publicly for the
+       // purpose of servers doing authenticated REST requests like this.
+       return TestOnlyImplFirebaseTrampolines.getToken(app, false);
+     }
+   }
+-  
++
+   public static class ResponseInfo {
+     private final int status;
+     private final byte[] payload;
+-    
++
+     private ResponseInfo(HttpResponse response) throws IOException {
+       this.status = response.getStatusCode();
+       this.payload = ByteStreams.toByteArray(response.getContent());

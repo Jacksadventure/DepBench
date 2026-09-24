@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> **Paper-review branch.** The self-contained [paper-review artifact](paper_review/README.md)
+> contains the paper's **203 tasks and 2,030 matching trajectories** from 10
+> configurations, with outcomes and verifier logs. It preserves historical runs;
+> it is not a new evaluation of the source-build release. The `main` release
+> described below remains the separate 201-task distribution. Use
+> `paper_review/dataset/` with `paper_review/trajectories/` for paper review.
+
 <div align="center">
 
 <picture>

@@ -1,0 +1,82 @@
+diff --git a/application/src/ext/resources/org/opentripplanner/ext/apis/transmodel/custom-documentation-entur.properties b/application/src/ext/resources/org/opentripplanner/ext/apis/transmodel/custom-documentation-entur.properties
+--- a/application/src/ext/resources/org/opentripplanner/ext/apis/transmodel/custom-documentation-entur.properties
++++ b/application/src/ext/resources/org/opentripplanner/ext/apis/transmodel/custom-documentation-entur.properties
+@@ -14,9 +14,7 @@
+ #  // Append to the existing field description
+ #  Quay.name.description.append=(Source NSR)
+ #
+-#  // Insert deprecated reason. Due to a bug in the Java GraphQL lib, an existing deprecated
+-#  // reason cannot be updated. Deleting the reason from the schema, and adding it back using
+-#  // the "default" TransmodelApiDocumentationProfile is a workaround.
++#  // Insert deprecated reason.
+ #  Quay.name.deprecated=This field is deprecated ...
+ 
+ 
+diff --git a/application/src/main/java/org/opentripplanner/apis/gtfs/SchemaFactory.java b/application/src/main/java/org/opentripplanner/apis/gtfs/SchemaFactory.java
+--- a/application/src/main/java/org/opentripplanner/apis/gtfs/SchemaFactory.java
++++ b/application/src/main/java/org/opentripplanner/apis/gtfs/SchemaFactory.java
+@@ -113,6 +113,8 @@ public static GraphQLSchema createSchema() {
+       TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(url.openStream());
+       IntrospectionTypeWiring typeWiring = new IntrospectionTypeWiring(typeRegistry);
+       RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring()
++        // This is needed because we have our own implementation for the ID scalar
++        .strictMode(false)
+         .scalar(GraphQLScalars.DURATION_SCALAR)
+         .scalar(GraphQLScalars.POLYLINE_SCALAR)
+         .scalar(GraphQLScalars.GEOJSON_SCALAR)
+diff --git a/application/src/main/resources/org/opentripplanner/apis/gtfs/schema.graphqls b/application/src/main/resources/org/opentripplanner/apis/gtfs/schema.graphqls
+--- a/application/src/main/resources/org/opentripplanner/apis/gtfs/schema.graphqls
++++ b/application/src/main/resources/org/opentripplanner/apis/gtfs/schema.graphqls
+@@ -12,12 +12,23 @@ This is only worth it when the execution is long running, i.e. more than ~50 mil
+ """
+ directive @async on FIELD_DEFINITION
+ 
++"This directive allows results to be deferred during execution"
++directive @defer(
++    "Deferred behaviour is controlled by this argument"
++    if: Boolean! = true,
++    "A unique label that represents the fragment being deferred"
++    label: String
++  ) on FRAGMENT_SPREAD | INLINE_FRAGMENT
++
+ "Marks the field, argument, input field or enum value as deprecated"
+ directive @deprecated(
+     "The reason for the deprecation"
+-    reason: String = "No longer supported"
++    reason: String! = "No longer supported"
+   ) on FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE | INPUT_FIELD_DEFINITION
+ 
++"This directive disables error propagation when a non nullable field returns null for the given operation."
++directive @experimental_disableErrorPropagation on QUERY | MUTATION | SUBSCRIPTION
++
+ "Directs the executor to include this field or fragment only when the `if` argument is true"
+ directive @include(
+     "Included when true."
+diff --git a/application/src/main/resources/org/opentripplanner/apis/transmodel/schema.graphql b/application/src/main/resources/org/opentripplanner/apis/transmodel/schema.graphql
+--- a/application/src/main/resources/org/opentripplanner/apis/transmodel/schema.graphql
++++ b/application/src/main/resources/org/opentripplanner/apis/transmodel/schema.graphql
+@@ -2,12 +2,23 @@ schema {
+   query: QueryType
+ }
+ 
++"This directive allows results to be deferred during execution"
++directive @defer(
++    "Deferred behaviour is controlled by this argument"
++    if: Boolean! = true,
++    "A unique label that represents the fragment being deferred"
++    label: String
++  ) on FRAGMENT_SPREAD | INLINE_FRAGMENT
++
+ "Marks the field, argument, input field or enum value as deprecated"
+ directive @deprecated(
+     "The reason for the deprecation"
+-    reason: String = "No longer supported"
++    reason: String! = "No longer supported"
+   ) on FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE | INPUT_FIELD_DEFINITION
+ 
++"This directive disables error propagation when a non nullable field returns null for the given operation."
++directive @experimental_disableErrorPropagation on QUERY | MUTATION | SUBSCRIPTION
++
+ "Directs the executor to include this field or fragment only when the `if` argument is true"
+ directive @include(
+     "Included when true."

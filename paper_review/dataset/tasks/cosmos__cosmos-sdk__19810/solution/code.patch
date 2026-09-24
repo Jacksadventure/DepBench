@@ -1,0 +1,166 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 41f4d52d5845..90c25018e3b6 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -38,6 +38,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ ## [Unreleased]
+ 
++<!-- TODO(@julienrbrt) prepare patch version for all released modules, to be compatible with v0.50.6 due to prometheus bump -->
++
+ ### Features
+ 
+ * (types) [#19759](https://github.com/cosmos/cosmos-sdk/pull/19759) Align SignerExtractionAdapter in PriorityNonceMempool Remove.
+@@ -45,6 +47,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ ### Improvements 
+ 
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade prometheus version and fix API breaking change due to prometheus bump.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
+ * (server) [#19884](https://github.com/cosmos/cosmos-sdk/pull/19884) Add start customizability to start command options.
+ * (x/gov) [#19853](https://github.com/cosmos/cosmos-sdk/pull/19853) Emit `depositor` in `EventTypeProposalDeposit`.
+ * (x/gov) [#19844](https://github.com/cosmos/cosmos-sdk/pull/19844) Emit the proposer of governance proposals.
+diff --git a/client/v2/CHANGELOG.md b/client/v2/CHANGELOG.md
+index 4aac3deaf2c1..3048ccdb8ac1 100644
+--- a/client/v2/CHANGELOG.md
++++ b/client/v2/CHANGELOG.md
+@@ -40,6 +40,8 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ ### Improvements
+ 
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade SDK version to due prometheus breaking change.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
+ * [#19618](https://github.com/cosmos/cosmos-sdk/pull/19618) Marshal enum as string in queries.
+ * [#19060](https://github.com/cosmos/cosmos-sdk/pull/19060) Use client context from root (or enhanced) command in autocli commands.
+     * Note, the given command must have a `client.Context` in its context.
+diff --git a/telemetry/metrics.go b/telemetry/metrics.go
+index c15720897972..502fdb611209 100644
+--- a/telemetry/metrics.go
++++ b/telemetry/metrics.go
+@@ -23,6 +23,7 @@ const (
+ 	FormatDefault    = ""
+ 	FormatPrometheus = "prometheus"
+ 	FormatText       = "text"
++	ContentTypeText  = `text/plain; version=` + expfmt.TextVersion + `; charset=utf-8`
+ 
+ 	MetricSinkInMem      = "mem"
+ 	MetricSinkStatsd     = "statsd"
+@@ -192,7 +193,7 @@ func (m *Metrics) gatherPrometheus() (GatherResponse, error) {
+ 	buf := &bytes.Buffer{}
+ 	defer buf.Reset()
+ 
+-	e := expfmt.NewEncoder(buf, expfmt.FmtText)
++	e := expfmt.NewEncoder(buf, expfmt.NewFormat(expfmt.TypeTextPlain))
+ 
+ 	for _, mf := range metricsFamilies {
+ 		if err := e.Encode(mf); err != nil {
+@@ -200,7 +201,7 @@ func (m *Metrics) gatherPrometheus() (GatherResponse, error) {
+ 		}
+ 	}
+ 
+-	return GatherResponse{ContentType: string(expfmt.FmtText), Metrics: buf.Bytes()}, nil
++	return GatherResponse{ContentType: ContentTypeText, Metrics: buf.Bytes()}, nil
+ }
+ 
+ // gatherGeneric collects generic metrics and returns a GatherResponse.
+diff --git a/x/circuit/CHANGELOG.md b/x/circuit/CHANGELOG.md
+index d5ecd5a9dfa4..33db180b4f08 100644
+--- a/x/circuit/CHANGELOG.md
++++ b/x/circuit/CHANGELOG.md
+@@ -29,4 +29,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ # Changelog
+ 
++## [v0.1.1](https://github.com/cosmos/cosmos-sdk/releases/tag/x/circuit/v0.1.1) - 2024-XX-XX
++
++### Improvements
++
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade SDK version to due prometheus breaking change.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
++
+ ## [v0.1.0](https://github.com/cosmos/cosmos-sdk/releases/tag/x/circuit/v0.1.0) - 2023-11-07
++
++* Initial release of the standalone NFT module.
+\ No newline at end of file
+diff --git a/x/evidence/CHANGELOG.md b/x/evidence/CHANGELOG.md
+index f74e37c35c91..2a21703f1cee 100644
+--- a/x/evidence/CHANGELOG.md
++++ b/x/evidence/CHANGELOG.md
+@@ -23,6 +23,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ # Changelog
+ 
++## [v0.1.1](https://github.com/cosmos/cosmos-sdk/releases/tag/x/evidence/v0.1.1) - 2024-XX-XX
++
++### Improvements
++
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade SDK version to due prometheus breaking change.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
++
+ ## [v0.1.0](https://github.com/cosmos/cosmos-sdk/releases/tag/x/evidence/v0.1.0) - 2023-11-07
+ 
+ ### Features
+@@ -35,7 +42,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ * [#16008](https://github.com/cosmos/cosmos-sdk/pull/16008) NewKeeper now takes in a KVStoreService instead of KVStoreKey, most functions use context.Context instead of sdk.Context and `IterateEvidence` callback function now returns an error to stop interation (`errors.ErrStopIterating`).
+ * (keeper) [#15825](https://github.com/cosmos/cosmos-sdk/pull/15825) Evidence constructor now requires an `address.Codec` (`import "cosmossdk.io/core/address"`)
+ * [#16336](https://github.com/cosmos/cosmos-sdk/pull/16336) Use collections for state management:
+-  * Removed: keeper `SetEvidence`, `GetEvidence`, `IterateEvidences`, `GetAllEvidences`, `MustMarshalEvidence`, `MustUnmarshalEvidence`, `MarshalEvidence`, `UnmarshalEvidence`
++    * Removed: keeper `SetEvidence`, `GetEvidence`, `IterateEvidences`, `GetAllEvidences`, `MustMarshalEvidence`, `MustUnmarshalEvidence`, `MarshalEvidence`, `UnmarshalEvidence`
+ 
+ ### Client Breaking Changes
+ 
+diff --git a/x/feegrant/CHANGELOG.md b/x/feegrant/CHANGELOG.md
+index 4aad36ffd99d..d75e9a7caf9e 100644
+--- a/x/feegrant/CHANGELOG.md
++++ b/x/feegrant/CHANGELOG.md
+@@ -25,6 +25,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ ## [Unreleased]
+ 
++## [v0.1.1](https://github.com/cosmos/cosmos-sdk/releases/tag/x/feegrant/v0.1.1) - 2024-XX-XX
++
++### Improvements
++
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade SDK version to due prometheus breaking change.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
++
+ ## [v0.1.0](https://github.com/cosmos/cosmos-sdk/releases/tag/x/feegrant/v0.1.0) - 2023-11-07
+ 
+ ### Features
+diff --git a/x/nft/CHANGELOG.md b/x/nft/CHANGELOG.md
+index 3db748943414..dcdbb1e351fe 100644
+--- a/x/nft/CHANGELOG.md
++++ b/x/nft/CHANGELOG.md
+@@ -29,4 +29,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ # Changelog
+ 
++## [v0.1.1](https://github.com/cosmos/cosmos-sdk/releases/tag/x/nft/v0.1.1) - 2024-XX-XX
++
++### Improvements
++
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade SDK version to due prometheus breaking change.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
++
+ ## [v0.1.0](https://github.com/cosmos/cosmos-sdk/releases/tag/x/nft/v0.1.0) - 2023-11-07
++
++* Initial release of the standalone NFT module.
+\ No newline at end of file
+diff --git a/x/upgrade/CHANGELOG.md b/x/upgrade/CHANGELOG.md
+index 83049232eb48..137d99b078e1 100644
+--- a/x/upgrade/CHANGELOG.md
++++ b/x/upgrade/CHANGELOG.md
+@@ -25,6 +25,13 @@ Ref: https://keepachangelog.com/en/1.0.0/
+ 
+ ## [Unreleased]
+ 
++## [v0.1.2](https://github.com/cosmos/cosmos-sdk/releases/tag/x/upgrade/v0.1.2) - 2024-XX-XX
++
++### Improvements
++
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Upgrade SDK version to due prometheus breaking change.
++* (deps) [#19810](https://github.com/cosmos/cosmos-sdk/pull/19810) Bump `cosmossdk.io/store` to v1.1.0.
++
+ ### Bug Fixes
+ 
+ * [#19706](https://github.com/cosmos/cosmos-sdk/pull/19706) Stop treating inline JSON as a URL.

@@ -1,0 +1,68 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 60428f8..48a13cb 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,8 +5,16 @@ All notable changes to this project will be documented in this file.
+ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+ 
++For clearity, major releases of mjml_nif use the respective [mrml] releases with the same major release number.
++I.e. mjml_nif 0.x versions use mrml versions >= 0.1, < 1.0.0, and mjml_nif 1.x versions use mrml versions >= 1.0.0, < 2.0.0, etc.
++
+ ## [Unreleased]
+ 
++## [1.0.0] - 2021-04-07
++### Changed
++- Use [mrml] v1.0.0
++- Pass on parsing/rendering error messages from mrml to the error tuple of `MJML.to_html/1`
++
+ ## [0.3.1] - 2021-02-23
+ ### Fixed
+ - Compilation on aarch64 MacOS
+@@ -26,7 +34,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
+ ## [0.1.0] – 2020-07-19
+ Initial release
+ 
+-[Unreleased]: https://github.com/adoptoposs/mjml_nif/compare/v0.3.0...HEAD
++[Unreleased]: https://github.com/adoptoposs/mjml_nif/compare/v1.0.0...HEAD
++[1.0.0]: https://github.com/adoptoposs/mjml_nif/compare/v0.3.1...v1.0.0
+ [0.3.1]: https://github.com/adoptoposs/mjml_nif/compare/v0.3.0...v0.3.1
+ [0.3.0]: https://github.com/adoptoposs/mjml_nif/compare/v0.2.0...v0.3.0
+ [0.2.0]: https://github.com/adoptoposs/mjml_nif/compare/v0.1.0...v0.2.0
+diff --git a/README.md b/README.md
+index ecc1ab2..e7099fc 100644
+--- a/README.md
++++ b/README.md
+@@ -14,7 +14,7 @@ The package can be installed by adding `mjml` to your list of dependencies in `m
+ ```elixir
+ def deps do
+   [
+-    {:mjml, "~> 0.3.1"}
++    {:mjml, "~> 1.0.0"}
+   ]
+ end
+ ```
+diff --git a/native/mjml_nif/src/lib.rs b/native/mjml_nif/src/lib.rs
+index 7e4d349..fe1e96a 100644
+--- a/native/mjml_nif/src/lib.rs
++++ b/native/mjml_nif/src/lib.rs
+@@ -10,9 +10,16 @@ mod atoms {
+ 
+ #[rustler::nif]
+ pub fn to_html<'a>(env: Env<'a>, mjml: String) -> NifResult<Term<'a>> {
+-    return match mrml::to_html(&mjml, mrml::Options::default()) {
+-        Ok(content) => Ok((atoms::ok(), content).encode(env)),
+-        Err(_) => Ok((atoms::error(), "Couldn't convert MJML template").encode(env)),
++    return match mrml::parse(&mjml) {
++        Ok(root) => {
++            let options = mrml::prelude::render::Options::default();
++
++            return match root.render(&options) {
++                Ok(content) => Ok((atoms::ok(), content).encode(env)),
++                Err(error) => Ok((atoms::error(), error.to_string()).encode(env)),
++            };
++        }
++        Err(error) => Ok((atoms::error(), error.to_string()).encode(env)),
+     };
+ }
+ 

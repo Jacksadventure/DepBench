@@ -1,0 +1,374 @@
+diff --git a/app/react/RelationTypes/components/AddRelationshipTypeButton.tsx b/app/react/RelationTypes/components/AddRelationshipTypeButton.tsx
+index 2bcf6e1c089..f20acaebb8f 100644
+--- a/app/react/RelationTypes/components/AddRelationshipTypeButton.tsx
++++ b/app/react/RelationTypes/components/AddRelationshipTypeButton.tsx
+@@ -1,13 +1,17 @@
+ import React, { useState } from 'react';
+ import { bindActionCreators, Dispatch } from 'redux';
+ import { connect, ConnectedProps } from 'react-redux';
+-import { useForm } from 'react-hook-form';
++import { SubmitHandler, useForm } from 'react-hook-form';
+ import { Translate } from 'app/I18N';
+ import { IStore } from 'app/istore';
+ import Modal from 'app/Layout/Modal';
+ import { Icon } from 'UI';
+ import { saveRelationType } from '../actions/relationTypeActions';
+ 
++type FormInputs = {
++  relationshipType: string;
++};
++
+ const mapDispatchToProps = (dispatch: Dispatch<{}>) =>
+   bindActionCreators(
+     {
+@@ -27,11 +31,15 @@ type mappedProps = ConnectedProps<typeof connector>;
+ const AddRelationshipTypeButton = ({ relationshipTypeSave, relationshipTypes }: mappedProps) => {
+   const [open, setOpen] = useState(false);
+ 
+-  const { register, handleSubmit, errors } = useForm({
++  const {
++    register,
++    handleSubmit,
++    formState: { errors },
++  } = useForm<FormInputs>({
+     mode: 'onSubmit',
+   });
+ 
+-  const onSave = (data: { relationshipType: string }) => {
++  const onSave: SubmitHandler<FormInputs> = data => {
+     const relationship = {
+       name: data.relationshipType,
+       properties: [],
+@@ -66,9 +74,8 @@ const AddRelationshipTypeButton = ({ relationshipTypeSave, relationshipTypes }:
+             </label>
+             <input
+               type="text"
+-              name="relationshipType"
+               id="relationshipTypeInput"
+-              ref={register({
++              {...register('relationshipType', {
+                 required: true,
+                 validate: {
+                   duplicated: value => isNotDuplicated(value),
+diff --git a/app/react/Settings/components/CollectionSettings.tsx b/app/react/Settings/components/CollectionSettings.tsx
+index 44ed79299fe..6067693c991 100644
+--- a/app/react/Settings/components/CollectionSettings.tsx
++++ b/app/react/Settings/components/CollectionSettings.tsx
+@@ -6,7 +6,7 @@ import { connect, ConnectedProps } from 'react-redux';
+ import { Settings } from 'shared/types/settingsType';
+ import { Translate, t } from 'app/I18N';
+ import { IStore, ClientTemplateSchema } from 'app/istore';
+-import { useForm } from 'react-hook-form';
++import { SubmitHandler, useForm } from 'react-hook-form';
+ import { actions } from 'app/BasicReducer';
+ import { notificationActions } from 'app/Notifications';
+ import { ToggleButton } from 'app/UI';
+@@ -53,27 +53,13 @@ const CollectionSettings = ({
+     setValue,
+     getValues,
+     formState: { errors },
+-  } = useForm({
++  } = useForm<Settings>({
++    // @ts-ignore
+     defaultValues: collectionSettingsObject,
+     mode: 'onSubmit',
+   });
+ 
+-  register('private');
+-  register('openPublicEndpoint');
+-  register('allowedPublicTemplates');
+-  register('mapStartingPoint');
+-  register('cookiepolicy');
+-  register('newNameGeneration');
+-  register('ocrServiceEnabled');
+-  register('home_page', {
+-    validate: (val: string) => validateHomePageRoute(val) || val === '',
+-  });
+-  register('tilesProvider');
+-  register('mapApiKey', {
+-    pattern: /^[a-zA-Z0-9._]+$/,
+-  });
+-
+-  const save = async (newCollectionSettings: Settings) => {
++  const save: SubmitHandler<Settings> = async newCollectionSettings => {
+     const saveParameters = new RequestParams({
+       ...collectionSettingsObject,
+       ...newCollectionSettings,
+@@ -99,7 +85,7 @@ const CollectionSettings = ({
+           </h2>
+ 
+           <SettingsFormElement label="Collection name">
+-            <input type="text" name="site_name" ref={register} className="form-control" />
++            <input type="text" {...register('site_name')} className="form-control" />
+           </SettingsFormElement>
+ 
+           <SettingsFormElement label="Custom favicon" tip={tips.customFavIcon}>
+@@ -109,7 +95,7 @@ const CollectionSettings = ({
+                 setValue('favicon', '');
+               }}
+             >
+-              <input type="text" name="favicon" ref={register} className="form-control" />
++              <input type="text" {...register('favicon')} className="form-control" />
+             </ToggleChildren>
+           </SettingsFormElement>
+ 
+@@ -124,7 +110,14 @@ const CollectionSettings = ({
+                 <span className="input-group-addon" id="basic-addon1">
+                   <Translate>https://yourdomain</Translate>
+                 </span>
+-                <input type="text" className="form-control" name="home_page" ref={register} />
++                <input
++                  type="text"
++                  className="form-control"
++                  {...register('home_page', {
++                    validate: (val: string | undefined) =>
++                      validateHomePageRoute(val as string) || val === '',
++                  })}
++                />
+               </div>
+               <div className="has-error">
+                 {errors.home_page && (
+@@ -137,7 +130,7 @@ const CollectionSettings = ({
+           </SettingsFormElement>
+           <SettingsFormElement label="Default view">
+             <div className="col-xs-12 col-lg-3 col-no-gutters">
+-              <select name="defaultLibraryView" className="form-control" ref={register}>
++              <select className="form-control" {...register('defaultLibraryView')}>
+                 <option value="cards">{t('System', 'Cards', null, false)}</option>
+                 <option value="table">{t('System', 'Table', null, false)}</option>
+                 <option value="map">{t('System', 'Map', null, false)}</option>
+@@ -147,7 +140,7 @@ const CollectionSettings = ({
+ 
+           <SettingsFormElement label="Date format">
+             <div className="col-xs-12 col-lg-3 col-no-gutters">
+-              <select name="dateFormat" className="form-control" ref={register}>
++              <select className="form-control" {...register('dateFormat')}>
+                 <option value="yyyy/MM/dd">
+                   2021/02/26 ({year}, {month}, {day})
+                 </option>
+@@ -193,7 +186,7 @@ const CollectionSettings = ({
+               <ToggleButton
+                 checked={Boolean(watch('newNameGeneration'))}
+                 onClick={() => {
+-                  setValue('newNameGeneration', !getValues('newNameGeneration'));
++                  setValue('newNameGeneration', getValues('newNameGeneration'));
+                 }}
+               />
+             </SettingsFormElement>
+@@ -210,12 +203,7 @@ const CollectionSettings = ({
+                 setValue('analyticsTrackingId', '');
+               }}
+             >
+-              <input
+-                type="text"
+-                name="analyticsTrackingId"
+-                ref={register}
+-                className="form-control"
+-              />
++              <input type="text" {...register('analyticsTrackingId')} className="form-control" />
+             </ToggleChildren>
+           </SettingsFormElement>
+ 
+@@ -226,7 +214,7 @@ const CollectionSettings = ({
+                 setValue('matomoConfig', '');
+               }}
+             >
+-              <input type="text" name="matomoConfig" ref={register} className="form-control" />
++              <input type="text" {...register('matomoConfig')} className="form-control" />
+             </ToggleChildren>
+           </SettingsFormElement>
+ 
+@@ -258,14 +246,13 @@ const CollectionSettings = ({
+               }}
+             >
+               <SettingsFormElement label="Receiving email" tip={tips.emails[1]}>
+-                <input type="text" ref={register} name="contactEmail" className="form-control" />
++                <input type="text" {...register('contactEmail')} className="form-control" />
+               </SettingsFormElement>
+ 
+               <SettingsFormElement label="Sending email" tip={tips.emails[2]}>
+                 <input
+                   type="text"
+-                  ref={register}
+-                  name="senderEmail"
++                  {...register('senderEmail')}
+                   placeholder="no-reply@uwazi.io"
+                   className="form-control"
+                 />
+@@ -291,8 +278,7 @@ const CollectionSettings = ({
+               >
+                 <input
+                   type="text"
+-                  name="publicFormDestination"
+-                  ref={register}
++                  {...register('publicFormDestination')}
+                   className="form-control"
+                 />
+               </SettingsFormElement>
+@@ -331,7 +317,7 @@ const CollectionSettings = ({
+           </h2>
+           <SettingsFormElement label="Map provider">
+             <div className="col-xs-12 col-lg-3 col-no-gutters">
+-              <select name="tilesProvider" className="form-control" ref={register}>
++              <select className="form-control" {...register('tilesProvider')}>
+                 <option value="mapbox">{t('System', 'MapBox', null, false)}</option>
+                 <option value="google">{t('System', 'Google Maps', null, false)}</option>
+               </select>
+@@ -339,7 +325,11 @@ const CollectionSettings = ({
+           </SettingsFormElement>
+           <div className={`${errors.mapApiKey ? 'has-error' : ''}`}>
+             <SettingsFormElement label="Map api key" tip={tips.mapApiKey}>
+-              <input type="text" name="mapApiKey" ref={register} className="form-control" />
++              <input
++                type="text"
++                {...register('mapApiKey', { pattern: /^[a-zA-Z0-9._]+$/ })}
++                className="form-control"
++              />
+             </SettingsFormElement>
+           </div>
+           <SettingsFormElement label="Custom starting location" tip={tips.mapAxis}>
+diff --git a/app/react/Thesauri/components/AddThesaurusButton.tsx b/app/react/Thesauri/components/AddThesaurusButton.tsx
+index 6906c9ac4a1..d14590f284b 100644
+--- a/app/react/Thesauri/components/AddThesaurusButton.tsx
++++ b/app/react/Thesauri/components/AddThesaurusButton.tsx
+@@ -1,7 +1,7 @@
+ import React, { useState } from 'react';
+ import { bindActionCreators, Dispatch } from 'redux';
+ import { connect, ConnectedProps } from 'react-redux';
+-import { useForm } from 'react-hook-form';
++import { SubmitHandler, useForm } from 'react-hook-form';
+ import { Translate } from 'app/I18N';
+ import Modal from 'app/Layout/Modal';
+ import { IStore } from 'app/istore';
+@@ -27,11 +27,15 @@ type mappedProps = ConnectedProps<typeof connector>;
+ const AddThesaurusButton = ({ thesaurusSave, thesauri }: mappedProps) => {
+   const [open, setOpen] = useState(false);
+ 
+-  const { register, handleSubmit, errors } = useForm({
++  const {
++    register,
++    handleSubmit,
++    formState: { errors },
++  } = useForm<{ thesaurus: string }>({
+     mode: 'onSubmit',
+   });
+ 
+-  const onSave = (data: { thesaurus: string }) => {
++  const onSave: SubmitHandler<{ thesaurus: string }> = data => {
+     const thesaurus = {
+       name: data.thesaurus,
+       values: [],
+@@ -73,9 +77,8 @@ const AddThesaurusButton = ({ thesaurusSave, thesauri }: mappedProps) => {
+             </label>
+             <input
+               type="text"
+-              name="thesaurus"
+               id="thesaurusInput"
+-              ref={register({
++              {...register('thesaurus', {
+                 required: true,
+                 validate: {
+                   duplicated: value => isNotDuplicated(value),
+diff --git a/app/react/Users/components/UserSidePanel.tsx b/app/react/Users/components/UserSidePanel.tsx
+index c2df1fbed24..99a17c53933 100644
+--- a/app/react/Users/components/UserSidePanel.tsx
++++ b/app/react/Users/components/UserSidePanel.tsx
+@@ -37,7 +37,11 @@ export const UserSidePanel = ({
+   const [selectedGroups, setSelectedGroups] = useState(
+     user.groups ? user.groups.map(group => group._id!.toString()) : []
+   );
+-  const { register, handleSubmit, errors } = useForm({ defaultValues: user });
++  const {
++    register,
++    handleSubmit,
++    formState: { errors },
++  } = useForm({ defaultValues: user });
+   const availableGroups = groups;
+   const userRoles = Object.values(UserRole).map(role => t('System', role, null, false));
+ 
+@@ -68,8 +72,8 @@ export const UserSidePanel = ({
+       </div>
+       <div className={`sidepanel-body ${user._id ? 'footer-extra-row' : ''}`}>
+         <form id="userFrom" className="user-form" onSubmit={handleSubmit(saveUser)}>
+-          <input type="hidden" name="_id" ref={register} />
+-          <input type="hidden" name="using2fa" ref={register} />
++          <input type="hidden" {...register('_id')} />
++          <input type="hidden" {...register('using2fa')} />
+ 
+           <div id="email_field" className="form-group nested-selector">
+             <label>
+@@ -79,8 +83,7 @@ export const UserSidePanel = ({
+               type="email"
+               className="form-control"
+               autoComplete="off"
+-              name="email"
+-              ref={register({
++              {...register('email', {
+                 required: true,
+                 validate: isUnique,
+                 maxLength: 256,
+@@ -109,7 +112,7 @@ export const UserSidePanel = ({
+                 <Icon icon="info-circle" />
+               </button>
+             </div>
+-            <select name="role" className="form-control" ref={register}>
++            <select className="form-control" {...register('role')}>
+               {userRoles.map((role: string) => (
+                 <option key={role} value={role}>
+                   {t('System', roleTranslationKey[role], null, false)}
+@@ -125,8 +128,7 @@ export const UserSidePanel = ({
+               type="text"
+               className="form-control"
+               autoComplete="off"
+-              name="username"
+-              ref={register({
++              {...register('username', {
+                 required: true,
+                 validate: isUnique,
+                 maxLength: 50,
+@@ -155,8 +157,7 @@ export const UserSidePanel = ({
+               type="password"
+               className="form-control"
+               autoComplete="off"
+-              name="password"
+-              ref={register({ maxLength: 50 })}
++              {...register('password', { maxLength: 50 })}
+             />
+             {errors.password && (
+               <div className="validation-error">
+diff --git a/app/react/Users/components/usergroups/UserGroupSidePanel.tsx b/app/react/Users/components/usergroups/UserGroupSidePanel.tsx
+index 96a6eef4886..b154a9ce03d 100644
+--- a/app/react/Users/components/usergroups/UserGroupSidePanel.tsx
++++ b/app/react/Users/components/usergroups/UserGroupSidePanel.tsx
+@@ -33,7 +33,11 @@ export const UserGroupSidePanel = ({
+   onDelete,
+ }: UserGroupSidePanelProps) => {
+   const [selectedUsers, setSelectedUsers] = useState<string[]>(mapUserIds(userGroup.members));
+-  const { register, handleSubmit, errors } = useForm({ defaultValues: userGroup });
++  const {
++    register,
++    handleSubmit,
++    formState: { errors },
++  } = useForm({ defaultValues: userGroup });
+   const availableUsers = sortByName(users);
+ 
+   const saveGroup = (groupToSave: UserGroupSchema) => {
+@@ -59,7 +63,7 @@ export const UserGroupSidePanel = ({
+       </div>
+       <div className="sidepanel-body">
+         <form id="userGroupFrom" className="user-group-form" onSubmit={handleSubmit(saveGroup)}>
+-          <input type="hidden" name="_id" ref={register} />
++          <input type="hidden" {...register('_id')} />
+           <div id="name_field" className="form-group nested-selector">
+             <label>
+               <Translate>Name of the group</Translate>
+@@ -68,8 +72,7 @@ export const UserGroupSidePanel = ({
+               type="text"
+               className="form-control"
+               autoComplete="off"
+-              name="name"
+-              ref={register({
++              {...register('name', {
+                 required: true,
+                 validate: isUnique,
+                 maxLength: 50,
