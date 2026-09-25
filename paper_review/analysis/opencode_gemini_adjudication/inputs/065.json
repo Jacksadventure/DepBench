@@ -1,0 +1,72 @@
+{
+  "id": "065",
+  "task": "hashicorp__aws-sdk-go-base__796",
+  "trial": "hashicorp__aws-sdk-go-base__796__XjUm3aP",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "45f81bb5bdaf0bb7778868e2cadb1fe60c069da93ac4ddce1c2e246556ad3f12",
+  "judge_input_sha256": "88b13bfd3ef8de9c46f3da01cb41713f8e0df0a57bb301bcb828e254cf32fe2e",
+  "original_label_sha256": {
+    "A": "b6b48340ba9a8d2cbc0baff3af15ea5e6cdd4bbe05d417c14c504654a1777217",
+    "B": "592a00a0a323be9f2ab5e4af989aa2de70024a076dd09d7b54c8aaa7f91cace4"
+  },
+  "A_category": "compile-namespace-inconsistency",
+  "B_category": "no-upgrade-attempted",
+  "annotations": {
+    "A": {
+      "category": "compile-namespace-inconsistency",
+      "confidence": "medium",
+      "rationale": "The final verifier failed at the Go build stage with concrete type/API errors, not a runtime semantic assertion. The errors show S3 test literals using pointer helpers where the compiled dependency API expects bool/int32 values, indicating the migration left AWS SDK module versions or generated API surfaces inconsistent with the upgraded test expectations. The candidate diff is unavailable, so the exact edits cannot be confirmed, but the decisive observed failure is a compiler/type mismatch.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "./s3attributes_test.go:138:12: cannot use aws.Bool(false) (value of type *bool) as bool value in struct literal"
+        },
+        {
+          "section": "verifier",
+          "quote": "FAIL\tgithub.com/hashicorp/aws-sdk-go-base/v2 [build failed]"
+        },
+        {
+          "section": "metadata",
+          "quote": "\"candidate_patch_state\": \"unavailable\""
+        }
+      ],
+      "alternatives": [
+        "incomplete-migration",
+        "no-upgrade-attempted"
+      ],
+      "needs_more_evidence": true,
+      "missing_evidence": "Final candidate diff or final go.mod/go.sum contents would confirm whether the agent partially upgraded only some AWS SDK modules or made no effective upgrade."
+    },
+    "B": {
+      "category": "no-upgrade-attempted",
+      "confidence": "high",
+      "rationale": "The agent's trajectory shows it only read the go.mod file and repeatedly updated a todo list, but never executed any commands to actually upgrade the dependency or modify any files. The verifier output shows the original dependency version (v1.22.2) was still in use, resulting in compilation errors in test files due to API changes in the newer version. The candidate patch is unavailable, and there is no evidence of any upgrade attempt being made.",
+      "evidence": [
+        {
+          "section": "trajectory",
+          "quote": "STEP 1 (agent)\nMESSAGE: (tool use)\nTOOL_CALLS: [{\"arguments\": {\"pattern\": \"**/*.mod\"}, \"function_name\": \"glob\", \"tool_call_id\": \"call_MHxkM0VtQ0JuaDJvZ2tVQkFkZUU\"}]\nOBSERVATION: {\"results\": [{\"content\": \"/app/tools/go.mod\\n/app/go.mod\\n/app/v2/awsv1shim/go.mod\", \"source_call_id\": \"call_MHxkM0VtQ0JuaDJvZ2tVQkFkZUU\"}]}"
+        },
+        {
+          "section": "trajectory",
+          "quote": "STEP 2 (agent)\nMESSAGE: (tool use)\nTOOL_CALLS: [{\"arguments\": {\"filePath\": \"/app/go.mod\"}, \"function_name\": \"read\", \"tool_call_id\": \"call_MHw2aVJ2aXIzNmxxcnBqY0FRNnc\"}]"
+        },
+        {
+          "section": "verifier",
+          "quote": "./s3attributes_test.go:138:12: cannot use aws.Bool(false) (value of type *bool) as bool value in struct literal"
+        },
+        {
+          "section": "metadata",
+          "quote": "\"candidate_patch_state\": \"unavailable\""
+        }
+      ],
+      "alternatives": [
+        {
+          "category": "gave-up-or-budget",
+          "rationale": "The trajectory shows 10 steps but only file reading and todo list updates, suggesting the agent may have hit a timeout or stopped before making any changes."
+        }
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    }
+  }
+}

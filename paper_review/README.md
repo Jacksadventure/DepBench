@@ -72,14 +72,18 @@ to refer to that main distribution, not to this historical review cohort.
 [Supplementary evidence](analysis/README.md) adds statistical sensitivity and
 runtime-budget audits plus an independent two-model annotation of the 150
 OpenCode + Gemini non-passes. The models agree on 80 cases (53.3%, kappa 0.450);
-69 concrete-category disagreements and one insufficient-evidence case remain
-separate. No human review or category adjudication is claimed for this new study.
-Frozen inputs, raw model outputs and an offline verifier are provided.
+69 concrete-category disagreements and one insufficient-evidence case are
+preserved in the pre-adjudication records. A subsequent GPT-6 Astra stage
+adjudicated all 69 disagreements: 62 received concrete categories and seven
+received insufficient-evidence labels. The final table retains eight
+insufficient-evidence cases, including the original one.
 
-The restored Table 5 column reports pre-adjudication consensus, unlike the other
-four historical final/adjudicated columns; their frequencies are not directly
-comparable. New supplementary annotations do not change tasks, benchmark rewards
-or selected trajectories. They are not new coding-agent executions.
+The final Table 5 column combines original consensus and third-model adjudication;
+the other four columns retain their historical final categories. Annotation
+protocols and paired coverage still differ. Original independent agreement is not
+recomputed after adjudication. Frozen inputs, raw decisions and an offline verifier
+are provided; no human review is claimed. These supplements do not change tasks,
+benchmark rewards or selected trajectories, and are not new coding-agent executions.
 
 ## Task membership and licensing
 

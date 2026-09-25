@@ -15,7 +15,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "paper_review/analysis"
-STUDIES = ("opencode_gemini_dual_annotation", "rebuttal_supplements", "budget_audit")
+STUDIES = (
+    "opencode_gemini_dual_annotation", "opencode_gemini_adjudication",
+    "rebuttal_supplements", "budget_audit",
+)
 
 
 def sha256(data: bytes) -> str:
@@ -39,13 +42,18 @@ def main() -> None:
     prefix = args.strip_local_prefix.rstrip("/") + "/"
     if prefix == "/":
         parser.error("a specific host-local prefix is required")
+    adjudication = json.loads(
+        (args.source_analysis / "opencode_gemini_adjudication/summary.json").read_text()
+    )
+    if adjudication["adjudicated"] != 69 or adjudication["selected_nonpasses"] != 150:
+        raise SystemExit("GPT-6 adjudication must be complete before publication")
     inventory = []
     for study in STUDIES:
         source = args.source_analysis / study
         if not source.is_dir():
             raise SystemExit(f"missing source study: {study}")
         for path in sorted(source.rglob("*")):
-            if (not path.is_file() or path.name == "README.md"
+            if (not path.is_file() or (path.name == "README.md" and study != "opencode_gemini_adjudication")
                     or path.suffix not in {".json", ".csv", ".jsonl", ".md"}):
                 continue
             relative = Path(study) / path.relative_to(source)
@@ -94,6 +102,10 @@ def main() -> None:
         "dual_annotation_configuration": "gemini35flash__opencode",
         "dual_annotation_cases": 150, "new_benchmark_runs": False,
         "human_review_claimed": False,
+        "adjudication": {
+            "path": "opencode_gemini_adjudication", "model": adjudication["judge_model"],
+            "cases": 69, "pre_adjudication_statistics_changed": False,
+        },
         "files": inventory,
     }
     (TARGET / "supplement_manifest.json").write_text(json.dumps(publication, indent=2) + "\n")

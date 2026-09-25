@@ -28,6 +28,9 @@ The original four-configuration failure cohort has 475 non-passes and 213 usable
 independent label pairs (62.4% agreement, kappa 0.504). The other 262 cases are not
 counted as agreements. These files preserve that analysis, not the later
 [150-pair independent study](../opencode_gemini_dual_annotation/README.md).
+The [subsequent GPT-6 adjudication](../opencode_gemini_adjudication/README.md)
+supplies final categories for the 69 disagreements without changing that study's
+pre-adjudication statistics.
 RQ4 field-specific agreement uses its own paired subsets, not all 2,030 records.
 Do not pool agreement statistics from different annotation studies.
 

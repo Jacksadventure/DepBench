@@ -1,0 +1,73 @@
+{
+  "id": "011",
+  "task": "MystenLabs__fastcrypto__460",
+  "trial": "MystenLabs__fastcrypto__460__kGnFzDi",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "a5556b9e6d166bd3972953f8009cd72585299aa5897c001f1809029e7a385b71",
+  "judge_input_sha256": "2492c73d9a2a78ebe04b9a66ba0e8f8a80c247d9504bf4b804c48b5b46596a0e",
+  "original_label_sha256": {
+    "A": "37c0ab5d636ab967579d68ff0382e49a2dc2d47dbe426d534737ff809f011c7c",
+    "B": "23c1378217126e286fa01f87e0908dc05c2a3c53a4708f60093a62507578d005"
+  },
+  "A_category": "install-build-failure",
+  "B_category": "gave-up-or-budget",
+  "annotations": {
+    "A": {
+      "category": "install-build-failure",
+      "confidence": "medium",
+      "rationale": "The verifier did not reach Rust compilation or test assertions; `cargo test --no-fail-fast` timed out after 1200 seconds while only reporting a crates.io index update. The candidate patch changed only `fastcrypto-zkp/Cargo.toml` dependency versions, leaving dependency resolution/lockfile state unresolved, so evaluation was blocked at the install/build dependency phase rather than by a concrete source compiler diagnostic. The agent also timed out during this work, but the decisive observed verifier failure is Cargo dependency/index resolution hanging.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "stderr_seq = [b'    Updating crates.io index\\n']"
+        },
+        {
+          "section": "verifier",
+          "quote": "subprocess.TimeoutExpired: Command '['bash', '-c', 'cargo test --no-fail-fast']' timed out after 1200 seconds"
+        },
+        {
+          "section": "candidate_patch",
+          "quote": "diff --git a/fastcrypto-zkp/Cargo.toml b/fastcrypto-zkp/Cargo.toml"
+        },
+        {
+          "section": "candidate_patch",
+          "quote": "ark-ff = { version = \"=0.4.1\", features = [\"asm\", \"parallel\"]}"
+        }
+      ],
+      "alternatives": [
+        "incomplete-migration",
+        "gave-up-or-budget"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    },
+    "B": {
+      "category": "gave-up-or-budget",
+      "confidence": "high",
+      "rationale": "The agent spent its entire trajectory attempting to resolve dependency resolution issues (network timeouts, offline cache conflicts) and never produced a compilable or testable upgrade. The verifier timed out after 1200 seconds on 'cargo test --no-fail-fast' with only 'Updating crates.io index' in stderr, indicating the candidate patch could not be built or tested. The recorded exception is AgentTimeoutError, and the trajectory shows the agent was still diagnosing cargo registry problems at step 54 without completing the migration.",
+      "evidence": [
+        {
+          "section": "metadata",
+          "quote": "\"recorded_exception\": \"AgentTimeoutError\""
+        },
+        {
+          "section": "verifier",
+          "quote": "subprocess.TimeoutExpired: Command '['bash', '-c', 'cargo test --no-fail-fast']' timed out after 1200 seconds"
+        },
+        {
+          "section": "verifier",
+          "quote": "stderr_seq = [b'    Updating crates.io index\\n']"
+        },
+        {
+          "section": "trajectory",
+          "quote": "STEP 54 (agent)\nMESSAGE: Ah! None of the 0.4.x / 0.4.1 crates are in the cache!\nSo why did Cargo offline say:"
+        }
+      ],
+      "alternatives": [
+        "infra-exception"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    }
+  }
+}

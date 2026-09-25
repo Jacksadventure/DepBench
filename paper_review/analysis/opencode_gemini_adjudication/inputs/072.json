@@ -1,0 +1,72 @@
+{
+  "id": "072",
+  "task": "iterative__dvc__7899",
+  "trial": "iterative__dvc__7899__5zAUvTX",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "59b2f93f01c2ab68910ff62d787b1b276ad35830301a44f18ccd323eeb365cc3",
+  "judge_input_sha256": "2f17ea37ea0c282bc74b520b1a85bbdc61c612f38ac741c66a918201ae9802ae",
+  "original_label_sha256": {
+    "A": "e0bbaee434b002c57851ea2445fe27e115cec9592d74245ba077c32a01759c51",
+    "B": "1a1de11ab9f3aa6adc20984e4d47f1273130f0c0e9aaa1826a4c8b0e3f5b9100"
+  },
+  "A_category": "incomplete-migration",
+  "B_category": "wrong-semantic-output",
+  "annotations": {
+    "A": {
+      "category": "incomplete-migration",
+      "confidence": "high",
+      "rationale": "The candidate only relaxed the networkx version constraint and did not update any source code paths that depend on changed DOT/pydot behavior. The verifier ran the upgraded tests and failed in DAG DOT rendering because labels such as numeric or colon-containing nodes were emitted unquoted. The concrete omitted source surface is dvc/commands/dag.py, where label quoting/relabeling was needed for compatibility.",
+      "evidence": [
+        {
+          "section": "candidate_patch",
+          "quote": "+    networkx>=2.5"
+        },
+        {
+          "section": "verifier",
+          "quote": "FAILED tests/unit/command/test_dag.py::test_show_dot"
+        },
+        {
+          "section": "verifier",
+          "quote": "Extra items in the left set:"
+        },
+        {
+          "section": "reference_patch",
+          "quote": "def _quote_label(node):"
+        }
+      ],
+      "alternatives": [
+        "wrong-semantic-output"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    },
+    "B": {
+      "category": "wrong-semantic-output",
+      "confidence": "high",
+      "rationale": "The agent only relaxed the version constraint in setup.cfg but did not adapt the source code to the upgraded networkx API. The verifier shows that tests test_show_dot and test_show_dot_properly_escapes fail because node labels are no longer quoted, which is a behavioral change in networkx's write_dot output. The reference patch includes code changes in dag.py and graph.py to handle this, which the agent omitted.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "FAILED tests/unit/command/test_dag.py::test_show_dot_properly_escapes - asser..."
+        },
+        {
+          "section": "verifier",
+          "quote": "Extra items in the left set:"
+        },
+        {
+          "section": "verifier",
+          "quote": "E         '4 -> prepare;'"
+        },
+        {
+          "section": "verifier",
+          "quote": "E         'evaluate;'"
+        }
+      ],
+      "alternatives": [
+        "incomplete-migration"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    }
+  }
+}

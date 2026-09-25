@@ -5,7 +5,7 @@
 import unittest
 
 from package_paper_review_supplements import omit_reasoning
-from validate_paper_review_supplements import kappa, parse_response, quote_present
+from validate_paper_review_supplements import adjudicated_categories, kappa, parse_response, quote_present
 
 
 class SupplementTests(unittest.TestCase):
@@ -40,6 +40,23 @@ class SupplementTests(unittest.TestCase):
         self.assertEqual(cleaned, {"category": "a", "responses": [{"text": "answer"}],
                                    "usage": {"reasoning_tokens": 12}})
         self.assertIn("reasoning_content", original["responses"][0])
+
+    def test_adjudication_preserves_consensus_and_original_abstention(self):
+        paired = [
+            {"id": "001", "disposition": "incomplete-migration"},
+            {"id": "002", "disposition": "annotator-disagreement"},
+            {"id": "003", "disposition": "insufficient-evidence"},
+        ]
+        self.assertEqual(adjudicated_categories(paired, {
+            "002": {"category": "compile-namespace-inconsistency"},
+        }), {"001": "incomplete-migration", "002": "compile-namespace-inconsistency",
+             "003": "insufficient-evidence"})
+
+    def test_adjudication_rejects_missing_and_extra_cases(self):
+        paired = [{"id": "001", "disposition": "annotator-disagreement"}]
+        for decisions in ({}, {"001": {"category": "a"}, "002": {"category": "b"}}):
+            with self.subTest(decisions=decisions), self.assertRaises(SystemExit):
+                adjudicated_categories(paired, decisions)
 
 
 if __name__ == "__main__":

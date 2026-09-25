@@ -6,7 +6,8 @@ coding-agent evaluation. Rebuttal prose is maintained separately.
 
 | Directory | Evidence |
 |---|---|
-| [opencode_gemini_dual_annotation](opencode_gemini_dual_annotation/README.md) | 150 independent two-model label pairs, frozen evidence, protocol, raw outputs, confusion matrix and restored Table 5 |
+| [opencode_gemini_dual_annotation](opencode_gemini_dual_annotation/README.md) | 150 independent two-model label pairs, frozen evidence, protocol, raw outputs, confusion matrix and pre-adjudication Table 5 |
+| [opencode_gemini_adjudication](opencode_gemini_adjudication/README.md) | GPT-6 adjudication of all 69 concrete disagreements and final Table 5; original kappa unchanged |
 | [rebuttal_supplements](rebuttal_supplements/README.md) | Rates, intervals, paired comparisons, sensitivity subsets and historical annotation coverage |
 | [budget_audit](budget_audit/README.md) | Task budgets, measured runtimes, timeout/resource evidence and historical-setting coverage |
 
@@ -19,7 +20,9 @@ python3 repro/validate_paper_review_supplements.py
 This checks publication checksums and selected-run identities, frozen packet and
 rubric hashes, raw-versus-accepted annotation categories, confidence and rationale,
 literal citations, both kappa calculations, confusion counts, scores and budget
-coverage. It does not call models, adjudicate disagreements or rerun agents.
+coverage. It also verifies all 69 GPT-6 decisions and the resulting final counts,
+preserving the 80 original consensus cases and one original abstention.
+It does not call models, perform new adjudication or rerun agents.
 It does not independently reproduce every historical data-collection step or
 bootstrap interval.
 

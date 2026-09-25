@@ -1,0 +1,68 @@
+{
+  "id": "034",
+  "task": "cloudflare__terraform-provider-cloudflare__2049",
+  "trial": "cloudflare__terraform-provider-c__ua9Rgwu",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "cf57e3a78f9fa9e5bc117b74e9b35240c81e01f95e7936775cc9f89d2a621d6d",
+  "judge_input_sha256": "f3bfdeb041043abd26efac68551d9cef1b974d889019621497233e7c83660ebf",
+  "original_label_sha256": {
+    "A": "b02898f14de0fc984b9010facb930c371bbbbd8f5deb7652b901a79291d27dfb",
+    "B": "fa7bdfcfcca4b0ad8760cf058870e24a6a43dc7baa881fc15307992f51ef2d79"
+  },
+  "A_category": "compile-namespace-inconsistency",
+  "B_category": "incomplete-migration",
+  "annotations": {
+    "A": {
+      "category": "compile-namespace-inconsistency",
+      "confidence": "high",
+      "rationale": "The dependency was upgraded to cloudflare-go v0.55.0, but the source still referenced removed or changed API names and signatures. The final verifier failed during Go test compilation with concrete type/API errors in the Workers KV resources, so the decisive failure is a remaining compile/API inconsistency rather than runtime semantics.",
+      "evidence": [
+        {
+          "section": "trajectory",
+          "quote": "go: upgraded github.com/cloudflare/cloudflare-go v0.54.0 => v0.55.0"
+        },
+        {
+          "section": "verifier",
+          "quote": "internal/provider/resource_cloudflare_workers_kv.go:36:23: client.ReadWorkersKV undefined (type *cloudflare.API has no field or method ReadWorkersKV)"
+        },
+        {
+          "section": "verifier",
+          "quote": "internal/provider/resource_cloudflare_workers_kv_namespace.go:56:46: not enough arguments in call to client.ListWorkersKVNamespaces"
+        }
+      ],
+      "alternatives": [
+        "incomplete-migration"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    },
+    "B": {
+      "category": "incomplete-migration",
+      "confidence": "high",
+      "rationale": "The agent successfully bumped the dependency to v0.55.0 but made no source-code edits to adapt to the new API signatures. The verifier shows the same compile errors that appeared during the agent's own build attempt, confirming the migration is incomplete. The reference patch demonstrates the required changes to method names, parameter structures, and schema additions, none of which were applied.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "internal/provider/resource_cloudflare_workers_kv.go:36:23: client.ReadWorkersKV undefined (type *cloudflare.API has no field or method ReadWorkersKV)"
+        },
+        {
+          "section": "verifier",
+          "quote": "internal/provider/resource_cloudflare_workers_kv_namespace.go:30:21: undefined: cloudflare.WorkersKVNamespaceRequest"
+        },
+        {
+          "section": "trajectory",
+          "quote": "go: upgraded github.com/cloudflare/cloudflare-go v0.54.0 => v0.55.0"
+        },
+        {
+          "section": "trajectory",
+          "quote": "STEP 19 (agent)\nMESSAGE: (tool use)"
+        }
+      ],
+      "alternatives": [
+        "gave-up-or-budget"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    }
+  }
+}

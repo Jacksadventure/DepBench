@@ -1,0 +1,71 @@
+{
+  "id": "026",
+  "task": "ardatan__graphql-tools__6921",
+  "trial": "ardatan__graphql-tools__6921__BLNtXVh",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "f5d5519edec5881b2b67b80c4f409501caa7202dd290c890c17247a01dddc5fb",
+  "judge_input_sha256": "0a8b1ecb6d50212688fa19aa4afd949bab3857dc87f12558602d8a73a1d1e5d5",
+  "original_label_sha256": {
+    "A": "bb198fdcfa2a90ced9c30d8629a1f824e561c63507c8d6161a3c092e16853b38",
+    "B": "57bf3e03bc22c0e6b423ce6da1247f3957c28e613cd8dc0c9fb6049109cc0f94"
+  },
+  "A_category": "install-build-failure",
+  "B_category": "incomplete-migration",
+  "annotations": {
+    "A": {
+      "category": "install-build-failure",
+      "confidence": "medium",
+      "rationale": "The upgraded verifier did not fail on a source TypeScript diagnostic or semantic assertion; one Jest suite failed during Babel parsing while the other three suites passed. The candidate upgraded the target dependency but omitted the build/tooling changes needed for the upgraded test surface, such as the explicit resource management Babel plugin shown in the reference patch. Although the candidate also edited tests, the decisive recorded failure is the parser/build configuration gate.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "lowInAnd [as parseExpression] (node_modules/@babel/parser/src/parser/expression.ts:212:17)"
+        },
+        {
+          "section": "verifier",
+          "quote": "Test Suites: 1 failed, 3 passed, 4 total"
+        },
+        {
+          "section": "reference_patch",
+          "quote": "+    \"@babel/plugin-proposal-explicit-resource-management\": \"7.25.9\","
+        },
+        {
+          "section": "candidate_patch",
+          "quote": "+    \"@graphql-tools/executor-graphql-ws\": \"2.0.1\","
+        }
+      ],
+      "alternatives": [
+        "incomplete-migration"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    },
+    "B": {
+      "category": "incomplete-migration",
+      "confidence": "high",
+      "rationale": "The agent upgraded the dependency and fixed the immediate import path and type error, but the verifier reveals a test suite failure in `packages/executors/yoga/tests/yoga.spec.ts`. The reference patch shows that the upgrade to `@graphql-tools/executor-graphql-ws` 2.0.1 requires corresponding changes in the `@graphql-tools/executor-yoga` package to handle the new `DisposableSymbols` interface on the executor. The agent's candidate patch omits these necessary source changes in `packages/executors/yoga/src/index.ts`, which is a concrete omission causing the verifier failure.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "Test Suites: 1 failed, 3 passed, 4 total"
+        },
+        {
+          "section": "reference_patch",
+          "quote": "diff --git a/packages/executors/yoga/src/index.ts b/packages/executors/yoga/src/index.ts\n--- a/packages/executors/yoga/src/index.ts\n+++ b/packages/executors/yoga/src/index.ts\n@@ -1,4 +1,4 @@\n-import { YogaInitialContext, type Plugin } from 'graphql-yoga';\n+import { DisposableSymbols, YogaInitialContext, type Plugin } from 'graphql-yoga';\n import {\n   ExecutorPluginExtras,\n   ExecutorPluginOpts,\n@@ -11,6 +11,12 @@ export function useExecutor(\n   opts?: ExecutorPluginOpts,\n ): Plugin & ExecutorPluginExtras {\n   const envelopPlugin = useEnvelopExecutor<YogaInitialContext>(executor, opts);\n+  let disposableSymbol: typeof DisposableSymbols.asyncDispose | typeof DisposableSymbols.dispose;\n+  if (executor[DisposableSymbols.asyncDispose]) {\n+    disposableSymbol = DisposableSymbols.asyncDispose;\n+  } else if (executor[DisposableSymbols.dispose]) {\n+    disposableSymbol = DisposableSymbols.dispose;\n+  }\n   return {\n     ...envelopPlugin,\n     onRequestParse({ serverContext }) {\n@@ -23,5 +29,8 @@ export function useExecutor(\n         },\n       };\n     },\n+    [disposableSymbol]() {\n+      return executor[disposableSymbol]();\n+    },\n   };\n }"
+        },
+        {
+          "section": "candidate_patch",
+          "quote": "diff --git a/packages/loaders/url/src/index.ts b/packages/loaders/url/src/index.ts\nindex 20f1d5d1..629e774a 100644\n--- a/packages/loaders/url/src/index.ts\n+++ b/packages/loaders/url/src/index.ts\n@@ -165,7 +165,8 @@ export class UrlLoader implements Loader<LoadFromUrlOptions> {\n     });\n     return buildGraphQLWSExecutor({\n       url: WS_URL,\n-      webSocketImpl,\n+      // @ts-expect-error - webSocketImpl is part of the upgraded GraphQLWSExecutorOptions/Client but typing is slightly different\n+      webSocketImpl: webSocketImpl as any,\n       connectionParams,\n     });\n   }"
+        }
+      ],
+      "alternatives": [
+        {
+          "category": "wrong-root-cause",
+          "rationale": "The agent focused solely on the `url-loader` package and did not investigate the failing `yoga` executor test, indicating a misdiagnosis of the scope of required changes."
+        }
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "112",
+  "task": "prettier__prettier__10546",
+  "trial": "prettier__prettier__10546__P23eHZz",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "b7c35e6b43bfba0d8017ffbc73161176421c705c81441e1294cafc6e1729037f",
+  "judge_input_sha256": "47335414d1844668b1f5fc2ff89aed0df92740b5cf7fa7441aca2ca75d7687c0",
+  "original_label_sha256": {
+    "A": "2e767b871bb4c4a09f756b0950b25c2a33c9e692c71ef008fef34017f5d39c3c",
+    "B": "2a2ee66a42df335082d475e3b7d54e87b3c02e2f296c7a87ba19553e16776807"
+  },
+  "A_category": "incomplete-migration",
+  "B_category": "wrong-semantic-output",
+  "annotations": {
+    "A": {
+      "category": "incomplete-migration",
+      "confidence": "high",
+      "rationale": "The agent performed the dependency bump and lockfile update but never implemented the required source change for TypeScript printing. The final verifier executes successfully but fails a snapshot because `import type ... = require(...)` is printed as `import ... = require(...)`, matching the omitted source surface in `src/language-js/print/typescript.js`. The trajectory’s own diff shows only `package.json` and `yarn.lock` edits before the run ended.",
+      "evidence": [
+        {
+          "section": "trajectory",
+          "quote": "+    \"@babel/parser\": \"7.13.11\","
+        },
+        {
+          "section": "trajectory",
+          "quote": "diff --git a/yarn.lock b/yarn.lock"
+        },
+        {
+          "section": "verifier",
+          "quote": "- import type A = require(\"foo\");\nE             + import A = require(\"foo\");"
+        },
+        {
+          "section": "reference_patch",
+          "quote": "if (node.importKind && node.importKind !== \"value\")"
+        }
+      ],
+      "alternatives": [
+        "wrong-semantic-output"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    },
+    "B": {
+      "category": "wrong-semantic-output",
+      "confidence": "high",
+      "rationale": "The agent only bumped the @babel/parser version in package.json and ran yarn install, but did not make any source-code changes to adapt to the parser's behavioral change. The verifier shows a specific snapshot failure in tests/misc/typescript-babel-only where the output for `import type A = require(...)` lost the `type` keyword, indicating the upgraded parser changed the AST representation of TypeScript import-equals declarations. The agent's investigation focused on an unrelated cosmiconfig snapshot failure and never addressed the actual semantic regression.",
+      "evidence": [
+        {
+          "section": "verifier",
+          "quote": "FAIL tests/misc/typescript-babel-only/jsfmt.spec.js"
+        },
+        {
+          "section": "verifier",
+          "quote": "- import type A = require(\"foo\");"
+        },
+        {
+          "section": "verifier",
+          "quote": "+ import A = require(\"foo\");"
+        },
+        {
+          "section": "trajectory",
+          "quote": "diff --git a/package.json b/package.json\nindex 15044a173..6d637bbc1 100644\n--- a/package.json\n+++ b/package.json\n@@ -22,7 +22,7 @@\n   \"dependencies\": {\n     \"@angular/compiler\": \"11.2.6\",\n     \"@babel/code-frame\": \"7.12.13\",\n-    \"@babel/parser\": \"7.13.10\",\n+    \"@babel/parser\": \"7.13.11\","
+        }
+      ],
+      "alternatives": [
+        "incomplete-migration"
+      ],
+      "needs_more_evidence": false,
+      "missing_evidence": ""
+    }
+  }
+}

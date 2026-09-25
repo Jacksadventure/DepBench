@@ -16,11 +16,17 @@ labels. This is automated annotation, not human review.
 | Cohen's kappa, all pairs | 0.44965669060223284 |
 | Kappa excluding the insufficient-evidence pair | 0.453225549114503 |
 
-These are **pre-adjudication** statistics. Disagreements remain unresolved.
+These are **pre-adjudication** statistics, preserving the original disagreements.
 GPT-5.5 requests more evidence in 34 cases, including its one insufficient-evidence
 label; DeepSeek requests none. Tentative concrete categories remain in the primary
 calculation. Agreement is limited and does not establish label accuracy or prove
 that the shared evidence/rubric is sufficient.
+
+A subsequent [GPT-6 adjudication](../opencode_gemini_adjudication/README.md)
+processed all 69 concrete disagreements, assigning concrete categories to 62 and
+insufficient evidence to seven. Including the original abstention, the final table
+has eight insufficient-evidence cases. Original labels, pre-adjudication tables and
+kappa values in this directory remain unchanged.
 
 ## Files
 
@@ -41,8 +47,8 @@ It is not category adjudication. Historical `last_*errors.json` files describe
 prior invocation errors; use `summary.json` and accepted labels for final coverage.
 
 `paired_labels.json` and `.csv` include uncertainty flags; `confusion_matrix.csv`
-contains the full category matrix. `table5.md` and `table5_counts.csv` restore the
-missing column using consensus categories plus separate disagreement and
+contains the full category matrix. `table5.md` and `table5_counts.csv` preserve the
+pre-adjudication column using consensus categories plus separate disagreement and
 insufficient-evidence rows.
 
 **The other four columns retain historical final/adjudicated labels.** Their
