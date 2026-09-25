@@ -21,6 +21,7 @@ this directory is a separate artifact for reviewing the paper's experiments.
 | `results/*reruns_203.csv` | Historical rerun records and replacement provenance |
 | `verify_logs/` | Ten gzip JSONL files aligned with the selected trajectories |
 | `analysis/release_redactions_2026-07-23.csv` | Historical trajectory redaction record |
+| `analysis/README.md` | Supplementary statistics, runtime audit and independent failure annotation |
 | `MANIFEST.json` | Source commits, pinned dataset revision, and cohort boundaries |
 
 ## Provenance and interpretation
@@ -49,6 +50,7 @@ Run these commands from the repository root:
 
 ```bash
 python3 repro/validate_paper_review.py
+python3 repro/validate_paper_review_supplements.py
 
 python3 repro/read_trial.py \
   --artifact-root paper_review \
@@ -64,6 +66,20 @@ The paper-review dataset is committed in this directory; it does not require
 downloading the separate 201-task main dataset. The normal
 `repro/download_benchmark.py` and `repro/validate_release.py` commands continue
 to refer to that main distribution, not to this historical review cohort.
+
+## Supplementary analyses
+
+[Supplementary evidence](analysis/README.md) adds statistical sensitivity and
+runtime-budget audits plus an independent two-model annotation of the 150
+OpenCode + Gemini non-passes. The models agree on 80 cases (53.3%, kappa 0.450);
+69 concrete-category disagreements and one insufficient-evidence case remain
+separate. No human review or category adjudication is claimed for this new study.
+Frozen inputs, raw model outputs and an offline verifier are provided.
+
+The restored Table 5 column reports pre-adjudication consensus, unlike the other
+four historical final/adjudicated columns; their frequencies are not directly
+comparable. New supplementary annotations do not change tasks, benchmark rewards
+or selected trajectories. They are not new coding-agent executions.
 
 ## Task membership and licensing
 

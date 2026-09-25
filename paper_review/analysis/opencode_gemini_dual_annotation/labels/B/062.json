@@ -1,0 +1,52 @@
+{
+  "id": "062",
+  "task": "graphql-hive__graphql-config__1103",
+  "trial": "graphql-hive__graphql-config__11__GYRDmQi",
+  "configuration": "gemini35flash__opencode",
+  "packet_sha256": "603d3cf08c7bd36e73e8b73d54c1625af649fa50a3b25757c3c9fa946d7fa175",
+  "packet_characters": 126331,
+  "candidate_patch_state": "nonempty",
+  "contains_marked_omissions": true,
+  "category": "incomplete-migration",
+  "confidence": "high",
+  "rationale": "The agent upgraded bob-the-bundler to 4.0.0 and updated package.json fields, but the verifier shows the tests fail with 'Cannot find module 'graphql-config''. This indicates the agent did not configure the project's module resolution (e.g., tsconfig paths, jest resolver) to map the self-referencing import to the new build output structure, which is a required part of the migration. The reference patch includes changes to tsconfig.json, jest.config.cjs, and source imports that the agent omitted.",
+  "evidence": [
+    {
+      "section": "verifier",
+      "quote": "Cannot find module 'graphql-config' or its corresponding type declarations."
+    },
+    {
+      "section": "reference_patch",
+      "quote": "diff --git a/tsconfig.json b/tsconfig.json\n--- a/tsconfig.json\n+++ b/tsconfig.json\n@@ -10,7 +10,10 @@\n     \"moduleResolution\": \"node\",\n     \"esModuleInterop\": true,\n     \"noUnusedLocals\": true,\n-    \"noUnusedParameters\": true\n+    \"noUnusedParameters\": true,\n+    \"paths\": {\n+      \"graphql-config\": [\"./src/index.ts\"]\n+    }\n   },"
+    },
+    {
+      "section": "reference_patch",
+      "quote": "diff --git a/jest.config.cjs b/jest.config.cjs\n--- a/jest.config.cjs\n+++ b/jest.config.cjs\n@@ -1,6 +1,12 @@\n+const { pathsToModuleNameMapper } = require('ts-jest');\n+const { resolve } = require('path');\n+\n+const ROOT_DIR = __dirname;\n+const TSCONFIG = resolve(ROOT_DIR, 'tsconfig.json');\n+const tsconfig = require(TSCONFIG);\n+\n // For a detailed explanation regarding each configuration property, visit:\n // https://jestjs.io/docs/en/configuration.html\n-\n module.exports = {\n   // Automatically clear mock calls and instances between every test\n   clearMocks: true,\n@@ -17,6 +23,8 @@ module.exports = {\n \n   // An array of file extensions your modules use\n   moduleFileExtensions: ['ts', 'js'],\n+  modulePathIgnorePatterns: ['dist', '.bob'],\n+  moduleNameMapper: pathsToModuleNameMapper(tsconfig.compilerOptions.paths, { prefix: `${ROOT_DIR}/` }),\n \n   // The test environment that will be used for testing\n   testEnvironment: 'node',\n@@ -25,9 +33,9 @@ module.exports = {\n   testMatch: ['**/test/**/*.spec.ts'],\n \n   // A map from regular expressions to paths to transformers\n-  transform: {\n-    '^.+\\\\.ts$': 'ts-jest',\n-  },\n+  transform: { '^.+\\\\.tsx?$': 'babel-jest' },\n \n   errorOnDeprecated: true,\n+\n+  resolver: 'bob-the-bundler/jest-resolver.js',\n };"
+    }
+  ],
+  "alternatives": [
+    "compile-namespace-inconsistency"
+  ],
+  "needs_more_evidence": false,
+  "missing_evidence": "",
+  "coder": "B",
+  "requested_model": "DeepSeek-V4-Pro",
+  "model": "DeepSeek-V4-Pro",
+  "api": "chat_completions",
+  "response_id": "f90afa26c7224f5eac33f0ba2ea4f179",
+  "usage": {
+    "completion_tokens": 792,
+    "prompt_tokens": 50160,
+    "total_tokens": 50952,
+    "completion_tokens_details": null,
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cached_tokens": 512
+    },
+    "audio_prompt_tokens": 0
+  },
+  "rubric_sha256": "092587596b024dd7ff7e052f7268cf9263d289991ad47de826670e83c9e63569",
+  "created_at": "2026-09-25T05:59:21.057974+00:00",
+  "other_labels_visible": false,
+  "human_review_completed": false
+}
