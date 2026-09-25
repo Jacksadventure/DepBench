@@ -10,7 +10,7 @@ Repeated batches produced 440 normalized-instruction runs over 42 tasks. Table 1
 
 Dependency-upgrade repair remains difficult for these agents. Before publication, we will align documentation and tables, and open-source implementation and reproduction materials under upstream terms.
 
-**Representativeness and auditing [A-Q1; B-D, C-D].** Bot PRs provide identifiable upgrades and accepted repairs, but abandoned, manual, and multi-PR cases remain underrepresented. DepBench therefore has selection/survivorship bias, not universal representativeness.
+**Representativeness and auditing [A-Q1; B-D, C-D].** Bot PRs provide identifiable upgrades and maintainer-accepted repairs, while abandoned, manual, and multi-PR upgrades remain underrepresented. Our goal is an executable, oracle-validated benchmark of upgrade repair, not a representative sample of all real-world upgrades. The resulting selection/survivorship bias limits external generalization, but does not by itself invalidate controlled evaluation and comparison of coding agents within this explicitly defined task scope.
 
 **4,660 candidate PRs → 219 tasks (Docker environments successfully packaged; four-state oracle passed) → 203 tasks retained after human-led, LLM-assisted semantic review (16 candidates removed).**
 
