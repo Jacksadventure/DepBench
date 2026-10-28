@@ -24,6 +24,14 @@ this directory is a separate artifact for reviewing the paper's experiments.
 | `analysis/README.md` | Supplementary statistics, runtime audit and independent failure annotation |
 | `MANIFEST.json` | Source commits, pinned dataset revision, and cohort boundaries |
 
+## Execution budget for new runs
+
+All 203 packaged tasks set `[agent].timeout_sec = 3600` (60 minutes).
+Verifier limits are unchanged. This override applies to new executions of
+these task packages; it does not change the historical runs or their measured
+durations. The frozen runtime-audit inputs retain the task limits captured
+when that audit was collected, including the earlier 30-minute agent limits.
+
 ## Provenance and interpretation
 
 The experiment artifacts come from

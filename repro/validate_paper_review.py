@@ -10,6 +10,7 @@ import csv
 import gzip
 import json
 import re
+import tomllib
 from collections import Counter
 from pathlib import Path
 
@@ -69,6 +70,8 @@ def main() -> int:
         == (203, 10, 2030),
         "review manifest must describe 203 tasks and 2030 selected trials",
     )
+    agent_timeout = manifest["task_package_overrides"]["agent_timeout_sec"]
+    require(agent_timeout == 3600, "packaged agent limit must be 60 minutes")
     tasks = json.loads((REVIEW / "dataset/task_summary.json").read_text())
     task_ids = {row["folder"] for row in tasks}
     require(len(tasks) == len(task_ids) == 203, "review task index is not unique")
@@ -98,6 +101,11 @@ def main() -> int:
             "tests/test_state.py",
         ):
             require((task_dir / name).is_file(), f"{task}: missing {name}")
+        task_config = tomllib.loads((task_dir / "task.toml").read_text())
+        require(
+            task_config["agent"]["timeout_sec"] == agent_timeout,
+            f"{task}: packaged agent limit must be {agent_timeout} seconds",
+        )
         text = (task_dir / "instruction.md").read_text()
         require(
             "Human Repair Commit Summary" not in text
