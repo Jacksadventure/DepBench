@@ -22,6 +22,7 @@ this directory is a separate artifact for reviewing the paper's experiments.
 | `verify_logs/` | Ten gzip JSONL files aligned with the selected trajectories |
 | `analysis/release_redactions_2026-07-23.csv` | Historical trajectory redaction record |
 | `analysis/README.md` | Supplementary statistics, runtime audit and independent failure annotation |
+| `skills/depupgrader/SKILL.md` | DepUpgrader five-step skill for follow-up dependency-upgrade experiments |
 | `MANIFEST.json` | Source commits, pinned dataset revision, and cohort boundaries |
 
 ## Execution budget for new runs
@@ -31,6 +32,14 @@ Verifier limits are unchanged. This override applies to new executions of
 these task packages; it does not change the historical runs or their measured
 durations. The frozen runtime-audit inputs retain the task limits captured
 when that audit was collected, including the earlier 30-minute agent limits.
+
+## DepUpgrader skill
+
+[DepUpgrader](skills/depupgrader/SKILL.md) contains the five-step skill described
+in the paper. Frozen follow-up experiment records use the identifier
+`deprepair-basic`; this published copy changes only the skill name and heading,
+not the five instructions. This addition does not change the 2,030 historical
+outcomes above or include results from the follow-up skill experiments.
 
 ## Provenance and interpretation
 
