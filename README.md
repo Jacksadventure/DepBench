@@ -2,8 +2,7 @@
 > **Paper-review branch.** The self-contained [paper-review artifact](paper_review/README.md)
 > contains the paper's **203 tasks and 2,030 matching trajectories** from 10
 > configurations, with outcomes and verifier logs. It preserves historical runs;
-> it is not a new evaluation of the source-build release. The `main` release
-> described below remains the separate 201-task distribution. Use
+> it is not a new evaluation of the source-build release. 
 > `paper_review/dataset/` with `paper_review/trajectories/` for paper review.
 
 <div align="center">
@@ -45,11 +44,7 @@ harness for running agents, building isolated task environments, invoking
 verifiers, and collecting trial results.
 
 The contract-clean source snapshot retains 203 valid tasks from the original
-219-task snapshot. The `main` branch distributes **201 tasks** after excluding
-two projects whose repository terms do not provide a clear basis for direct
-redistribution. Each distributed task separates the dependency upgrade, the
-developer repair, and the hidden verifier so that the causal effect of the
-upgrade can be checked directly.
+219-task snapshot.
 
 > [!IMPORTANT]
 > `solution/` and `tests/` are published for reproducibility. Keep both
@@ -241,14 +236,6 @@ The repository includes technical release preparation, but does not itself
 prove completion of Open Source Portal, OSSOM CELA, Open Data, privacy, SDL,
 Responsible AI, trademark, or supply-chain approvals.
 
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or
-services. Authorized use of Microsoft trademarks or logos is subject to and
-must follow Microsoft’s Trademark & Brand Guidelines. Use of Microsoft
-trademarks or logos in modified versions of this project must not cause
-confusion or imply Microsoft sponsorship. Any use of third-party trademarks or
-logos are subject to those third-party’s policies.
 
 ## Release policy
 
