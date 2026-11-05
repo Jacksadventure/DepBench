@@ -4,6 +4,9 @@
 > configurations, with outcomes and verifier logs. It preserves historical runs;
 > it is not a new evaluation of the source-build release. 
 > `paper_review/dataset/` with `paper_review/trajectories/` for paper review.
+>
+> New [failure-root-cause annotation](paper_review/README.md#failure-root-cause-annotation)
+> defaults to **all 10 configurations**, not only Gemini + OpenCode.
 
 <div align="center">
 

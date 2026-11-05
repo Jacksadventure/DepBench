@@ -2,11 +2,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Build compact evidence packets for post-hoc non-pass annotation."""
+"""Build post-hoc non-pass evidence packets across all configurations by default."""
 
 from __future__ import annotations
 
 import argparse
+import csv
 import gzip
 import json
 from pathlib import Path
@@ -16,11 +17,45 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def select_requests(
+    artifact_root: Path,
+    manifest: Path | None = None,
+    configurations: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    if manifest is not None:
+        requested = json.loads(manifest.read_text(encoding="utf-8"))
+    else:
+        with (artifact_root / "results/final_per_task_outcomes.csv").open(
+            newline="", encoding="utf-8"
+        ) as handle:
+            requested = [
+                {
+                    "configuration": row["configuration"],
+                    "task": row["task"],
+                    "trial": row["final_trial"],
+                    "reward": float(row["final_reward"]) if row["final_reward"] else None,
+                }
+                for row in csv.DictReader(handle)
+                if not row["final_reward"] or float(row["final_reward"]) != 1.0
+            ]
+    if configurations:
+        unknown = set(configurations) - {row["configuration"] for row in requested}
+        if unknown:
+            raise ValueError(f"No requested non-passes for configurations: {sorted(unknown)}")
+        requested = [row for row in requested if row["configuration"] in configurations]
+    identities = {(row["configuration"], row["task"]) for row in requested}
+    if len(identities) != len(requested):
+        raise ValueError("Duplicate requested configuration/task")
+    return sorted(requested, key=lambda row: (row["configuration"], row["task"]))
+
+
 def read_jsonl(path: Path) -> dict[str, dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     with gzip.open(path, "rt", encoding="utf-8") as handle:
         for line in handle:
             row = json.loads(line)
+            if row["task"] in rows:
+                raise ValueError(f"Duplicate task in {path}: {row['task']}")
             rows[row["task"]] = row
     return rows
 
@@ -131,9 +166,20 @@ def build_packet(
     trajectory_row: dict[str, Any],
     verifier_row: dict[str, Any],
     max_agent_chars: int,
+    *,
+    artifact_root: Path = ROOT / "paper_review",
 ) -> dict[str, Any]:
     task = requested["task"]
-    task_dir = ROOT / "dataset/tasks" / task
+    for row in (trajectory_row, verifier_row):
+        if row["task"] != task or row.get("trial") != trajectory_row.get("trial"):
+            raise ValueError(f"Evidence task/trial mismatch: {task}")
+        if row.get("reward") != trajectory_row.get("reward"):
+            raise ValueError(f"Evidence reward mismatch: {task}")
+    if "trial" in requested and requested["trial"] != trajectory_row.get("trial"):
+        raise ValueError(f"Evidence does not match final selected trial: {task}")
+    if "reward" in requested and requested["reward"] != trajectory_row.get("reward"):
+        raise ValueError(f"Evidence does not match final selected reward: {task}")
+    task_dir = artifact_root / "dataset/tasks" / task
     return {
         "configuration": requested["configuration"],
         "task": task,
@@ -161,23 +207,26 @@ def build_packet(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", type=Path, required=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--artifact-root", type=Path, default=ROOT / "paper_review")
+    parser.add_argument("--manifest", type=Path, help="explicit case selection; defaults to all non-passes")
+    parser.add_argument("--configuration", action="append",
+                        help="restrict to this configuration; repeat for multiple (default: all)")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--max-agent-chars", type=int, default=18000)
     args = parser.parse_args()
 
-    requested = json.loads(args.manifest.read_text(encoding="utf-8"))
+    requested = select_requests(args.artifact_root, args.manifest, args.configuration)
     configurations = sorted({row["configuration"] for row in requested})
     trajectory_maps = {
         configuration: read_jsonl(
-            ROOT / "trajectories" / f"{configuration}.jsonl.gz"
+            args.artifact_root / "trajectories" / f"{configuration}.jsonl.gz"
         )
         for configuration in configurations
     }
     verifier_maps = {
         configuration: read_jsonl(
-            ROOT / "verify_logs" / f"{configuration}.jsonl.gz"
+            args.artifact_root / "verify_logs" / f"{configuration}.jsonl.gz"
         )
         for configuration in configurations
     }
@@ -192,6 +241,7 @@ def main() -> int:
                 trajectory_maps[configuration][task],
                 verifier_maps[configuration][task],
                 args.max_agent_chars,
+                artifact_root=args.artifact_root,
             )
         )
     args.output.parent.mkdir(parents=True, exist_ok=True)

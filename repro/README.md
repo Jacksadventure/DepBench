@@ -2,6 +2,41 @@
 
 This directory contains the minimal helper files for using the release snapshot.
 
+## Failure-root-cause annotation
+
+For the committed paper-review evidence, use
+[`run_multilabel_annotation.py`](run_multilabel_annotation.py). It defaults to
+all 10 configurations and all 1,262 non-passes (including missing rewards) in
+`paper_review/results/final_per_task_outcomes.csv`. It does not default to the
+historical 150-case Gemini + OpenCode subset.
+
+Prepare the evidence without calling any models:
+
+```bash
+python3 repro/run_multilabel_annotation.py \
+  --output results/failure_multilabel \
+  --prepare-only
+```
+
+See the [annotation protocol and runtime commands](../paper_review/README.md#failure-root-cause-annotation)
+for independent multi-label annotation, Astra adjudication, credentials, resume,
+and agreement metrics. `--limit` is only for a global smoke-test subset; omit it
+for the complete cohort.
+
+To export compact evidence packets only, without starting annotation:
+
+```bash
+python3 repro/build_failure_annotation_packets.py \
+  --output results/failure_annotation_packets.json
+```
+
+This also defaults to all configurations under `paper_review`. Use
+`--configuration <name>` (repeatable) or `--manifest <path>` only for an
+intentional subset, and `--artifact-root <path>` for another artifact layout.
+The historical `package_paper_review_supplements.py` and
+`validate_paper_review_supplements.py` preserve the original single-label
+supplement; they are not the entry points for the new all-configuration study.
+
 ## Download the benchmark
 
 The directory-format task contracts are hosted at

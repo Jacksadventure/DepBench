@@ -2,7 +2,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Package saved review analyses; never call models or rerun benchmark tasks."""
+"""Package frozen historical supplements, not the all-configuration annotation study.
+
+The original Gemini/OpenCode selection is historical provenance, not a default
+for new annotation. Never call models or rerun benchmark tasks here.
+"""
 
 from __future__ import annotations
 

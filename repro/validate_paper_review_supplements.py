@@ -2,7 +2,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Validate published supplementary data and recompute two-model agreement."""
+"""Validate frozen historical supplements and their original single-label agreement.
+
+Use run_multilabel_annotation.py for new annotation across all configurations;
+the Gemini/OpenCode cohort below belongs only to the historical supplement.
+"""
 
 from __future__ import annotations
 

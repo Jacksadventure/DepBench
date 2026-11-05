@@ -21,7 +21,7 @@ this directory is a separate artifact for reviewing the paper's experiments.
 | `results/*reruns_203.csv` | Historical rerun records and replacement provenance |
 | `verify_logs/` | Ten gzip JSONL files aligned with the selected trajectories |
 | `analysis/release_redactions_2026-07-23.csv` | Historical trajectory redaction record |
-| `analysis/README.md` | Supplementary statistics, runtime audit and independent failure annotation |
+| `analysis/README.md` (when available) | Optional historical supplementary analyses |
 | `skills/depupgrader/SKILL.md` | DepUpgrader five-step skill for follow-up dependency-upgrade experiments |
 | `MANIFEST.json` | Source commits, pinned dataset revision, and cohort boundaries |
 
@@ -67,7 +67,6 @@ Run these commands from the repository root:
 
 ```bash
 python3 repro/validate_paper_review.py
-python3 repro/validate_paper_review_supplements.py
 
 python3 repro/read_trial.py \
   --artifact-root paper_review \
@@ -84,9 +83,78 @@ downloading the separate 201-task main dataset. The normal
 `repro/download_benchmark.py` and `repro/validate_release.py` commands continue
 to refer to that main distribution, not to this historical review cohort.
 
-## Supplementary analyses
+## Failure-root-cause annotation
 
-[Supplementary evidence](analysis/README.md) adds statistical sensitivity and
+New annotation defaults to **all 10 model-harness configurations**, not only
+Gemini + OpenCode. The current selected-run table contains **1,262 non-passes**
+across the 2,030 runs; rows without a reward are included.
+
+| Model | Harness | Non-passes |
+|---|---|---:|
+| Claude 4.8 | Claude Code | 119 |
+| Claude 4.8 | Copilot CLI | 115 |
+| Claude 4.8 | OpenCode | 124 |
+| Gemini 3.5 Flash | Claude Code | 146 |
+| Gemini 3.5 Flash | Copilot CLI | 146 |
+| Gemini 3.5 Flash | OpenCode | 150 |
+| GPT-5.5 | Claude Code | 133 |
+| GPT-5.5 | Codex | 104 |
+| GPT-5.5 | Copilot CLI | 103 |
+| GPT-5.5 | OpenCode | 122 |
+
+These are the evaluated configurations, not the models performing annotation.
+`repro/run_multilabel_annotation.py` uses Grok 4.7 through the signed-in Copilot
+CLI and GPT-6.1 Sol through CloudGPT as independent, blinded annotators.
+After both finish, GPT-6 Astra adjudicates unequal label sets. Each case can
+have multiple supported causes, with a rationale and checked evidence quotations
+for each label. The taxonomy merges `wrong-root-cause` and
+`wrong-semantic-output` into `code-adaptation-error`; `execution-timeout`
+replaces `gave-up-or-budget` and requires explicit execution-timeout evidence.
+Unsupported cases abstain rather than receive invented causes.
+
+Prepare frozen evidence from all configurations without making model calls:
+
+```bash
+python3 repro/run_multilabel_annotation.py \
+  --output results/failure_multilabel \
+  --prepare-only
+```
+
+To start annotation, sign in with `copilot login`, and supply
+`CLOUDGPT_BASE_URL` and `CLOUDGPT_API_KEY` through approved runtime secret
+injection. No credentials are stored in the repository or generated protocol.
+
+```bash
+python3 repro/run_multilabel_annotation.py \
+  --output results/failure_multilabel \
+  --resume --concurrency 15 --cloudgpt-interval 20
+```
+
+Use the same command to resume interrupted work; validated labels are reused.
+The concurrency is an upper bound: provider request spacing and HTTP 429
+cooldowns may reduce the effective rate. Logs with explicit omission markers
+are bounded evidence excerpts; the original archives remain unchanged.
+
+The ignored output directory contains `manifest.json`, `protocol.json`,
+`packets/`, independent `labels/A/` and `labels/B/`, Astra `labels/judge/`,
+`agreement.json`, and `status.json`. Only after all required adjudications
+finish are `final.jsonl`, `category_counts.csv`, and `summary.json` written.
+Multi-label category counts can exceed the number of cases. Independent
+agreement is measured before adjudication: exact label-set agreement, mean
+Jaccard, and per-label binary Cohen's kappa on cases where both annotators
+did not abstain. A macro-average kappa is the arithmetic mean of those
+defined per-label kappas.
+
+## Historical supplementary analyses (optional)
+
+The following describes the earlier, single-label Gemini + OpenCode supplement,
+not the default scope or results of the new all-configuration annotation.
+Some snapshots do not include `paper_review/analysis/`; the trajectories,
+verifier logs, outcomes and task contracts above remain sufficient for new
+annotation. When the historical supplement is present, validate it with
+`python3 repro/validate_paper_review_supplements.py`.
+
+The historical supplementary evidence adds statistical sensitivity and
 runtime-budget audits plus an independent two-model annotation of the 150
 OpenCode + Gemini non-passes. The models agree on 80 cases (53.3%, kappa 0.450);
 69 concrete-category disagreements and one insufficient-evidence case are
